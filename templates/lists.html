@@ -1,0 +1,14 @@
+{{define "content"}}
+<h2 class="pagetitle">Lists</h2>
+{{range .Lists}}<a class="accrow listrow" href="/lists/{{.ID}}"><span class="dn">{{.Title}}</span><span class="muted small">{{.Members}} account{{if ne .Members 1}}s{{end}}{{if .Exclusive}} · hidden from Home{{end}}</span></a>
+{{else}}<div class="empty">Lists are timelines with just the people you pick. Create one below.</div>{{end}}
+<section class="card">
+  <h3>New list</h3>
+  <form method="post" action="/lists" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Name <input name="title" maxlength="100" required placeholder="e.g. Friends, News, Cooking"></label>
+    {{template "listoptions" (dict "Policy" "list" "Exclusive" false)}}
+    <button class="btn primary">Create list</button>
+  </form>
+</section>
+{{end}}

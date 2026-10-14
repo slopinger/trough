@@ -1,0 +1,19 @@
+{{define "content"}}{{$p := .}}
+<div class="pagehead"><h2 class="pagetitle">{{.List.Title}}</h2><a class="btn small" href="/lists">All lists</a></div>
+<details class="card listedit"><summary>Members ({{len .Accounts}}) and settings</summary>
+  {{range .Accounts}}{{template "accountrow" (dict "A" . "P" $p "Remove" $p.List.ID)}}{{end}}
+  <form method="post" action="/lists/{{.List.ID}}/add" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input name="handle" placeholder="@someone@server you follow" required>
+    <button class="btn">Add</button>
+  </form>
+  <form method="post" action="/lists/{{.List.ID}}/update" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Name <input name="title" maxlength="100" value="{{.List.Title}}"></label>
+    {{template "listoptions" (dict "Policy" .List.RepliesPolicy "Exclusive" .List.Exclusive)}}
+    <button class="btn">Save</button>
+  </form>
+  <form method="post" action="/lists/{{.List.ID}}/delete" class="confirm" data-confirm="Delete this list?"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn danger-outline small">Delete list</button></form>
+</details>
+{{template "statuslist" .}}
+{{end}}

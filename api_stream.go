@@ -101,7 +101,7 @@ func (app *App) publishStatus(statusID string, edited bool) {
 				author = st.BoostOf.AccountID
 			}
 			muted := app.isMuting(s.me.ID, raw.AccountID) || app.isMuting(s.me.ID, author)
-			if s.has("user") && !muted && (raw.AccountID == s.me.ID || app.relationship(s.me.ID, raw.AccountID).Following || mentions(st, s.me.ID)) {
+			if s.has("user") && !muted && app.inHome(s.me, statusID) {
 				s.send(streamMsg{[]string{"user"}, event, string(payload)})
 			}
 			public := raw.Visibility == "public" && raw.BoostOfID == "" && !muted
@@ -297,4 +297,11 @@ func (app *App) serveWebsocket(ws *websocket.Conn, sub *streamSub) {
 			}
 		}
 	}
+}
+
+// inHome reports whether a status belongs in the viewer's home timeline.
+func (app *App) inHome(v *Account, statusID string) bool {
+	where, args := homeSQL(v)
+	sts, err := app.queryStatusesNoQuotes(v, `s.id=? AND `+where, append([]any{statusID}, args...), "", 1, false)
+	return err == nil && len(sts) == 1
 }

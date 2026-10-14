@@ -324,5 +324,8 @@ func (app *App) statusInboxes(st *Status) []string {
 	if st.InReplyToAccount != nil && !st.InReplyToAccount.IsLocal() && st.Visibility != "private" {
 		out = append(out, st.InReplyToAccount.DeliveryInbox())
 	}
+	if st.Visibility == "public" && !st.IsBoost() && st.Local {
+		out = append(out, app.relayInboxes()...)
+	}
 	return out
 }

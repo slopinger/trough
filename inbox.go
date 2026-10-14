@@ -55,7 +55,7 @@ func (app *App) handleInbox(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "signature verification failed", http.StatusUnauthorized)
 		return
 	}
-	if signer.URI != stripFragment(actorIRI) {
+	if signer.URI != stripFragment(actorIRI) && !app.isRelay(signer) {
 		log.Printf("inbox: signer %s does not match actor %s", signer.URI, actorIRI)
 		http.Error(w, "signer does not match actor", http.StatusUnauthorized)
 		return
@@ -92,6 +92,12 @@ func (app *App) isLocalIRI(iri string) bool {
 }
 
 func (app *App) processActivity(ctx context.Context, actor *Account, act obj) error {
+	if app.isRelay(actor) {
+		switch typeOf(act) {
+		case "Announce", "Create", "Update", "Delete":
+			return app.inRelayed(ctx, act)
+		}
+	}
 	switch typeOf(act) {
 	case "Follow":
 		return app.inFollow(actor, act)
@@ -184,6 +190,9 @@ func (app *App) inAcceptReject(ctx context.Context, actor *Account, act obj) err
 			}
 		}
 		if followerID == "" {
+			if app.relayAccept(actor, followURI, typeOf(act) == "Accept") {
+				return nil
+			}
 			return errors.New("unknown follow")
 		}
 	}

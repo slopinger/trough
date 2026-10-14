@@ -69,6 +69,12 @@ type Page struct {
 	MovedTo       *Account
 	Timeline      string // home/local/federated: enables live "new posts"
 	OAuth         *authorizeReq
+	Lists         []List
+	List          *List
+	Relays        []Relay
+	Tag           string
+	TagFollowed   bool
+	FollowedTags  []string
 	Apps          []ConnectedApp
 	AI            bool   // AI writing available
 	AIKeySource   string // admin: where the key comes from
@@ -371,6 +377,7 @@ func (app *App) handleTag(w http.ResponseWriter, r *http.Request, p *Page) {
 		return
 	}
 	p.Title, p.Heading = "#"+tag, "#"+tag
+	p.Tag, p.TagFollowed = tag, app.followsTag(p.Me, tag)
 	p.Statuses = app.applyFilters(p.Me, sts)
 	p.NextURL = nextURL(r, sts)
 	p.Empty = "No public posts with this hashtag are known here."
@@ -764,6 +771,9 @@ func (app *App) showProfile(w http.ResponseWriter, r *http.Request, p *Page, acc
 	if p.Me != nil && p.Me.ID == acc.ID {
 		p.Section = "profile"
 	}
+	if p.Me != nil && p.Rel.Following {
+		p.Lists = app.lists(p.Me)
+	}
 	app.render(w, "profile", p)
 }
 
@@ -917,6 +927,7 @@ func (app *App) handleSettings(w http.ResponseWriter, r *http.Request, p *Page) 
 	p.Account = p.Me
 	p.Filters = app.filtersFor(p.Me.ID)
 	p.Apps = app.connectedApps(p.Me.ID)
+	p.FollowedTags = app.followedTags(p.Me)
 	for _, uri := range p.Me.AlsoKnownAs {
 		if a, err := app.AccountByURI(uri); err == nil {
 			p.Aliases = append(p.Aliases, a)

@@ -272,10 +272,13 @@ func (p prefixScanner) Scan(dest ...any) error {
 // ---- timelines ----
 
 func (app *App) homeTimeline(v *Account, maxID string) ([]*Status, error) {
-	mute, margs := muteSQL(v)
-	return app.queryStatuses(v, `(s.account_id=? OR s.account_id IN (SELECT target_id FROM follows WHERE account_id=? AND accepted=1)
-		OR EXISTS(SELECT 1 FROM mentions m2 WHERE m2.status_id=s.id AND m2.account_id=?)) AND `+mute,
-		append([]any{v.ID, v.ID, v.ID}, margs...), maxID, pageSize, false)
+	where, args := homeSQL(v)
+	return app.queryStatuses(v, where, args, maxID, pageSize, false)
+}
+
+func (app *App) listTimeline(v *Account, l *List, maxID string) ([]*Status, error) {
+	where, args := listSQL(v, l)
+	return app.queryStatuses(v, where, args, maxID, pageSize, false)
 }
 
 func (app *App) localTimeline(v *Account, maxID string) ([]*Status, error) {

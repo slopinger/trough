@@ -44,6 +44,18 @@
     <button class="btn primary">Create invite link</button>
   </form>
 </section>
+<section class="card" id="relays">
+  <h3>Relays</h3>
+  <p class="muted small">A relay shares public posts between many servers, which fills the federated timeline of a small server. Public posts from here are sent to the relay too. Relayed posts are always fetched from their original server.</p>
+  {{if .Relays}}<table class="tbl"><tr><th>Relay</th><th>Status</th><th></th></tr>
+  {{range .Relays}}<tr><td>{{.Inbox}}</td><td>{{if .Accepted}}subscribed{{else}}waiting for approval{{end}}</td>
+    <td><form method="post" action="/admin/relays"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="remove" value="{{.ID}}"><button class="btn small">Remove</button></form></td></tr>{{end}}</table>{{end}}
+  <form method="post" action="/admin/relays" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input name="url" placeholder="https://relay.example/inbox or https://relay.example/actor" required>
+    <button class="btn primary">Subscribe</button>
+  </form>
+</section>
 <section class="card" id="reports">
   <h3>Reports</h3>
   {{$p := .}}{{range .Reports}}

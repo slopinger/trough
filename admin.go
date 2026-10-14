@@ -42,6 +42,7 @@ func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.AIKeySource, p.AIModel = app.aiKeySource(), app.aiModel()
 	p.Reports = app.openReports()
 	p.Invites = app.invites()
+	p.Relays = app.relays()
 	p.Registrations = app.registrationMode()
 	p.Stats = map[string]int{
 		"users":     app.countInt(`SELECT COUNT(*) FROM users`),

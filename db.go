@@ -304,6 +304,39 @@ CREATE TABLE markers (
 	updated_at INTEGER NOT NULL,
 	PRIMARY KEY (account_id, timeline)
 );
+`, `
+CREATE TABLE relays (
+	id TEXT PRIMARY KEY,
+	inbox TEXT NOT NULL UNIQUE,
+	actor_uri TEXT NOT NULL DEFAULT '',
+	follow_uri TEXT NOT NULL,
+	style TEXT NOT NULL DEFAULT 'mastodon',
+	accepted INTEGER NOT NULL DEFAULT 0,
+	created_at INTEGER NOT NULL
+);
+
+CREATE TABLE followed_tags (
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	tag TEXT NOT NULL,
+	created_at INTEGER NOT NULL,
+	PRIMARY KEY (account_id, tag)
+);
+
+CREATE TABLE lists (
+	id TEXT PRIMARY KEY,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	title TEXT NOT NULL,
+	replies_policy TEXT NOT NULL DEFAULT 'list',
+	exclusive INTEGER NOT NULL DEFAULT 0,
+	created_at INTEGER NOT NULL
+);
+CREATE INDEX lists_account ON lists(account_id);
+
+CREATE TABLE list_accounts (
+	list_id TEXT NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	PRIMARY KEY (list_id, account_id)
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

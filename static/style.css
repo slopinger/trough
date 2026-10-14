@@ -479,3 +479,8 @@ input.num { width: 5em; }
 .poll meter { -webkit-appearance: none; appearance: none; height: 100%; background: var(--panel-2); }
 .scopes { padding-left: 20px; }
 code.bigcode { font-size: 18px; padding: 6px 10px; user-select: all; overflow-wrap: anywhere; }
+.listrow { justify-content: space-between; color: var(--text); }
+.listrow:hover { border-color: var(--accent); text-decoration: none; }
+details.listedit > summary { cursor: pointer; font-weight: 600; }
+details.listedit[open] > summary { margin-bottom: 10px; }
+.pactions details.menu .menu-list { top: 100%; bottom: auto; }

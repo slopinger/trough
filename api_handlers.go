@@ -462,10 +462,8 @@ func (app *App) apiFavourites(w http.ResponseWriter, r *http.Request, c *apiCtx)
 
 func (app *App) apiHome(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 	pq := pageParams(r, 20, 40)
-	mute, margs := muteSQL(c.Me)
-	sts, err := app.pageStatuses(c.Me, `(s.account_id=? OR s.account_id IN (SELECT target_id FROM follows WHERE account_id=? AND accepted=1)
-		OR EXISTS(SELECT 1 FROM mentions m2 WHERE m2.status_id=s.id AND m2.account_id=?)) AND `+mute,
-		append([]any{c.Me.ID, c.Me.ID, c.Me.ID}, margs...), pq)
+	where, args := homeSQL(c.Me)
+	sts, err := app.pageStatuses(c.Me, where, args, pq)
 	if err != nil {
 		apiError(w, 500, "db error")
 		return

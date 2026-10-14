@@ -54,6 +54,11 @@
   </form>
 </section>
 <section class="card">
+  <h3>Followed hashtags</h3>
+  {{range .FollowedTags}}<div class="inline-form"><a href="/tags/{{.}}">#{{.}}</a><form method="post" action="/tags/{{.}}/unfollow"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small">Unfollow</button></form></div>
+  {{else}}<p class="muted small">Follow a hashtag from its page to see public posts with it in your Home timeline.</p>{{end}}
+</section>
+<section class="card">
   <h3>Muted accounts</h3>
   {{$p := .}}{{range .Accounts}}{{template "accountrow" (dict "A" . "P" $p "Actions" (actions "unmute" "Unmute" ""))}}{{else}}<p class="muted small">You haven't muted anyone.</p>{{end}}
   <h3>Blocked accounts</h3>
