@@ -1,0 +1,11 @@
+{{define "head"}}{{if .Status}}<meta name="description" content="{{plain .Status.Content}}">
+<meta property="og:title" content="{{.Status.Account.Name}} ({{handle .Status.Account}})">
+<meta property="og:description" content="{{plain .Status.Content}}">{{end}}{{end}}
+{{define "content"}}{{$p := .}}
+<div class="thread">
+{{range .Ancestors}}{{template "status" (dict "S" . "P" $p)}}{{end}}
+{{template "status" (dict "S" .Status "P" $p "Focus" true)}}
+{{if .Compose}}{{template "compose" (dict "C" .Compose "P" $p)}}{{end}}
+{{range .Descendants}}{{template "status" (dict "S" . "P" $p "Depth" .Depth)}}{{end}}
+</div>
+{{end}}

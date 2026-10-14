@@ -1,0 +1,10 @@
+# trough fediverse server (trough.service, loopback only)
+fedi.freifick.net {
+	import security_headers
+	encode zstd gzip
+	request_body {
+		max_size 90MB
+	}
+	reverse_proxy 127.0.0.1:8790
+	log
+}

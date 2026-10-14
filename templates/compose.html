@@ -1,0 +1,5 @@
+{{define "content"}}
+<h2 class="pagetitle">{{if .Compose.ReplyTo}}Reply{{else}}New post{{end}}</h2>
+{{if .Compose.ReplyTo}}{{template "status" (dict "S" .Compose.ReplyTo "P" .)}}{{end}}
+{{template "compose" (dict "C" .Compose "P" .)}}
+{{end}}

@@ -1,0 +1,41 @@
+[Unit]
+Description=trough fediverse server
+Documentation=https://git.freifick.net/slop/trough
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=trough
+Group=trough
+EnvironmentFile=/etc/trough.env
+ExecStart=/usr/local/bin/trough serve
+Restart=on-failure
+RestartSec=2s
+StateDirectory=trough
+StateDirectoryMode=0750
+UMask=0027
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

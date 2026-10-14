@@ -1,0 +1,4 @@
+/trough
+/data/
+*.sqlite3*
+/build/

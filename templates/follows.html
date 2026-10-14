@@ -1,0 +1,11 @@
+{{define "content"}}{{$p := .}}
+{{template "profilehead" .}}
+<nav class="tabs">
+  <a href="{{.Account.Path}}">Posts</a>
+  <a href="{{.Account.Path}}/following" class="{{if eq .Tab "following"}}active{{end}}">Following</a>
+  <a href="{{.Account.Path}}/followers" class="{{if eq .Tab "followers"}}active{{end}}">Followers</a>
+</nav>
+{{if not .Account.IsLocal}}<div class="empty">Only follows known to this server are shown. <a href="{{.Account.URL}}" target="_blank" rel="noopener noreferrer">See the full list on {{hostOf .Account.URI}}</a>.</div>{{end}}
+{{$own := and .Me (eq .Me.ID .Account.ID) (eq .Tab "followers")}}
+{{range .Accounts}}{{if $own}}{{template "accountrow" (dict "A" . "P" $p "Actions" (actions "remove_follower" "Remove" ""))}}{{else}}{{template "accountrow" (dict "A" . "P" $p)}}{{end}}{{else}}<div class="empty">Nobody yet.</div>{{end}}
+{{end}}

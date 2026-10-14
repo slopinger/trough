@@ -1,0 +1,45 @@
+{{define "content"}}{{$a := .Me}}
+<h2 class="pagetitle">Settings</h2>
+<section class="card">
+  <h3>Profile</h3>
+  <form method="post" action="/settings/profile" enctype="multipart/form-data" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Display name <input name="display_name" maxlength="100" value="{{$a.DisplayName}}"></label>
+    <label>Bio <textarea name="note" rows="4" maxlength="2000">{{$a.NoteSource}}</textarea></label>
+    <div class="imgfield">
+      <img src="{{template "avatarsrc" $a}}" alt="Current avatar" width="64" height="64" class="avatar-prev">
+      <label>Avatar <input type="file" name="avatar" accept="image/png,image/jpeg,image/gif,image/webp"></label>
+      {{if $a.Avatar}}<label class="check"><input type="checkbox" name="remove_avatar"> remove</label>{{end}}
+    </div>
+    <div class="imgfield">
+      {{if $a.Header}}<img src="{{media $a.Header}}" alt="Current header" class="header-prev">{{end}}
+      <label>Header image <input type="file" name="header" accept="image/png,image/jpeg,image/gif,image/webp"></label>
+      {{if $a.Header}}<label class="check"><input type="checkbox" name="remove_header"> remove</label>{{end}}
+    </div>
+    <fieldset>
+      <legend>Profile fields</legend>
+      {{range $i, $f := fieldslots $a}}
+      <div class="fieldrow"><input name="field_name{{$i}}" maxlength="100" placeholder="Label" value="{{$f.Name}}"><input name="field_value{{$i}}" maxlength="500" placeholder="Content (a URL becomes a link)" value="{{plain $f.Value}}"></div>
+      {{end}}
+    </fieldset>
+    <label class="check"><input type="checkbox" name="locked"{{if $a.Locked}} checked{{end}}> Approve followers manually</label>
+    <label class="check"><input type="checkbox" name="bot"{{if $a.IsBot}} checked{{end}}> This is a bot account</label>
+    <button class="btn primary">Save profile</button>
+  </form>
+</section>
+<section class="card">
+  <h3>Change password</h3>
+  <form method="post" action="/settings/password" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input type="text" name="username" value="{{$a.Username}}" autocomplete="username" hidden>
+    <label>Current password <input type="password" name="current" autocomplete="current-password" required></label>
+    <label>New password <input type="password" name="new" minlength="8" autocomplete="new-password" required></label>
+    <label>Confirm new password <input type="password" name="confirm" minlength="8" autocomplete="new-password" required></label>
+    <button class="btn">Change password</button>
+  </form>
+</section>
+<section class="card">
+  <h3>Your fediverse address</h3>
+  <p>People on other servers can find and follow you as <code>{{handle $a}}</code>.</p>
+</section>
+{{end}}

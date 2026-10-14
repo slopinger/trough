@@ -1,0 +1,14 @@
+{{define "content"}}{{$p := .}}
+<h2 class="pagetitle">Search</h2>
+<form class="bigsearch" action="/search" role="search">
+  <input type="search" name="q" value="{{.Query}}" placeholder="@user@server, a post/profile URL, #hashtag or text" autofocus>
+  <button class="btn primary">Search</button>
+</form>
+<p class="muted small">To follow someone on another server, enter their full handle like <code>@someone@mastodon.social</code> or paste a link to their profile or post.</p>
+{{if .Query}}
+<h3 class="subtitle">Accounts</h3>
+{{range .Accounts}}{{template "accountrow" (dict "A" . "P" $p)}}{{else}}<div class="empty">No matching accounts known here.</div>{{end}}
+<h3 class="subtitle">Posts</h3>
+{{range .Statuses}}{{template "status" (dict "S" . "P" $p)}}{{else}}<div class="empty">No matching posts.</div>{{end}}
+{{end}}
+{{end}}

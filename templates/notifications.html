@@ -1,0 +1,21 @@
+{{define "content"}}{{$p := .}}
+<div class="pagehead"><h2 class="pagetitle">Notifications</h2>
+{{if .Notifications}}<form method="post" action="/notifications/clear" class="confirm" data-confirm="Delete all notifications?"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn small">Clear all</button></form>{{end}}</div>
+{{range .Notifications}}
+<div class="notif{{if not .Read}} unread{{end}}">
+  <div class="ntop">
+    <span class="nicon n-{{.Type}}">{{if eq .Type "favourite"}}{{template "icon" "star"}}{{else if eq .Type "reblog"}}{{template "icon" "boost"}}{{else if eq .Type "mention"}}{{template "icon" "reply"}}{{else}}{{template "icon" "userplus"}}{{end}}</span>
+    <a href="{{.From.Path}}" class="avatar small"><img src="{{template "avatarsrc" .From}}" alt="" width="28" height="28"></a>
+    <span><a href="{{.From.Path}}" class="dn">{{name .From}}</a>
+    {{if eq .Type "favourite"}}favourited your post{{else if eq .Type "reblog"}}boosted your post{{else if eq .Type "mention"}}mentioned you{{else if eq .Type "follow"}}followed you{{else if eq .Type "follow_request"}}requested to follow you{{end}}</span>
+    <span class="muted right" title="{{fulltime .CreatedAt}}">{{ago .CreatedAt}}</span>
+  </div>
+  {{if .Status}}{{if eq .Type "mention"}}{{template "status" (dict "S" .Status "P" $p)}}{{else}}<a class="nquote" href="{{.Status.Path}}">{{plain .Status.Content}}{{if not .Status.Content}}(media){{end}}</a>{{end}}{{end}}
+  {{if eq .Type "follow_request"}}<div class="row-actions">
+    <form method="post" action="/accounts/{{.From.ID}}/accept"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button class="btn primary small">Accept</button></form>
+    <form method="post" action="/accounts/{{.From.ID}}/reject"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button class="btn small">Reject</button></form>
+  </div>{{end}}
+</div>
+{{else}}<div class="empty">No notifications yet.</div>{{end}}
+{{if .NextURL}}<a class="more" href="{{.NextURL}}">Load more</a>{{end}}
+{{end}}

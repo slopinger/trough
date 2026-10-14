@@ -1,0 +1,8 @@
+#!/bin/sh
+# Run trough admin commands (e.g. `troughctl user list`) as the service user
+# with the service's configuration.
+set -e
+set -a
+. /etc/trough.env
+set +a
+exec sudo -u trough --preserve-env=TROUGH_HOST,TROUGH_LISTEN,TROUGH_DATA /usr/local/bin/trough "$@"

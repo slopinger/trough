@@ -1,0 +1,11 @@
+{{define "head"}}<meta name="description" content="{{plain .Account.Note}}">{{if .Account.IsLocal}}
+<link rel="alternate" type="application/activity+json" href="{{.Account.URI}}">{{end}}{{end}}
+{{define "content"}}
+{{template "profilehead" .}}
+<nav class="tabs">
+  <a href="{{.Account.Path}}" class="{{if eq .Tab ""}}active{{end}}">Posts</a>
+  <a href="{{.Account.Path}}?tab=replies" class="{{if eq .Tab "replies"}}active{{end}}">Posts &amp; replies</a>
+  <a href="{{.Account.Path}}?tab=media" class="{{if eq .Tab "media"}}active{{end}}">Media</a>
+</nav>
+{{template "statuslist" .}}
+{{end}}

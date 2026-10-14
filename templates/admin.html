@@ -1,0 +1,59 @@
+{{define "content"}}
+<h2 class="pagetitle">Admin</h2>
+<section class="card">
+  <h3>Overview</h3>
+  <ul class="facts">
+    <li><b>{{index .Stats "users"}}</b> users</li>
+    <li><b>{{index .Stats "local"}}</b> local posts</li>
+    <li><b>{{index .Stats "remote"}}</b> remote posts</li>
+    <li><b>{{index .Stats "accounts"}}</b> remote accounts</li>
+    <li><b>{{index .Stats "instances"}}</b> servers</li>
+    <li><b>{{index .Stats "queued"}}</b> queued deliveries ({{index .Stats "retrying"}} retrying)</li>
+  </ul>
+  {{if .Deliveries}}<details><summary>Failing deliveries</summary>
+  <table class="tbl"><tr><th>Inbox</th><th>Attempts</th><th>Next try</th><th>Error</th></tr>
+  {{range .Deliveries}}<tr><td>{{.Inbox}}</td><td>{{.Attempts}}</td><td>{{fulltime .NextTry}}</td><td class="small">{{.LastError}}</td></tr>{{end}}</table></details>{{end}}
+</section>
+<section class="card">
+  <h3>Instance</h3>
+  <form method="post" action="/admin/settings" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Title <input name="title" maxlength="100" value="{{.Instance}}"></label>
+    <label>Description <textarea name="description" rows="3" maxlength="2000">{{.Description}}</textarea></label>
+    <button class="btn">Save</button>
+  </form>
+</section>
+<section class="card">
+  <h3>Users</h3>
+  <table class="tbl">
+    <tr><th>User</th><th>Role</th><th>Last seen</th><th></th></tr>
+    {{range .Users}}<tr>
+      <td><a href="{{.Account.Path}}">@{{.Account.Username}}</a></td>
+      <td>{{if .Admin}}admin{{else}}user{{end}}</td>
+      <td>{{if .LastSeen.Unix}}{{ago .LastSeen}}{{else}}never{{end}}</td>
+      <td><form method="post" action="/admin/users/{{.Account.ID}}/password" class="confirm" data-confirm="Generate a new password for @{{.Account.Username}}? Existing sessions are logged out."><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small">Reset password</button></form></td>
+    </tr>{{end}}
+  </table>
+  <form method="post" action="/admin/users" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input name="username" placeholder="new username" pattern="[A-Za-z0-9_]{1,30}" required>
+    <label class="check"><input type="checkbox" name="admin"> admin</label>
+    <button class="btn primary">Create user</button>
+  </form>
+  <p class="muted small">A random password is generated and shown once.</p>
+</section>
+<section class="card">
+  <h3>Blocked servers</h3>
+  <p class="muted small">Blocking a server hides its accounts and posts, removes follows and refuses all of its activities. Subdomains are included.</p>
+  {{if .DomainBlocks}}<table class="tbl"><tr><th>Domain</th><th>Reason</th><th></th></tr>
+  {{range .DomainBlocks}}<tr><td>{{.Domain}}</td><td>{{.Reason}}</td><td>
+    <form method="post" action="/admin/domain_blocks"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="domain" value="{{.Domain}}"><input type="hidden" name="remove" value="1"><button class="btn small">Unblock</button></form></td></tr>{{end}}
+  </table>{{end}}
+  <form method="post" action="/admin/domain_blocks" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input name="domain" placeholder="example.com" required>
+    <input name="reason" placeholder="reason (public)">
+    <button class="btn danger">Block server</button>
+  </form>
+</section>
+{{end}}

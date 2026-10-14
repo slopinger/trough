@@ -1,0 +1,4 @@
+{{define "content"}}{{$p := .}}
+<h2 class="pagetitle">Follow requests</h2>
+{{range .Accounts}}{{template "accountrow" (dict "A" . "P" $p "Actions" (actions "accept" "Accept" "primary" "reject" "Reject" ""))}}{{else}}<div class="empty">No pending follow requests.</div>{{end}}
+{{end}}

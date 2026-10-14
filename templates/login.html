@@ -1,0 +1,12 @@
+{{define "content"}}
+<section class="card narrow">
+  <h2>Log in to {{.Instance}}</h2>
+  <form method="post" action="/login" class="stack">
+    <input type="hidden" name="next" value="{{.Query}}">
+    <label>Username <input name="username" autocomplete="username" required autofocus></label>
+    <label>Password <input type="password" name="password" autocomplete="current-password" required></label>
+    <button class="btn primary">Log in</button>
+  </form>
+  <p class="muted small">Registrations are closed. Accounts are created by the admins of this server.</p>
+</section>
+{{end}}

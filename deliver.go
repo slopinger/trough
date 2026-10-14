@@ -1,0 +1,172 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"crypto/rsa"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"strings"
+	"sync"
+	"time"
+)
+
+// Outgoing activities are queued in the deliveries table and POSTed by a
+// background loop with exponential backoff.
+
+var retryDelays = []time.Duration{time.Minute, 5 * time.Minute, 30 * time.Minute, 2 * time.Hour, 6 * time.Hour, 12 * time.Hour, 24 * time.Hour, 24 * time.Hour}
+
+func (app *App) enqueue(signer *Account, inboxes []string, activity obj) {
+	body, err := json.Marshal(activity)
+	if err != nil {
+		log.Printf("deliver: marshal: %v", err)
+		return
+	}
+	seen := map[string]bool{}
+	now := time.Now().Unix()
+	n := 0
+	for _, inbox := range inboxes {
+		if inbox == "" || seen[inbox] || strings.HasPrefix(inbox, app.cfg.BaseURL()+"/") {
+			continue
+		}
+		seen[inbox] = true
+		if app.domainBlocked(hostOf(inbox)) {
+			continue
+		}
+		if _, err := app.db.Exec(`INSERT INTO deliveries (account_id,inbox,payload,next_try,created_at) VALUES (?,?,?,?,?)`,
+			signer.ID, inbox, string(body), now, now); err != nil {
+			log.Printf("deliver: queue: %v", err)
+		}
+		n++
+	}
+	if n > 0 {
+		select {
+		case app.deliverKick <- struct{}{}:
+		default:
+		}
+	}
+}
+
+type delivery struct {
+	ID        int64
+	AccountID string
+	Inbox     string
+	Payload   string
+	Attempts  int
+}
+
+func (app *App) deliveryLoop(ctx context.Context) {
+	keys := map[string]*rsa.PrivateKey{}
+	var keysMu sync.Mutex
+	keyFor := func(accountID string) (*Account, *rsa.PrivateKey, error) {
+		acc, err := app.AccountByID(accountID)
+		if err != nil {
+			return nil, nil, err
+		}
+		keysMu.Lock()
+		defer keysMu.Unlock()
+		if k, ok := keys[accountID]; ok {
+			return acc, k, nil
+		}
+		k, err := parsePrivateKey(acc.PrivateKey)
+		if err != nil {
+			return nil, nil, err
+		}
+		keys[accountID] = k
+		return acc, k, nil
+	}
+	for {
+		rows, err := app.db.Query(`SELECT id,account_id,inbox,payload,attempts FROM deliveries WHERE next_try <= ? ORDER BY next_try LIMIT 64`, time.Now().Unix())
+		var batch []delivery
+		if err == nil {
+			for rows.Next() {
+				var d delivery
+				if rows.Scan(&d.ID, &d.AccountID, &d.Inbox, &d.Payload, &d.Attempts) == nil {
+					batch = append(batch, d)
+				}
+			}
+			rows.Close()
+		}
+		if len(batch) > 0 {
+			sem := make(chan struct{}, 8)
+			var wg sync.WaitGroup
+			for _, d := range batch {
+				// claim it so a slow batch doesn't get picked up again
+				app.db.Exec(`UPDATE deliveries SET next_try=? WHERE id=?`, time.Now().Add(10*time.Minute).Unix(), d.ID)
+				wg.Add(1)
+				sem <- struct{}{}
+				go func(d delivery) {
+					defer wg.Done()
+					defer func() { <-sem }()
+					acc, key, err := keyFor(d.AccountID)
+					if err != nil {
+						app.db.Exec(`DELETE FROM deliveries WHERE id=?`, d.ID)
+						return
+					}
+					app.finishDelivery(d, app.post(ctx, acc, key, d.Inbox, []byte(d.Payload)))
+				}(d)
+			}
+			wg.Wait()
+			continue
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-app.deliverKick:
+		case <-time.After(15 * time.Second):
+		}
+	}
+}
+
+type permanentError struct{ error }
+
+func (app *App) post(ctx context.Context, signer *Account, key *rsa.PrivateKey, inbox string, body []byte) error {
+	u, err := app.checkRemoteURL(inbox)
+	if err != nil {
+		return permanentError{err}
+	}
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(body))
+	if err != nil {
+		return permanentError{err}
+	}
+	req.Header.Set("Content-Type", apMimeType)
+	req.Header.Set("Accept", apMimeType)
+	req.Header.Set("User-Agent", app.userAgent())
+	if err := signRequest(req, body, signer.PublicKeyID, key); err != nil {
+		return permanentError{err}
+	}
+	resp, err := app.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	msg, _ := io.ReadAll(io.LimitReader(resp.Body, 300))
+	if resp.StatusCode/100 == 2 {
+		return nil
+	}
+	err = fmt.Errorf("%s: %s", resp.Status, strings.TrimSpace(string(msg)))
+	if resp.StatusCode/100 == 4 && resp.StatusCode != http.StatusTooManyRequests && resp.StatusCode != http.StatusRequestTimeout {
+		return permanentError{err}
+	}
+	return err
+}
+
+func (app *App) finishDelivery(d delivery, err error) {
+	if err == nil {
+		app.db.Exec(`DELETE FROM deliveries WHERE id=?`, d.ID)
+		return
+	}
+	_, permanent := err.(permanentError)
+	if permanent || d.Attempts >= len(retryDelays) {
+		log.Printf("deliver to %s failed permanently: %v", d.Inbox, err)
+		app.db.Exec(`DELETE FROM deliveries WHERE id=?`, d.ID)
+		return
+	}
+	next := time.Now().Add(retryDelays[d.Attempts])
+	app.db.Exec(`UPDATE deliveries SET attempts=attempts+1, next_try=?, last_error=? WHERE id=?`, next.Unix(), truncateRunes(err.Error(), 300), d.ID)
+}
