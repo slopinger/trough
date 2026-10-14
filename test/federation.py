@@ -6,10 +6,12 @@ alice (on 127.0.0.1:8801) and bob (on 127.0.0.1:8802), then run:
 
     python3 test/federation.py <alice-password> <bob-password>
 """
-import http.cookiejar, re, sys, time, urllib.parse, urllib.request
+import http.cookiejar, os, re, sys, time, urllib.parse, urllib.request
 
-A = "http://127.0.0.1:8801"
-B = "http://127.0.0.1:8802"
+A = os.environ.get("TROUGH_TEST_A", "http://127.0.0.1:8801")
+B = os.environ.get("TROUGH_TEST_B", "http://127.0.0.1:8802")
+AH = urllib.parse.urlsplit(A).netloc
+BH = urllib.parse.urlsplit(B).netloc
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -71,21 +73,21 @@ def wait(cond, what, timeout=15):
 
 
 alice, bob = Client(A), Client(B)
-alice.login("alice", sys.argv[1])
-bob.login("bob", sys.argv[2])
+alice.login("alice", os.environ.get("TROUGH_TEST_ALICE_PASSWORD") or sys.argv[1])
+bob.login("bob", os.environ.get("TROUGH_TEST_BOB_PASSWORD") or sys.argv[2])
 
 
 # bob finds and follows alice
-url, text = bob.get("/search?q=" + urllib.parse.quote("@alice@127.0.0.1:8801"))
-assert url.endswith("/@alice@127.0.0.1:8801"), url
+url, text = bob.get("/search?q=" + urllib.parse.quote(f"@alice@{AH}"))
+assert url.endswith(f"/@alice@{AH}"), url
 acc_id = re.search(r'/accounts/([0-9A-Z]+)/follow"', text).group(1)
 bob.post(f"/accounts/{acc_id}/follow")
-wait(lambda: "Unfollow" in bob.get("/@alice@127.0.0.1:8801")[1], "bob follows alice (Accept received)")
+wait(lambda: "Unfollow" in bob.get(f"/@alice@{AH}")[1], "bob follows alice (Accept received)")
 wait(lambda: "followed you" in alice.get("/notifications")[1], "alice got follow notification")
 
 # alice posts, mentioning bob
 alice.get("/")
-alice.post("/statuses", text="Hello fediverse! #trough test, ping @bob@127.0.0.1:8802 https://example.com/a/very/long/link/that/should/be/shortened", visibility="public")
+alice.post("/statuses", text=f"Hello fediverse! #trough test, ping @bob@{BH} https://example.com/a/very/long/link/that/should/be/shortened", visibility="public")
 wait(lambda: "Hello fediverse!" in bob.get("/")[1], "post delivered to bob's home")
 wait(lambda: "mentioned you" in bob.get("/notifications")[1], "bob got mention notification")
 url, text = bob.get("/")
@@ -98,7 +100,7 @@ wait(lambda: "boosted your post" in alice.get("/notifications")[1], "alice got b
 
 # bob replies
 bob.get("/")
-bob.post("/statuses", text="@alice@127.0.0.1:8801 hi back!", visibility="public", in_reply_to=sid)
+bob.post("/statuses", text=f"@alice@{AH} hi back!", visibility="public", in_reply_to=sid)
 url, text = alice.get("/")
 asid = re.search(r'/statuses/([0-9A-Z]+)/delete"', text).group(1)
 wait(lambda: "hi back!" in alice.get(f"/s/{asid}")[1], "reply visible in alice's thread")
@@ -114,7 +116,7 @@ print("  ok: private post hidden from anonymous visitors")
 # profile update federates
 alice.get("/settings")
 alice.post("/settings/profile", display_name="Alice Wonder", note="I live in #wonderland")
-wait(lambda: "Alice Wonder" in bob.get("/@alice@127.0.0.1:8801")[1], "profile update federated")
+wait(lambda: "Alice Wonder" in bob.get(f"/@alice@{AH}")[1], "profile update federated")
 
 # delete
 alice.get("/")
@@ -122,7 +124,7 @@ alice.post(f"/statuses/{asid}/delete")
 wait(lambda: "Hello fediverse!" not in bob.get("/")[1], "delete federated")
 
 # unfollow
-bob.get("/@alice@127.0.0.1:8801")
+bob.get(f"/@alice@{AH}")
 bob.post(f"/accounts/{acc_id}/unfollow")
 wait(lambda: alice.get("/@alice/followers")[1].count("accrow") == 0, "unfollow federated")
 
@@ -130,31 +132,31 @@ wait(lambda: alice.get("/@alice/followers")[1].count("accrow") == 0, "unfollow f
 alice.get("/settings")
 alice.post("/settings/profile", display_name="Alice Wonder", note="locked now", locked="1")
 time.sleep(1)
-bob.get("/@alice@127.0.0.1:8801")
+bob.get(f"/@alice@{AH}")
 bob.post(f"/accounts/{acc_id}/follow")
-wait(lambda: "Requested" in bob.get("/@alice@127.0.0.1:8801")[1], "follow is pending on a locked account")
+wait(lambda: "Requested" in bob.get(f"/@alice@{AH}")[1], "follow is pending on a locked account")
 wait(lambda: "requested to follow you" in alice.get("/notifications")[1], "alice got follow request")
 url, text = alice.get("/follow_requests")
 bob_id = re.search(r'/accounts/([0-9A-Z]+)/accept"', text).group(1)
 alice.post(f"/accounts/{bob_id}/accept")
-wait(lambda: "Unfollow" in bob.get("/@alice@127.0.0.1:8801")[1], "accepted follow request federated")
+wait(lambda: "Unfollow" in bob.get(f"/@alice@{AH}")[1], "accepted follow request federated")
 
 # direct message
 bob.get("/")
-bob.post("/statuses", text="@alice@127.0.0.1:8801 psst, a direct message", visibility="direct")
+bob.post("/statuses", text=f"@alice@{AH} psst, a direct message", visibility="direct")
 wait(lambda: "psst, a direct message" in alice.get("/notifications")[1], "direct message delivered")
 assert "psst" not in Client(B).get("/@bob")[1], "DM visible to anonymous"
 print("  ok: direct message hidden from anonymous visitors")
 
 # block
-alice.get(f"/@bob@127.0.0.1:8802")
+alice.get(f"/@bob@{BH}")
 alice.post(f"/accounts/{bob_id}/block")
 def blocked():
-    t = bob.get("/@alice@127.0.0.1:8801")[1]
+    t = bob.get(f"/@alice@{AH}")[1]
     return "has blocked you" in t and "Unfollow" not in t
 wait(blocked, "block federated and removed bob's follow")
 bob.get("/")
-bob.post("/statuses", text="@alice@127.0.0.1:8801 are you there?", visibility="public")
+bob.post("/statuses", text=f"@alice@{AH} are you there?", visibility="public")
 time.sleep(3)
 assert "are you there?" not in alice.get("/notifications")[1], "notification from blocked account"
 print("  ok: no notifications from blocked accounts")

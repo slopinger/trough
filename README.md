@@ -78,9 +78,18 @@ localhost:
 
 Then log in on both and search for `@alice@127.0.0.1:8801` from bob's side.
 
-Tests: `go test ./...` for unit tests; `python3 test/federation.py <alice-pw> <bob-pw>` drives both
-instances' web interfaces end to end (follow/accept, follow requests, posts, mentions, likes, boosts,
-replies, visibility, DMs, profile updates, deletes, blocks).
+Tests: `go test ./...` for unit tests. Run `python3 test/run-federation.py` to build trough and
+exercise two disposable instances end to end: follow/accept, follow requests, posts, mentions, likes,
+boosts, replies, visibility, DMs, profile updates, deletes and blocks. The runner uses randomly selected
+loopback ports and temporary databases, stops both processes, and removes its data on exit. It does
+not use the live instance or its credentials.
+
+To test two instances you started yourself, use `python3 test/federation.py <alice-pw> <bob-pw>`.
+It defaults to ports 8801/8802; `TROUGH_TEST_A` and `TROUGH_TEST_B` override the base URLs.
+The passwords can instead come from `TROUGH_TEST_ALICE_PASSWORD` and `TROUGH_TEST_BOB_PASSWORD`.
+
+The JPEG metadata parser also has a fuzz target:
+`go test -run '^$' -fuzz '^FuzzJPEGOrientation$' -fuzztime=30s`.
 
 ### Deployment on fedi.freifick.net
 
