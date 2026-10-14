@@ -117,11 +117,16 @@ func jpegOrientation(b []byte) int {
 			i += 2
 			continue
 		}
-		if marker == 0xDA {
+		if marker == 0xDA || marker == 0xD9 {
 			break
 		}
 		size := int(b[i+2])<<8 | int(b[i+3])
-		end := min(i+2+size, len(b))
+		// Segment lengths include the two length bytes. Reject truncated or
+		// invalid segments before slicing; malformed EXIF must not panic.
+		if size < 2 || size > len(b)-i-2 {
+			return 1
+		}
+		end := i + 2 + size
 		seg := b[i+4 : end]
 		if marker == 0xE1 && len(seg) >= 14 && string(seg[:6]) == "Exif\x00\x00" {
 			return tiffOrientation(seg[6:])
