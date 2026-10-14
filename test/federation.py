@@ -98,6 +98,14 @@ bob.post(f"/statuses/{sid}/boost")
 wait(lambda: "favourited your post" in alice.get("/notifications")[1], "alice got like")
 wait(lambda: "boosted your post" in alice.get("/notifications")[1], "alice got boost")
 
+# Undo deliveries remove the original interaction and its notification.
+bob.get("/")
+bob.post(f"/statuses/{sid}/unlike")
+bob.get("/")
+bob.post(f"/statuses/{sid}/unboost")
+wait(lambda: "favourited your post" not in alice.get("/notifications")[1], "unlike removed alice's notification")
+wait(lambda: "boosted your post" not in alice.get("/notifications")[1], "unboost removed alice's notification")
+
 # bob replies
 bob.get("/")
 bob.post("/statuses", text=f"@alice@{AH} hi back!", visibility="public", in_reply_to=sid)
@@ -127,6 +135,7 @@ wait(lambda: "Hello fediverse!" not in bob.get("/")[1], "delete federated")
 bob.get(f"/@alice@{AH}")
 bob.post(f"/accounts/{acc_id}/unfollow")
 wait(lambda: alice.get("/@alice/followers")[1].count("accrow") == 0, "unfollow federated")
+wait(lambda: "followed you" not in alice.get("/notifications")[1], "unfollow removed alice's notification")
 
 # locked account: follow requests
 alice.get("/settings")

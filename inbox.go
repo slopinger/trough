@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"io"
 	"log"
@@ -200,10 +201,19 @@ func (app *App) inUndo(actor *Account, act obj) error {
 	}
 	switch kind {
 	case "Follow", "":
-		res, _ := app.db.Exec(`DELETE FROM follows WHERE uri=? AND account_id=?`, innerID, actor.ID)
-		if n, _ := res.RowsAffected(); n == 0 && inner != nil {
-			if target, err := app.localTarget(idOf(inner["object"])); err == nil {
-				app.db.Exec(`DELETE FROM follows WHERE account_id=? AND target_id=?`, actor.ID, target.ID)
+		var targetID string
+		err := app.db.QueryRow(`DELETE FROM follows WHERE uri=? AND account_id=? RETURNING target_id`, innerID, actor.ID).Scan(&targetID)
+		if errors.Is(err, sql.ErrNoRows) && inner != nil {
+			if target, targetErr := app.localTarget(idOf(inner["object"])); targetErr == nil {
+				err = app.db.QueryRow(`DELETE FROM follows WHERE account_id=? AND target_id=? RETURNING target_id`, actor.ID, target.ID).Scan(&targetID)
+			}
+		}
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		if err == nil {
+			if _, err := app.db.Exec(`DELETE FROM notifications WHERE account_id=? AND from_account_id=? AND type IN ('follow','follow_request')`, targetID, actor.ID); err != nil {
+				return err
 			}
 		}
 		if kind == "Follow" {
@@ -211,11 +221,19 @@ func (app *App) inUndo(actor *Account, act obj) error {
 		}
 		fallthrough
 	case "Like":
-		res, _ := app.db.Exec(`DELETE FROM likes WHERE uri=? AND account_id=?`, innerID, actor.ID)
-		if n, _ := res.RowsAffected(); n == 0 && inner != nil {
-			if st, err := app.StatusByURI(idOf(inner["object"])); err == nil {
-				app.db.Exec(`DELETE FROM likes WHERE account_id=? AND status_id=?`, actor.ID, st.ID)
-				app.db.Exec(`DELETE FROM notifications WHERE type='favourite' AND from_account_id=? AND status_id=?`, actor.ID, st.ID)
+		var statusID string
+		err := app.db.QueryRow(`DELETE FROM likes WHERE uri=? AND account_id=? RETURNING status_id`, innerID, actor.ID).Scan(&statusID)
+		if errors.Is(err, sql.ErrNoRows) && inner != nil {
+			if st, statusErr := app.StatusByURI(idOf(inner["object"])); statusErr == nil {
+				err = app.db.QueryRow(`DELETE FROM likes WHERE account_id=? AND status_id=? RETURNING status_id`, actor.ID, st.ID).Scan(&statusID)
+			}
+		}
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		if err == nil {
+			if _, err := app.db.Exec(`DELETE FROM notifications WHERE type='favourite' AND from_account_id=? AND status_id=?`, actor.ID, statusID); err != nil {
+				return err
 			}
 		}
 		if kind == "Like" {

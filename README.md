@@ -103,7 +103,11 @@ troughctl user list
 journalctl -u trough -f                # logs
 ```
 
-Back up `/var/lib/trough` (SQLite database plus uploaded media; `cache/` can be dropped).
+Back up the SQLite database plus uploaded media; `cache/` can be dropped. On fedi.freifick.net,
+[server-backups](https://git.freifick.net/slop/server-backups) handles daily verified online snapshots
+with `slop-services-backup.timer`, retaining 14 archives in root-only `/srv/backups/slop-services/`.
+That repo documents manual verification and restore. The backups are local/same-disk; no off-site
+copy is configured. Never copy a live SQLite file without its WAL or the online backup API.
 
 ## Code map
 
