@@ -475,3 +475,5 @@ button.reaction:hover { border-color: var(--accent); }
 .moved { padding: 10px 16px; background: var(--accent-soft); border-bottom: 1px solid var(--line); font-size: 14px; }
 input.num { width: 5em; }
 .card h4 { margin: 16px 0 4px; font-size: 15px; }
+.new-posts[hidden] { display: none; }
+.poll meter { -webkit-appearance: none; appearance: none; height: 100%; background: var(--panel-2); }
