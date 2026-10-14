@@ -46,14 +46,14 @@ func NewApp(cfg *Config) (*App, error) {
 	app := &App{
 		cfg:         cfg,
 		db:          db,
-		client:      newHTTPClient(cfg.Insecure),
-		mediaClient: newHTTPClient(cfg.Insecure),
 		mediaDir:    filepath.Join(cfg.DataDir, "media"),
 		cacheDir:    filepath.Join(cfg.DataDir, "cache"),
 		inboxQueue:  make(chan inboxJob, 1000),
 		deliverKick: make(chan struct{}, 1),
 		logins:      newRateLimiter(10, 15*time.Minute),
 	}
+	app.client = app.newRemoteClient()
+	app.mediaClient = app.newRemoteClient()
 	app.mediaClient.Timeout = 2 * time.Minute
 	for _, d := range []string{app.mediaDir, app.cacheDir} {
 		if err := os.MkdirAll(d, 0o750); err != nil {
