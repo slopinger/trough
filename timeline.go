@@ -298,12 +298,19 @@ func (app *App) loadStatus(v *Account, id string) (*Status, error) {
 // thread returns the visible ancestors (oldest first) and descendants
 // (depth-first, with Depth set) of st.
 func (app *App) thread(v *Account, st *Status) (anc, desc []*Status) {
+	// Remote reply links can be malformed (including self-replies and
+	// cycles). Never render a status twice or recurse without a bound.
+	seen := map[string]bool{st.ID: true}
 	cur := st
 	for i := 0; i < 40 && cur.InReplyToID != ""; i++ {
+		if seen[cur.InReplyToID] {
+			break
+		}
 		p, err := app.loadStatus(v, cur.InReplyToID)
 		if err != nil {
 			break
 		}
+		seen[p.ID] = true
 		anc = append([]*Status{p}, anc...)
 		cur = p
 	}
@@ -338,7 +345,14 @@ func (app *App) thread(v *Account, st *Status) (anc, desc []*Status) {
 	}
 	var walk func(parent string, depth int)
 	walk = func(parent string, depth int) {
+		if depth >= 40 {
+			return
+		}
 		for _, c := range children[parent] {
+			if seen[c.ID] {
+				continue
+			}
+			seen[c.ID] = true
 			c.Depth = depth
 			desc = append(desc, c)
 			walk(c.ID, depth+1)
