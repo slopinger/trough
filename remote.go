@@ -168,7 +168,7 @@ func (app *App) replaceNoteExtras(ctx context.Context, st *Status, note obj) map
 			break
 		}
 		switch typeOf(a) {
-		case "Document", "Image", "Video", "Audio", "Link":
+		case "Document", "Image", "Video", "Audio":
 		default:
 			continue
 		}
@@ -281,6 +281,7 @@ func (app *App) backfillOutbox(ctx context.Context, acc *Account) {
 		}
 	}
 	items, _ := page["orderedItems"].([]any)
+	fetches := 0
 	for i, it := range items {
 		if i >= 20 {
 			break
@@ -290,7 +291,21 @@ func (app *App) backfillOutbox(ctx context.Context, acc *Account) {
 			continue
 		}
 		note, ok := act["object"].(obj)
-		if !ok || !noteTypes[typeOf(note)] || idOf(note["attributedTo"]) != acc.URI || !sameHost(str(note, "id"), acc.URI) {
+		if !ok {
+			// some servers (GoToSocial) only list IRIs; dereference a few public ones
+			iri := idOf(act["object"])
+			if v := visibilityFrom(act, acc.FollowersURI); (v != "public" && v != "unlisted") || !sameHost(iri, acc.URI) || fetches >= 10 {
+				continue
+			}
+			if _, err := app.StatusByURI(iri); err == nil {
+				continue
+			}
+			fetches++
+			if note, err = app.fetchAP(ctx, iri); err != nil {
+				continue
+			}
+		}
+		if !noteTypes[typeOf(note)] || idOf(note["attributedTo"]) != acc.URI || !sameHost(str(note, "id"), acc.URI) {
 			continue
 		}
 		if v := visibilityFrom(note, acc.FollowersURI); v != "public" && v != "unlisted" {

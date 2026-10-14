@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -70,6 +71,7 @@ usage:
   trough user password [flags] <name>          set a new random password
   trough user admin [flags] <name> on|off      grant/revoke admin
   trough user list [flags]                     list local accounts
+  trough fetch [flags] <url>                   signed GET of an ActivityPub object (debugging)
 
 common flags: -host, -data, -listen, -insecure (or TROUGH_HOST, TROUGH_DATA, ...)
 `, softwareName, softwareVersion)
@@ -87,6 +89,8 @@ func main() {
 		err = cmdServe(os.Args[2:])
 	case "user":
 		err = cmdUser(os.Args[2:])
+	case "fetch":
+		err = cmdFetch(os.Args[2:])
 	case "version", "-v", "--version":
 		fmt.Println(softwareName, softwareVersion)
 	default:
@@ -132,6 +136,29 @@ func cmdServe(args []string) error {
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
+	return nil
+}
+
+func cmdFetch(args []string) error {
+	fs := flag.NewFlagSet("fetch", flag.ExitOnError)
+	cfg, err := parseConfig(fs, args)
+	if err != nil {
+		return err
+	}
+	if fs.NArg() != 1 {
+		return errors.New("usage: trough fetch <url>")
+	}
+	app, err := NewApp(cfg)
+	if err != nil {
+		return err
+	}
+	defer app.Close()
+	m, _, err := app.fetchJSON(context.Background(), fs.Arg(0), apMimeType+", "+ldMimeType)
+	if err != nil {
+		return err
+	}
+	out, _ := json.MarshalIndent(m, "", "  ")
+	fmt.Println(string(out))
 	return nil
 }
 

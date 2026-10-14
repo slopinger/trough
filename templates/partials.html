@@ -124,12 +124,13 @@
           <form method="post" action="/accounts/{{$a.ID}}/accept"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn primary">Accept follow request</button></form>
         {{end}}
       {{end}}{{else}}
-        {{if $a.IsLocal}}<a class="btn primary" href="/login?next={{$a.Path}}">Follow</a>{{end}}
+        {{if $a.IsLocal}}<a class="btn primary" href="#follow-hint">Follow</a>{{end}}
       {{end}}
     </div>
   </div>
   <h1 class="pname">{{name $a}}{{if $a.Locked}} <span class="lock" title="Approves followers manually">{{template "icon" "lock"}}</span>{{end}}{{if $a.IsBot}} <span class="tag">bot</span>{{end}}</h1>
   <div class="acct big">{{handle $a}}{{if .Rel.FollowedBy}} <span class="tag">follows you</span>{{end}}{{if .Rel.BlockedBy}} <span class="tag">has blocked you</span>{{end}}</div>
+  {{if and (not .Me) $a.IsLocal}}<p class="follow-hint" id="follow-hint">To follow from Mastodon or any other fediverse server, search for <code>{{handle $a}}</code> there.</p>{{end}}
   {{if $a.Note}}<div class="bio content">{{bio $a}}</div>{{end}}
   {{if $a.Fields}}<dl class="fields">{{range $a.Fields}}<div><dt>{{.Name}}</dt><dd>{{field $a .Value}}</dd></div>{{end}}</dl>{{end}}
   <div class="pstats">

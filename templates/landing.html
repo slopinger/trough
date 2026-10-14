@@ -2,7 +2,7 @@
 <section class="hero">
   <h1>{{.Instance}}</h1>
   {{if .Description}}<p class="desc">{{.Description}}</p>{{else}}<p class="desc">A tiny corner of the fediverse.</p>{{end}}
-  <p class="muted">{{index .Stats "users"}} {{if eq (index .Stats "users") 1}}person{{else}}people{{end}} · {{index .Stats "posts"}} posts · part of the <a href="https://jointhefediverse.net/" target="_blank" rel="noopener noreferrer">fediverse</a>: follow anyone here from Mastodon, GoToSocial, Misskey, …</p>
+  <p class="muted">{{index .Stats "users"}} {{if eq (index .Stats "users") 1}}person{{else}}people{{end}} · {{index .Stats "posts"}} post{{if ne (index .Stats "posts") 1}}s{{end}} · part of the <a href="https://jointhefediverse.net/" target="_blank" rel="noopener noreferrer">fediverse</a>: follow anyone here from Mastodon, GoToSocial, Misskey, …</p>
   <p><a class="btn primary" href="/login">Log in</a> <a class="btn" href="/about">About this server</a></p>
 </section>
 <h2 class="pagetitle">Recent public posts</h2>

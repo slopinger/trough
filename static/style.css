@@ -358,3 +358,5 @@ details.sensitive > summary { cursor: pointer; padding: 18px; text-align: center
 
 .bigsearch { display: flex; gap: 8px; margin-bottom: 8px; }
 .bigsearch input { flex: 1; min-width: 0; }
+.follow-hint { margin: 8px 16px 0; padding: 8px 12px; border-radius: 10px; background: var(--accent-soft); font-size: 14px; overflow-wrap: anywhere; }
+.follow-hint:target { outline: 2px solid var(--accent); }
