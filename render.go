@@ -168,6 +168,18 @@ func (app *App) templateFuncs() template.FuncMap {
 			return v * 100 / total
 		},
 		"pollClosed": func(p *Poll) bool { return !p.EndTime.IsZero() && p.EndTime.Before(time.Now()) },
+		"until": func(t time.Time) string {
+			d := time.Until(t)
+			switch {
+			case d < time.Minute:
+				return "in a moment"
+			case d < time.Hour:
+				return fmt.Sprintf("in %d min", int(d.Minutes()))
+			case d < 48*time.Hour:
+				return fmt.Sprintf("in %dh", int(d.Hours()))
+			}
+			return fmt.Sprintf("in %d days", int(d.Hours()/24))
+		},
 		"visIcon": func(v string) string {
 			return map[string]string{"public": "🌍", "unlisted": "🔓", "private": "🔒", "direct": "✉️"}[v]
 		},
@@ -180,10 +192,11 @@ func (app *App) templateFuncs() template.FuncMap {
 		"localPath": func(u string) string {
 			return strings.TrimPrefix(u, app.cfg.BaseURL())
 		},
-		"plain":    func(s string) string { return truncateRunes(plainText(s), 200) },
-		"maxChars": func() int { return maxStatusChars },
-		"aiModel":  app.aiModel,
-		"setting":  app.getSetting,
+		"plain":           func(s string) string { return truncateRunes(plainText(s), 200) },
+		"maxChars":        func() int { return maxStatusChars },
+		"aiModel":         app.aiModel,
+		"reactionChoices": func() []string { return reactionChoices },
+		"setting":         app.getSetting,
 		"actions": func(v ...string) [][]string {
 			var out [][]string
 			for i := 0; i+3 <= len(v); i += 3 {

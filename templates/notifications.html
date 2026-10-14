@@ -4,13 +4,13 @@
 {{range .Notifications}}
 <div class="notif{{if not .Read}} unread{{end}}">
   <div class="ntop">
-    <span class="nicon n-{{.Type}}">{{if eq .Type "favourite"}}{{template "icon" "star"}}{{else if eq .Type "reblog"}}{{template "icon" "boost"}}{{else if eq .Type "mention"}}{{template "icon" "reply"}}{{else}}{{template "icon" "userplus"}}{{end}}</span>
+    <span class="nicon n-{{.Type}}">{{if eq .Type "favourite"}}{{template "icon" "star"}}{{else if eq .Type "poll"}}{{template "icon" "poll"}}{{else if eq .Type "reaction"}}{{template "icon" "smile"}}{{else if eq .Type "quote"}}{{template "icon" "quote"}}{{else if eq .Type "reblog"}}{{template "icon" "boost"}}{{else if eq .Type "mention"}}{{template "icon" "reply"}}{{else}}{{template "icon" "userplus"}}{{end}}</span>
     <a href="{{.From.Path}}" class="avatar small"><img src="{{template "avatarsrc" .From}}" alt="" width="28" height="28"></a>
     <span><a href="{{.From.Path}}" class="dn">{{name .From}}</a>
-    {{if eq .Type "favourite"}}favourited your post{{else if eq .Type "reblog"}}boosted your post{{else if eq .Type "mention"}}mentioned you{{else if eq .Type "follow"}}followed you{{else if eq .Type "follow_request"}}requested to follow you{{else if eq .Type "report"}}filed a report · <a href="/admin#reports">review</a>{{else if eq .Type "poll"}}a poll you voted in has ended{{end}}</span>
+    {{if eq .Type "favourite"}}favourited your post{{else if eq .Type "reblog"}}boosted your post{{else if eq .Type "mention"}}mentioned you{{else if eq .Type "follow"}}followed you{{else if eq .Type "follow_request"}}requested to follow you{{else if eq .Type "report"}}filed a report · <a href="/admin#reports">review</a>{{else if eq .Type "poll"}}{{if eq .From.ID $p.Me.ID}}— your poll has ended{{else}}— a poll you voted in has ended{{end}}{{else if eq .Type "reaction"}}reacted to your post{{else if eq .Type "quote"}}quoted your post{{end}}</span>
     <span class="muted right" title="{{fulltime .CreatedAt}}">{{ago .CreatedAt}}</span>
   </div>
-  {{if .Status}}{{if eq .Type "mention"}}{{template "status" (dict "S" .Status "P" $p)}}{{else}}<a class="nquote" href="{{.Status.Path}}">{{plain .Status.Content}}{{if not .Status.Content}}(media){{end}}</a>{{end}}{{end}}
+  {{if .Status}}{{if or (eq .Type "mention") (eq .Type "poll") (eq .Type "quote")}}{{template "status" (dict "S" .Status "P" $p)}}{{else}}<a class="nquote" href="{{.Status.Path}}">{{plain .Status.Content}}{{if not .Status.Content}}(media){{end}}</a>{{end}}{{end}}
   {{if eq .Type "follow_request"}}<div class="row-actions">
     <form method="post" action="/accounts/{{.From.ID}}/accept"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button class="btn primary small">Accept</button></form>
     <form method="post" action="/accounts/{{.From.ID}}/reject"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button class="btn small">Reject</button></form>

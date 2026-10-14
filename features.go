@@ -55,6 +55,9 @@ func (app *App) EditStatus(ctx context.Context, me *Account, st *Status, text, s
 	if err != nil {
 		return nil, err
 	}
+	full.CardURL = ""
+	app.db.Exec(`UPDATE statuses SET card_url='' WHERE id=?`, st.ID)
+	app.queueCard(full)
 	// everyone who saw the old version, plus anyone newly mentioned
 	app.enqueue(me, append(oldInboxes, app.statusInboxes(full)...), app.updateNoteActivity(full))
 	return full, nil

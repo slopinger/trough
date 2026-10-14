@@ -19,6 +19,8 @@ type PostInput struct {
 	Sensitive                 bool
 	InReplyTo                 string // local status id
 	MediaIDs                  []string
+	Poll                      *Poll
+	QuoteOf                   string // local status id of a quoted post
 }
 
 func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Status, error) {
@@ -29,7 +31,7 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 	if len(in.MediaIDs) > 4 {
 		return nil, errors.New("at most 4 attachments")
 	}
-	if text == "" && len(in.MediaIDs) == 0 {
+	if text == "" && len(in.MediaIDs) == 0 && in.Poll == nil {
 		return nil, errors.New("post is empty")
 	}
 	if _, ok := visibilityRank[in.Visibility]; !ok {
@@ -46,7 +48,23 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 			in.Visibility = p.Visibility
 		}
 	}
+	var quoted *Status
+	if in.QuoteOf != "" {
+		q, err := app.loadStatus(me, in.QuoteOf)
+		if err != nil || (q.Visibility != "public" && q.Visibility != "unlisted") || q.IsBoost() {
+			return nil, errors.New("that post can't be quoted")
+		}
+		quoted = q
+	}
 	f := app.formatPost(ctx, text)
+	if quoted != nil {
+		// fallback for software that doesn't render quotes
+		link := quoted.URL
+		if link == "" {
+			link = quoted.URI
+		}
+		f.HTML += `<p class="quote-inline">RE: ` + linkHTML(link) + `</p>`
+	}
 	id := newID()
 	st := &Status{
 		ID:         id,
@@ -60,6 +78,10 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 		Sensitive:  in.Sensitive || strings.TrimSpace(in.Spoiler) != "",
 		Visibility: in.Visibility,
 		CreatedAt:  time.Now(),
+		Poll:       in.Poll,
+	}
+	if quoted != nil {
+		st.QuoteURI = quoted.URI
 	}
 	if parent != nil {
 		st.InReplyToURI, st.InReplyToID, st.InReplyToAccountID = parent.URI, parent.ID, parent.AccountID
@@ -90,7 +112,16 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 	if parent != nil && parent.Account.IsLocal() && !notified[parent.AccountID] {
 		app.notify(parent.AccountID, "mention", me.ID, st.ID)
 	}
-	app.enqueue(me, app.statusInboxes(full), app.createActivity(full))
+	inboxes := app.statusInboxes(full)
+	if quoted != nil {
+		if quoted.Account.IsLocal() {
+			app.notify(quoted.AccountID, "quote", me.ID, st.ID)
+		} else if st.Visibility == "public" || st.Visibility == "unlisted" {
+			inboxes = append(inboxes, quoted.Account.Inbox)
+		}
+	}
+	app.enqueue(me, inboxes, app.createActivity(full))
+	app.queueCard(full)
 	return full, nil
 }
 

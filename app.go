@@ -98,6 +98,18 @@ func (app *App) Start(ctx context.Context) {
 	}
 	go app.deliveryLoop(ctx)
 	go app.housekeeping(ctx)
+	go func() {
+		t := time.NewTicker(time.Minute)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+				app.closeEndedPolls()
+			}
+		}
+	}()
 }
 
 func (app *App) housekeeping(ctx context.Context) {

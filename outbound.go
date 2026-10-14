@@ -154,6 +154,8 @@ func (app *App) noteJSON(st *Status) obj {
 	if !st.EditedAt.IsZero() {
 		m["updated"] = apTime(st.EditedAt)
 	}
+	app.questionFields(st, m)
+	app.quoteFields(st, m)
 	return m
 }
 

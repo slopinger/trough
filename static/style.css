@@ -281,8 +281,20 @@ details.sensitive > summary { cursor: pointer; padding: 18px; text-align: center
 .m-file { display: block; padding: 10px; background: var(--panel-2); }
 
 .poll { margin: 8px 0; }
-.poll .opt { display: grid; grid-template-columns: 90px 1fr auto; gap: 8px; align-items: center; margin-bottom: 4px; }
-.poll meter { width: 100%; }
+.poll .opt { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.poll .bar { position: relative; flex: 1; min-height: 30px; display: flex; align-items: center; }
+.poll meter { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 8px; }
+.poll meter::-webkit-meter-bar { background: var(--panel-2); border: 0; border-radius: 8px; }
+.poll meter::-webkit-meter-optimum-value { background: var(--accent-soft); border-radius: 8px; }
+.poll meter::-moz-meter-bar { background: var(--accent-soft); border-radius: 8px; }
+.poll .opt.mine meter::-webkit-meter-optimum-value { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+.poll .ol { position: relative; padding: 0 10px; font-size: 14px; }
+.poll .pc { min-width: 3em; text-align: right; }
+.poll-form { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; margin-bottom: 6px; }
+.poll-choice { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; width: 100%; cursor: pointer; }
+.poll-choice:hover { border-color: var(--accent); }
+.poll-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 8px 0; }
+@media (max-width: 520px) { .poll-inputs { grid-template-columns: 1fr; } }
 .poll .pc { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
 
 .s-actions { display: flex; align-items: center; gap: 4px; margin: 2px -6px 0; }
@@ -434,3 +446,27 @@ details.filtered > summary::-webkit-details-marker { display: none; }
 .report-posts { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 .report-post { align-items: flex-start; font-size: 14px; }
 .report-post input { margin-top: 3px; flex: none; }
+
+/* ---- quotes, link cards, reactions ---- */
+.quote { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); }
+.quote:hover { border-color: var(--accent); text-decoration: none; }
+.quote-head { display: flex; align-items: center; gap: 6px; font-size: 14px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.quote-head img { border-radius: 5px; }
+.quote-body { font-size: 14px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.content.has-quote .quote-inline { display: none; }
+.card-link { display: flex; margin: 8px 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; color: var(--text); }
+.card-link:hover { border-color: var(--accent); text-decoration: none; }
+.card-link img { width: 120px; min-height: 90px; object-fit: cover; flex: none; background: var(--panel-2); }
+.card-text { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; min-width: 0; font-size: 14px; }
+.card-text b { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.card-site { color: var(--muted); font-size: 12px; }
+.card-desc { color: var(--muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.reactions { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 2px; }
+.reaction { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; background: var(--panel-2); }
+.reaction.mine { border-color: var(--accent); background: var(--accent-soft); }
+.reaction img.emoji { height: 1.2em; }
+.reactions form { margin: 0; }
+button.reaction { font: inherit; font-size: 13px; cursor: pointer; color: var(--text); }
+button.reaction:hover { border-color: var(--accent); }
+.emoji-grid { flex-direction: row; flex-wrap: wrap; min-width: 0; width: 196px; left: 0; right: auto; }
+.emoji-grid button { width: 40px; justify-content: center; font-size: 20px; padding: 6px 0; }

@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -68,6 +69,7 @@ type Page struct {
 }
 
 type Compose struct {
+	QuoteOf       *Status
 	EditOf        *Status
 	AIInstruction string
 	ReplyTo       *Status
@@ -389,6 +391,16 @@ func (app *App) showThread(w http.ResponseWriter, r *http.Request, p *Page, st *
 		http.Redirect(w, r, st.BoostOf.Path(), http.StatusFound)
 		return
 	}
+	// remote polls: get fresh counts
+	if p.Me != nil && !st.Local && st.Poll != nil && !st.Poll.Closed() {
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		if app.refreshStatus(ctx, st) == nil {
+			if fresh, err := app.loadStatus(p.Me, st.ID); err == nil {
+				st = fresh
+			}
+		}
+		cancel()
+	}
 	// if we are missing the parent, try to fetch it (logged-in users only)
 	if p.Me != nil && st.InReplyToURI != "" && st.InReplyToID == "" {
 		ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
@@ -457,6 +469,17 @@ func (app *App) handleComposePage(w http.ResponseWriter, r *http.Request, p *Pag
 	if t := r.URL.Query().Get("text"); t != "" {
 		p.Compose.Text = t
 	}
+	if id := r.URL.Query().Get("quote"); id != "" {
+		if st, err := app.loadStatus(p.Me, id); err == nil {
+			if st.IsBoost() {
+				st = st.BoostOf
+			}
+			if st.Visibility == "public" || st.Visibility == "unlisted" {
+				p.Compose.QuoteOf = st
+				p.Title = "Quote post"
+			}
+		}
+	}
 	if id := r.URL.Query().Get("edit"); id != "" {
 		st, err := app.loadStatus(p.Me, id)
 		if err != nil || st.AccountID != p.Me.ID || st.IsBoost() || !st.Local {
@@ -474,20 +497,35 @@ func (app *App) handleComposePage(w http.ResponseWriter, r *http.Request, p *Pag
 }
 
 func (app *App) handlePost(w http.ResponseWriter, r *http.Request, p *Page) {
+	poll, perr := newPoll([]string{r.FormValue("poll0"), r.FormValue("poll1"), r.FormValue("poll2"), r.FormValue("poll3")},
+		r.FormValue("poll_duration"), r.FormValue("poll_multiple") != "")
 	in := PostInput{
+		Poll:       poll,
 		Text:       r.FormValue("text"),
 		Spoiler:    r.FormValue("spoiler"),
 		Visibility: r.FormValue("visibility"),
 		Sensitive:  r.FormValue("sensitive") != "",
 		InReplyTo:  r.FormValue("in_reply_to"),
+		QuoteOf:    r.FormValue("quote_of"),
 	}
 	fail := func(msg string) {
 		p.Title, p.Error = "New post", msg
 		p.Compose = &Compose{Text: in.Text, Spoiler: in.Spoiler, Visibility: in.Visibility, Sensitive: in.Sensitive}
+		if in.QuoteOf != "" {
+			p.Compose.QuoteOf, _ = app.loadStatus(p.Me, in.QuoteOf)
+		}
 		if in.InReplyTo != "" {
 			p.Compose.ReplyTo, _ = app.loadStatus(p.Me, in.InReplyTo)
 		}
 		app.renderStatus(w, http.StatusBadRequest, "compose", p)
+	}
+	if perr != nil {
+		fail(perr.Error())
+		return
+	}
+	if poll != nil && r.MultipartForm != nil && len(r.MultipartForm.File["media0"])+len(r.MultipartForm.File["media1"]) > 0 {
+		fail("a post can have images or a poll, not both")
+		return
 	}
 	if r.MultipartForm != nil {
 		for i := 0; i < 4; i++ {
@@ -546,6 +584,18 @@ func (app *App) handleStatusAction(w http.ResponseWriter, r *http.Request, p *Pa
 		err = app.Boost(p.Me, target)
 	case "unboost":
 		err = app.Unboost(p.Me, target)
+	case "vote":
+		var choices []int
+		for _, c := range r.Form["choice"] {
+			if n, cerr := strconv.Atoi(c); cerr == nil {
+				choices = append(choices, n)
+			}
+		}
+		err = app.Vote(p.Me, target, choices)
+	case "react":
+		err = app.React(p.Me, target, r.FormValue("emoji"))
+	case "unreact":
+		err = app.Unreact(p.Me, target, r.FormValue("emoji"))
 	case "bookmark":
 		err = app.Bookmark(p.Me, target)
 	case "unbookmark":

@@ -30,6 +30,14 @@ func viewerID(v *Account) string {
 
 // queryStatuses runs a timeline query. where/args further restrict the set.
 func (app *App) queryStatuses(v *Account, where string, args []any, maxID string, limit int, asc bool) ([]*Status, error) {
+	sts, err := app.queryStatusesNoQuotes(v, where, args, maxID, limit, asc)
+	if err == nil {
+		app.hydrateQuotes(v, sts)
+	}
+	return sts, err
+}
+
+func (app *App) queryStatusesNoQuotes(v *Account, where string, args []any, maxID string, limit int, asc bool) ([]*Status, error) {
 	vis, vargs := visibleSQL(v)
 	q := `SELECT ` + statusCols + ` FROM statuses s JOIN accounts a ON a.id=s.account_id WHERE a.suspended=0 AND ` + vis + ` AND (` + where + `)`
 	all := append(append([]any{}, vargs...), args...)
@@ -218,7 +226,12 @@ func (app *App) hydrate(v *Account, sts []*Status) ([]*Status, error) {
 			rows.Close()
 		}
 	}
+	votes := app.myVotes(v, stIDs)
+	reactions := app.reactionsFor(v, stIDs)
+	app.cardsFor(all)
 	for _, s := range all {
+		s.MyVotes = votes[s.ID]
+		s.Reactions = reactions[s.ID]
 		s.Account = accs[s.AccountID]
 		s.InReplyToAccount = accs[s.InReplyToAccountID]
 		s.Attachments = atts[s.ID]

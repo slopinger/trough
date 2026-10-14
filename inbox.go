@@ -115,6 +115,8 @@ func (app *App) processActivity(ctx context.Context, actor *Account, act obj) er
 		return app.inAddRemove(ctx, actor, act)
 	case "Flag":
 		return app.inFlag(actor, act)
+	case "EmojiReact":
+		return app.inEmojiReact(actor, act)
 	}
 	return nil
 }
@@ -203,6 +205,12 @@ func (app *App) inUndo(actor *Account, act obj) error {
 			return errors.New("undo of someone else's activity")
 		}
 	}
+	if kind == "Like" || kind == "EmojiReact" || kind == "" {
+		app.db.Exec(`DELETE FROM reactions WHERE uri=? AND account_id=?`, innerID, actor.ID)
+		if kind == "EmojiReact" {
+			return nil
+		}
+	}
 	switch kind {
 	case "Follow", "":
 		var targetID string
@@ -286,6 +294,14 @@ func (app *App) inLike(actor *Account, act obj) error {
 	}
 	if n, _ := res.RowsAffected(); n > 0 && st.Local {
 		app.notify(st.AccountID, "favourite", actor.ID, st.ID)
+	}
+	// Misskey sends reactions as Likes with the emoji as content
+	reaction := str(act, "_misskey_reaction")
+	if reaction == "" {
+		reaction = str(act, "content")
+	}
+	if reaction != "" {
+		app.storeReaction(actor, st, act, reaction)
 	}
 	return nil
 }
@@ -452,6 +468,9 @@ func (app *App) inCreate(ctx context.Context, actor *Account, act obj) error {
 		if !sameHost(str(note, "id"), author.URI) {
 			return errors.New("note and author on different hosts")
 		}
+	}
+	if app.inPollVote(author, note) {
+		return nil
 	}
 	if !app.relevant(author, note) && !app.hasLocalFollowers(sender.ID) {
 		return nil

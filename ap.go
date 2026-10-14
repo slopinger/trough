@@ -191,6 +191,13 @@ var apContext = []any{
 		"schema":                    "http://schema.org#",
 		"PropertyValue":             "schema:PropertyValue",
 		"value":                     "schema:value",
+		"quoteUri":                  "http://fedibird.com/ns#quoteUri",
+		"quoteUrl":                  "as:quoteUrl",
+		"quote":                     "https://w3id.org/fep/044f#quote",
+		"misskey":                   "https://misskey-hub.net/ns#",
+		"_misskey_quote":            "misskey:_misskey_quote",
+		"EmojiReact":                "litepub:EmojiReact",
+		"litepub":                   "http://litepub.social/ns#",
 	},
 }
 

@@ -85,7 +85,16 @@ func (app *App) storeNote(ctx context.Context, author *Account, note obj, depth 
 	}
 	app.db.Exec(`UPDATE statuses SET in_reply_to_id=?, in_reply_to_account_id=? WHERE in_reply_to_uri=? AND in_reply_to_id=''`,
 		st.ID, st.AccountID, st.URI)
+	if st.QuoteURI != "" && depth < 5 {
+		if _, err := app.StatusByURI(st.QuoteURI); err != nil {
+			app.resolveStatusDepth(ctx, st.QuoteURI, depth+1)
+		}
+		if q, err := app.StatusByURI(st.QuoteURI); err == nil && q.Local {
+			app.notify(q.AccountID, "quote", author.ID, st.ID)
+		}
+	}
 	mentioned := app.replaceNoteExtras(ctx, st, note)
+	app.queueCard(st)
 	for id := range mentioned {
 		app.notify(id, "mention", author.ID, st.ID)
 	}
@@ -150,6 +159,7 @@ func (app *App) applyNote(st *Status, note obj) {
 	st.Spoiler = truncateRunes(plainText(summary), 500)
 	st.Sensitive = boolOf(note, "sensitive") || st.Spoiler != ""
 	st.Emojis = emojisOf(note)
+	st.QuoteURI = quoteOf(note)
 	st.Poll = nil
 	if typeOf(note) == "Question" {
 		p := &Poll{EndTime: parseTime(str(note, "endTime"))}
