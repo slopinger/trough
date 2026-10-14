@@ -106,7 +106,7 @@ func (app *App) handleNodeInfo(w http.ResponseWriter, r *http.Request) {
 		"software":          sw,
 		"protocols":         []string{"activitypub"},
 		"services":          obj{"inbound": []string{}, "outbound": []string{}},
-		"openRegistrations": false,
+		"openRegistrations": app.registrationMode() == "open",
 		"usage": obj{
 			"users":      obj{"total": users, "activeMonth": month, "activeHalfyear": half},
 			"localPosts": posts,

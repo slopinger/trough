@@ -23,6 +23,27 @@
     <button class="btn">Save</button>
   </form>
 </section>
+<section class="card" id="registrations">
+  <h3>Sign-ups</h3>
+  <form method="post" action="/admin/registrations" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <select name="mode">
+      <option value="closed"{{if eq .Registrations "closed"}} selected{{end}}>Closed (admins create accounts)</option>
+      <option value="invite"{{if eq .Registrations "invite"}} selected{{end}}>Invite links only</option>
+      <option value="open"{{if eq .Registrations "open"}} selected{{end}}>Open to everyone</option>
+    </select>
+    <button class="btn">Save</button>
+  </form>
+  <h4>Invite links</h4>
+  {{if .Invites}}<table class="tbl"><tr><th>Link</th><th>Used</th><th>Expires</th></tr>
+  {{range .Invites}}<tr><td><code>/signup?invite={{.Code}}</code></td><td>{{.Uses}} / {{.MaxUses}}</td><td>{{if .Expires.IsZero}}never{{else}}{{fulltime .Expires}}{{end}}</td></tr>{{end}}</table>{{end}}
+  <form method="post" action="/admin/invites" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>uses <input type="number" name="uses" value="1" min="1" max="100" class="num"></label>
+    <label>valid for <select name="days"><option value="1">1 day</option><option value="7" selected>7 days</option><option value="30">30 days</option><option value="0">ever</option></select></label>
+    <button class="btn primary">Create invite link</button>
+  </form>
+</section>
 <section class="card" id="reports">
   <h3>Reports</h3>
   {{$p := .}}{{range .Reports}}

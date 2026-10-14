@@ -196,7 +196,13 @@ func (app *App) templateFuncs() template.FuncMap {
 		"maxChars":        func() int { return maxStatusChars },
 		"aiModel":         app.aiModel,
 		"reactionChoices": func() []string { return reactionChoices },
-		"setting":         app.getSetting,
+		"sinceID": func(sts []*Status) string {
+			if len(sts) > 0 {
+				return sts[0].ID
+			}
+			return newID()
+		},
+		"setting": app.getSetting,
 		"actions": func(v ...string) [][]string {
 			var out [][]string
 			for i := 0; i+3 <= len(v); i += 3 {

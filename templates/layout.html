@@ -10,7 +10,7 @@
 {{block "head" .}}{{end}}
 <script src="{{static "app.js"}}" defer></script>
 </head>
-<body>
+<body{{if .Me}} data-live="1"{{end}}>
 <header class="topbar">
   <a class="brand" href="/"><img src="{{static "favicon.svg"}}" alt="" width="28" height="28"><span>{{.Instance}}</span></a>
   {{if .Me}}
@@ -26,7 +26,7 @@
   <nav class="sidebar" aria-label="Main">
     {{if .Me}}
     <a href="/" class="{{if eq .Section "home"}}active{{end}}">{{template "icon" "home"}}<span>Home</span></a>
-    <a href="/notifications" class="{{if eq .Section "notifications"}}active{{end}}">{{template "icon" "bell"}}<span>Notifications</span>{{if .Unread}}<b class="badge">{{.Unread}}</b>{{end}}</a>
+    <a href="/notifications" class="{{if eq .Section "notifications"}}active{{end}}">{{template "icon" "bell"}}<span>Notifications</span><b class="badge notif-badge"{{if not .Unread}} hidden{{end}}>{{.Unread}}</b></a>
     <a href="/local" class="{{if eq .Section "local"}}active{{end}}">{{template "icon" "users"}}<span>Local</span></a>
     <a href="/federated" class="{{if eq .Section "federated"}}active{{end}}">{{template "icon" "globe"}}<span>Federated</span></a>
     <a href="/search" class="{{if eq .Section "search"}}active{{end}} hide-wide">{{template "icon" "search"}}<span>Search</span></a>

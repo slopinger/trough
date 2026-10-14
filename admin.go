@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -40,6 +41,8 @@ func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Description = app.getSetting("description")
 	p.AIKeySource, p.AIModel = app.aiKeySource(), app.aiModel()
 	p.Reports = app.openReports()
+	p.Invites = app.invites()
+	p.Registrations = app.registrationMode()
 	p.Stats = map[string]int{
 		"users":     app.countInt(`SELECT COUNT(*) FROM users`),
 		"local":     app.countInt(`SELECT COUNT(*) FROM statuses WHERE local=1 AND boost_of_id=''`),
@@ -87,6 +90,31 @@ func (app *App) handleAdminResetPassword(w http.ResponseWriter, r *http.Request,
 		setFlash(w, "New password for @"+acc.Username+": "+pw)
 	}
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *App) handleAdminRegistrations(w http.ResponseWriter, r *http.Request, p *Page) {
+	mode := r.FormValue("mode")
+	if mode != "open" && mode != "invite" {
+		mode = "closed"
+	}
+	app.setSetting("registrations", mode)
+	setFlash(w, "Registrations are now "+mode+".")
+	http.Redirect(w, r, "/admin#registrations", http.StatusSeeOther)
+}
+
+func (app *App) handleAdminInvite(w http.ResponseWriter, r *http.Request, p *Page) {
+	uses, _ := strconv.Atoi(r.FormValue("uses"))
+	days, _ := strconv.Atoi(r.FormValue("days"))
+	code, err := app.CreateInvite(p.Me, uses, time.Duration(days)*24*time.Hour)
+	if err != nil {
+		setFlash(w, err.Error())
+	} else {
+		setFlash(w, "Invite link: "+app.cfg.BaseURL()+"/signup?invite="+code)
+		if app.registrationMode() == "closed" {
+			app.setSetting("registrations", "invite")
+		}
+	}
+	http.Redirect(w, r, "/admin#registrations", http.StatusSeeOther)
 }
 
 func (app *App) handleResolveReport(w http.ResponseWriter, r *http.Request, p *Page) {

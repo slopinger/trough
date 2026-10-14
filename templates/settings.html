@@ -59,6 +59,28 @@
   <h3>Blocked accounts</h3>
   {{range .Blocked}}{{template "accountrow" (dict "A" . "P" $p "Actions" (actions "unblock" "Unblock" ""))}}{{else}}<p class="muted small">You haven't blocked anyone.</p>{{end}}
 </section>
+<section class="card" id="account">
+  <h3>Moving accounts</h3>
+  {{if .MovedTo}}<p class="flash">This account is marked as moved to <a href="{{.MovedTo.Path}}">{{handle .MovedTo}}</a>.</p>
+  <form method="post" action="/settings/account"><input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="cancel_move"><button class="btn small">Undo the move marker</button></form>{{end}}
+  <h4>Moving here from another account</h4>
+  <p class="muted small">Add your old account as an alias, then start the move on your old server. Its followers will follow you here.</p>
+  {{range .Aliases}}<div class="inline-form"><span>{{if .Domain}}{{handle .}}{{else}}{{.URI}}{{end}}</span>
+    <form method="post" action="/settings/account"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="action" value="remove_alias"><input type="hidden" name="uri" value="{{.URI}}"><button class="btn small">Remove</button></form></div>{{end}}
+  <form method="post" action="/settings/account" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="add_alias">
+    <input name="handle" placeholder="@old@other.server" required>
+    <button class="btn">Add alias</button>
+  </form>
+  <h4>Moving away to another account</h4>
+  <p class="muted small">First add this account (<code>{{handle .Me}}</code>) as an alias on the new account. Your followers here are then asked to follow the new account; your posts stay here.</p>
+  <form method="post" action="/settings/account" class="inline-form confirm" data-confirm="Move your followers to the new account? This can't be undone automatically.">
+    <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="action" value="move">
+    <input name="handle" placeholder="@new@other.server" required>
+    <input type="password" name="password" placeholder="your password" autocomplete="current-password" required>
+    <button class="btn danger-outline">Move followers</button>
+  </form>
+</section>
 <section class="card">
   <h3>Your fediverse address</h3>
   <p>People on other servers can find and follow you as <code>{{handle $a}}</code>.</p>

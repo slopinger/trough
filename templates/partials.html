@@ -184,6 +184,7 @@
 
 {{define "profilehead"}}{{$a := .Account}}
 <section class="profile">
+  {{if .MovedTo}}<div class="moved">{{template "icon" "external"}} {{name $a}} has moved to <a href="{{.MovedTo.Path}}"><b>{{handle .MovedTo}}</b></a></div>{{end}}
   <div class="banner">{{if $a.Header}}<img src="{{media $a.Header}}" alt="">{{end}}</div>
   <div class="pinfo">
     <img class="big-avatar" src="{{template "avatarsrc" $a}}" alt="" width="96" height="96">

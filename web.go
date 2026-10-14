@@ -63,6 +63,11 @@ type Page struct {
 	Blocked       []*Account
 	Filters       []*Filter
 	Reports       []*Report
+	Invites       []Invite
+	Registrations string
+	Aliases       []*Account
+	MovedTo       *Account
+	Timeline      string // home/local/federated: enables live "new posts"
 	AI            bool   // AI writing available
 	AIKeySource   string // admin: where the key comes from
 	AIModel       string
@@ -236,6 +241,7 @@ func (app *App) handleLoginForm(w http.ResponseWriter, r *http.Request, p *Page)
 	}
 	p.Title = "Log in"
 	p.Query = r.URL.Query().Get("next")
+	p.Registrations = app.registrationMode()
 	app.render(w, "login", p)
 }
 
@@ -255,17 +261,10 @@ func (app *App) handleLogin(w http.ResponseWriter, r *http.Request, p *Page) {
 		app.renderStatus(w, http.StatusUnauthorized, "login", p)
 		return
 	}
-	token := randomToken(32)
-	now := time.Now()
-	if _, err := app.db.Exec(`INSERT INTO sessions (id,account_id,csrf,created_at,expires_at,user_agent) VALUES (?,?,?,?,?,?)`,
-		sha256Hex(token), acc.ID, randomToken(16), now.Unix(), now.Add(sessionTTL).Unix(), truncateRunes(r.UserAgent(), 200)); err != nil {
+	if err := app.startSession(w, r, acc); err != nil {
 		http.Error(w, "could not create session", 500)
 		return
 	}
-	http.SetCookie(w, &http.Cookie{
-		Name: sessionCookie, Value: token, Path: "/", HttpOnly: true, Secure: !app.cfg.Insecure,
-		SameSite: http.SameSiteLaxMode, Expires: now.Add(sessionTTL),
-	})
 	next := r.FormValue("next")
 	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.HasPrefix(next, "/\\") {
 		next = "/"
@@ -307,6 +306,7 @@ func (app *App) handleRoot(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Statuses = sts
 	p.NextURL = nextURL(r, sts)
 	p.Description = app.getSetting("description")
+	p.Registrations = app.registrationMode()
 	p.Stats = map[string]int{
 		"users": app.countInt(`SELECT COUNT(*) FROM users`),
 		"posts": app.countInt(`SELECT COUNT(*) FROM statuses WHERE local=1 AND boost_of_id=''`),
@@ -320,7 +320,7 @@ func (app *App) handleHome(w http.ResponseWriter, r *http.Request, p *Page) {
 		http.Error(w, "db error", 500)
 		return
 	}
-	p.Title, p.Section, p.Heading = "Home", "home", "Home"
+	p.Title, p.Section, p.Heading, p.Timeline = "Home", "home", "Home", "home"
 	p.Statuses = app.applyFilters(p.Me, sts)
 	p.NextURL = nextURL(r, sts)
 	p.Compose = &Compose{Visibility: "public"}
@@ -335,6 +335,9 @@ func (app *App) handleLocal(w http.ResponseWriter, r *http.Request, p *Page) {
 		return
 	}
 	p.Title, p.Section, p.Heading = "Local timeline", "local", "Local timeline"
+	if p.Me != nil {
+		p.Timeline = "local"
+	}
 	p.Statuses = app.applyFilters(p.Me, sts)
 	p.NextURL = nextURL(r, sts)
 	p.Empty = "Nobody here has posted anything public yet."
@@ -347,7 +350,7 @@ func (app *App) handleFederated(w http.ResponseWriter, r *http.Request, p *Page)
 		http.Error(w, "db error", 500)
 		return
 	}
-	p.Title, p.Section, p.Heading = "Federated timeline", "federated", "Federated timeline"
+	p.Title, p.Section, p.Heading, p.Timeline = "Federated timeline", "federated", "Federated timeline", "federated"
 	p.Statuses = app.applyFilters(p.Me, sts)
 	p.NextURL = nextURL(r, sts)
 	p.Empty = "No public posts known yet."
@@ -705,6 +708,9 @@ func (app *App) handleProfileOrStatus(w http.ResponseWriter, r *http.Request, p 
 
 func (app *App) profileCommon(p *Page, acc *Account) {
 	p.Account = acc
+	if acc.MovedTo != "" {
+		p.MovedTo, _ = app.AccountByURI(acc.MovedTo)
+	}
 	if p.Me != nil {
 		p.Rel = app.relationship(p.Me.ID, acc.ID)
 	}
@@ -908,6 +914,16 @@ func (app *App) handleSettings(w http.ResponseWriter, r *http.Request, p *Page) 
 	p.Title, p.Section = "Settings", "settings"
 	p.Account = p.Me
 	p.Filters = app.filtersFor(p.Me.ID)
+	for _, uri := range p.Me.AlsoKnownAs {
+		if a, err := app.AccountByURI(uri); err == nil {
+			p.Aliases = append(p.Aliases, a)
+		} else {
+			p.Aliases = append(p.Aliases, &Account{URI: uri, Username: uri})
+		}
+	}
+	if p.Me.MovedTo != "" {
+		p.MovedTo, _ = app.AccountByURI(p.Me.MovedTo)
+	}
 	p.Accounts, _ = app.accountsQuery(`SELECT `+accountCols+` FROM mutes m JOIN accounts a ON a.id=m.target_id WHERE m.account_id=? ORDER BY m.created_at DESC`, p.Me.ID)
 	p.Blocked, _ = app.accountsQuery(`SELECT `+accountCols+` FROM blocks b JOIN accounts a ON a.id=b.target_id WHERE b.account_id=? ORDER BY b.created_at DESC`, p.Me.ID)
 	app.render(w, "settings", p)
@@ -1102,4 +1118,77 @@ func (app *App) handleReport(w http.ResponseWriter, r *http.Request, p *Page) {
 		setFlash(w, "Thanks, the report was sent to the admins"+map[bool]string{true: " of this server and " + acc.Domain, false: ""}[r.FormValue("forward") != "" && !acc.IsLocal()]+".")
 	}
 	http.Redirect(w, r, acc.Path(), http.StatusSeeOther)
+}
+
+func (app *App) startSession(w http.ResponseWriter, r *http.Request, acc *Account) error {
+	token := randomToken(32)
+	now := time.Now()
+	if _, err := app.db.Exec(`INSERT INTO sessions (id,account_id,csrf,created_at,expires_at,user_agent) VALUES (?,?,?,?,?,?)`,
+		sha256Hex(token), acc.ID, randomToken(16), now.Unix(), now.Add(sessionTTL).Unix(), truncateRunes(r.UserAgent(), 200)); err != nil {
+		return err
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name: sessionCookie, Value: token, Path: "/", HttpOnly: true, Secure: !app.cfg.Insecure,
+		SameSite: http.SameSiteLaxMode, Expires: now.Add(sessionTTL),
+	})
+	return nil
+}
+
+func (app *App) handleSettingsAccount(w http.ResponseWriter, r *http.Request, p *Page) {
+	var err error
+	msg := ""
+	switch r.FormValue("action") {
+	case "add_alias":
+		err = app.AddAlias(r.Context(), p.Me, r.FormValue("handle"))
+		msg = "Alias added."
+	case "remove_alias":
+		err = app.RemoveAlias(p.Me, r.FormValue("uri"))
+		msg = "Alias removed."
+	case "move":
+		if _, cerr := app.checkPassword(p.Me.Username, r.FormValue("password")); cerr != nil {
+			err = errors.New("wrong password")
+			break
+		}
+		var target *Account
+		target, err = app.MoveTo(r.Context(), p.Me, r.FormValue("handle"))
+		if err == nil {
+			msg = "Your followers are being moved to @" + target.Acct() + "."
+		}
+	case "cancel_move":
+		p.Me.MovedTo = ""
+		err = app.UpdateProfile(p.Me)
+		msg = "This account is no longer marked as moved."
+	}
+	if err != nil {
+		msg = err.Error()
+	}
+	setFlash(w, msg)
+	http.Redirect(w, r, "/settings#account", http.StatusSeeOther)
+}
+
+// handleNewCount tells the timeline page how many newer posts there are.
+func (app *App) handleNewCount(w http.ResponseWriter, r *http.Request, p *Page) {
+	since := r.URL.Query().Get("since")
+	n := 0
+	if since != "" {
+		var sts []*Status
+		var err error
+		switch r.URL.Query().Get("tl") {
+		case "local":
+			sts, err = app.localTimeline(p.Me, "")
+		case "federated":
+			sts, err = app.federatedTimeline(p.Me, "")
+		default:
+			sts, err = app.homeTimeline(p.Me, "")
+		}
+		if err == nil {
+			for _, s := range app.applyFilters(p.Me, sts) {
+				if s.ID > since && s.AccountID != p.Me.ID {
+					n++
+				}
+			}
+		}
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, "application/json", obj{"new": n, "notifications": app.unreadNotifications(p.Me.ID), "requests": app.followRequestCount(p.Me.ID)})
 }

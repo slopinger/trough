@@ -7,6 +7,8 @@
     <label>Password <input type="password" name="password" autocomplete="current-password" required></label>
     <button class="btn primary">Log in</button>
   </form>
-  <p class="muted small">Registrations are closed. Accounts are created by the admins of this server.</p>
+  {{if eq .Registrations "open"}}<p class="muted small">New here? <a href="/signup">Create an account</a>.</p>
+  {{else if eq .Registrations "invite"}}<p class="muted small">Sign-ups need an invite link from someone on this server.</p>
+  {{else}}<p class="muted small">Registrations are closed. Accounts are created by the admins of this server.</p>{{end}}
 </section>
 {{end}}

@@ -1,5 +1,6 @@
 {{define "content"}}
 <h2 class="pagetitle">{{.Heading}}</h2>
+{{if .Timeline}}<a class="new-posts" href="{{.Path}}" hidden data-timeline="{{.Timeline}}" data-since="{{sinceID .Statuses}}">Show new posts</a>{{end}}
 {{if .Compose}}{{template "compose" (dict "C" .Compose "P" .)}}{{end}}
 {{template "statuslist" .}}
 {{end}}

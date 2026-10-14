@@ -241,6 +241,34 @@
     });
   });
 
+  // live updates: "show new posts" banner and the notification badge
+  if (document.body.dataset.live && window.fetch) {
+    var banner = document.querySelector(".new-posts");
+    var badge = document.querySelector(".notif-badge");
+    var poll = function () {
+      if (document.hidden) return;
+      var q = banner && banner.dataset.since ? "?tl=" + banner.dataset.timeline + "&since=" + banner.dataset.since : "";
+      fetch("/timeline/new" + q, { credentials: "same-origin" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d) return;
+          if (banner && d.new > 0) {
+            banner.textContent = d.new === 1 ? "Show 1 new post" : "Show " + d.new + " new posts";
+            banner.hidden = false;
+          }
+          if (badge) {
+            badge.textContent = String(d.notifications);
+            badge.hidden = !d.notifications;
+          }
+          document.title = document.title.replace(/^\(\d+\) /, "");
+          if (d.notifications) document.title = "(" + d.notifications + ") " + document.title;
+        })
+        .catch(function () {});
+    };
+    setInterval(poll, 30000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) poll(); });
+  }
+
   // keep relative timestamps fresh-ish
   function rel(t) {
     var s = (Date.now() - t.getTime()) / 1000;

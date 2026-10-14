@@ -117,6 +117,8 @@ func (app *App) processActivity(ctx context.Context, actor *Account, act obj) er
 		return app.inFlag(actor, act)
 	case "EmojiReact":
 		return app.inEmojiReact(actor, act)
+	case "Move":
+		return app.inMove(ctx, actor, act)
 	}
 	return nil
 }
