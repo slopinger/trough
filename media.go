@@ -229,6 +229,8 @@ func (app *App) handleMedia(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", ct)
 	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
+	w.Header().Set("Access-Control-Allow-Origin", "*") // clients like Phanpy load images with crossorigin
+	w.Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	http.ServeContent(w, r, "", st.ModTime(), f)
 }
@@ -346,6 +348,8 @@ func (app *App) handleProxy(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", string(ct))
 	w.Header().Set("Cache-Control", "public, max-age=604800")
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
+	w.Header().Set("Access-Control-Allow-Origin", "*") // clients like Phanpy load images with crossorigin
+	w.Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
 	http.ServeContent(w, r, "", st.ModTime(), f)
 }
 

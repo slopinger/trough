@@ -264,7 +264,7 @@ func TestCompatOurDocuments(t *testing.T) {
 		t.Errorf("browser got %s", resp.Header.Get("Content-Type"))
 	}
 	// discovery documents are readable by browser-based clients (Phanpy, Elk)
-	for _, path := range []string{"/.well-known/host-meta", "/.well-known/nodeinfo", "/.well-known/webfinger?resource=acct:bob@" + la.host()} {
+	for _, path := range []string{"/static/avatar.svg", "/.well-known/host-meta", "/.well-known/nodeinfo", "/.well-known/webfinger?resource=acct:bob@" + la.host()} {
 		req, _ := http.NewRequest("GET", la.base+path, nil)
 		req.Header.Set("Origin", "https://phanpy.social")
 		resp, err := http.DefaultClient.Do(req)
