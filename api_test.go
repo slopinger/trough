@@ -16,6 +16,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"golang.org/x/net/websocket"
 )
 
 type apiClient struct {
@@ -265,4 +267,49 @@ func (la *liveApp) mustURI(id string) string {
 		return ""
 	}
 	return st.URI
+}
+
+func TestStreamingWebsocket(t *testing.T) {
+	la, r, bob, alice := featureFixture(t)
+	token := oauthLogin(t, la, "bob", "password123", "read write")
+	wsURL := strings.Replace(la.base, "http", "ws", 1) + "/api/v1/streaming?access_token=" + token + "&stream=user"
+	ws, err := websocket.Dial(wsURL, "", la.base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ws.Close()
+	time.Sleep(100 * time.Millisecond)
+	// a post by alice arrives via federation
+	nid := r.Base + "/notes/live"
+	r.send(obj{"@context": asContext, "id": nid + "/activity", "type": "Create", "actor": alice.URI, "to": []any{asPublic},
+		"object": obj{"id": nid, "type": "Note", "attributedTo": alice.URI, "content": "<p>live!</p>", "to": []any{asPublic}, "published": apTime(time.Now())}},
+		r.Base+"/users/alice#main-key", sigCavage)
+	ws.SetReadDeadline(time.Now().Add(5 * time.Second))
+	for {
+		var m streamMsg
+		if err := websocket.JSON.Receive(ws, &m); err != nil {
+			t.Fatalf("no update received: %v", err)
+		}
+		if m.Event != "update" {
+			continue
+		}
+		var st map[string]any
+		json.Unmarshal([]byte(m.Payload), &st)
+		if !strings.Contains(st["content"].(string), "live!") || m.Stream[0] != "user" {
+			t.Fatalf("update = %v", m)
+		}
+		break
+	}
+	// notification event
+	mine, _ := la.PostStatus(t.Context(), bob, PostInput{Text: "like this", Visibility: "public"})
+	r.send(obj{"@context": asContext, "id": r.Base + "/likes/ws", "type": "Like", "actor": alice.URI, "object": mine.URI}, r.Base+"/users/alice#main-key", sigCavage)
+	for {
+		var m streamMsg
+		if err := websocket.JSON.Receive(ws, &m); err != nil {
+			t.Fatalf("no notification received: %v", err)
+		}
+		if m.Event == "notification" && strings.Contains(m.Payload, `"favourite"`) {
+			break
+		}
+	}
 }

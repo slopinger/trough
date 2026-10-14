@@ -348,6 +348,7 @@ func (app *App) inAnnounce(ctx context.Context, actor *Account, act obj) error {
 	if err := app.insertStatus(b); err != nil {
 		return err
 	}
+	app.publishStatus(b.ID, false)
 	if orig.Local {
 		app.notify(orig.AccountID, "reblog", actor.ID, orig.ID)
 	}
@@ -396,6 +397,7 @@ func (app *App) inAnnouncedActivity(ctx context.Context, group *Account, act, in
 		if err := app.insertStatus(b); err != nil {
 			return err
 		}
+		app.publishStatus(b.ID, false)
 		return nil
 	case "Delete":
 		st, err := app.StatusByURI(objIRI)
@@ -554,6 +556,7 @@ func (app *App) inUpdate(ctx context.Context, actor *Account, act obj) error {
 			return err
 		}
 		app.replaceNoteExtras(ctx, st, o)
+		app.publishStatus(st.ID, true)
 	}
 	return nil
 }

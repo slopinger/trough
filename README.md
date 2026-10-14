@@ -45,6 +45,7 @@ Running instance: **https://fedi.freifick.net**
   timelines, notifications (with type filters), relationships, follow/block/mute, follow requests, search v2
   with remote resolving, markers, filters, conversations, instance v1/v2, CORS for browser clients
 - Mastodon-style pagination (`max_id`/`since_id`/`min_id`, `Link` headers) and Idempotency-Key
+- Streaming API over WebSocket (`/api/v1/streaming`) and server-sent events (`/api/v1/streaming/user`, ...)
 - Checked with the Mastodon.py client library (`test/mastodon_py.py`) and Go tests (`api_test.go`)
 
 **Web interface**
@@ -162,7 +163,7 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 | `db.go`, `models.go` | SQLite schema/migrations, accounts, statuses, relationships |
 | `httpsig.go`, `rfc9421.go` | HTTP Signatures (draft-cavage, RFC 9421) |
 | `ai.go` | AI drafting of posts and replies |
-| `api_oauth.go`, `api_entities.go`, `api_handlers.go` | Mastodon client API, OAuth |
+| `api_oauth.go`, `api_entities.go`, `api_handlers.go`, `api_stream.go` | Mastodon client API, OAuth, streaming |
 | `features.go`, `polls.go`, `social.go`, `accounts.go` | edits, pins, bookmarks, mutes, filters, reports, polls, reactions, quotes, link cards, migration, sign-ups |
 | `fetch.go` | SSRF-safe HTTP client, signed fetches, actors, keys, WebFinger client |
 | `ap.go`, `outbound.go` | ActivityStreams helpers, JSON for actors/notes/activities, addressing |

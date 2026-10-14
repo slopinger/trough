@@ -95,6 +95,7 @@ func (app *App) storeNote(ctx context.Context, author *Account, note obj, depth 
 	}
 	mentioned := app.replaceNoteExtras(ctx, st, note)
 	app.queueCard(st)
+	app.publishStatus(st.ID, false)
 	for id := range mentioned {
 		app.notify(id, "mention", author.ID, st.ID)
 	}

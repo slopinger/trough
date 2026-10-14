@@ -232,5 +232,8 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	h("GET /api/v2/search", pub(app.apiSearch))
 	h("GET /api/v1/search", pub(app.apiSearch))
 
+	h("GET /api/v1/streaming/health", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("OK")) })
+	h("GET /api/v1/streaming", app.handleStreaming)
+	h("GET /api/v1/streaming/{stream...}", app.handleStreaming)
 
 }

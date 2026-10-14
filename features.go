@@ -60,6 +60,7 @@ func (app *App) EditStatus(ctx context.Context, me *Account, st *Status, text, s
 	app.queueCard(full)
 	// everyone who saw the old version, plus anyone newly mentioned
 	app.enqueue(me, append(oldInboxes, app.statusInboxes(full)...), app.updateNoteActivity(full))
+	app.publishStatus(full.ID, true)
 	return full, nil
 }
 

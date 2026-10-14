@@ -122,6 +122,7 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 	}
 	app.enqueue(me, inboxes, app.createActivity(full))
 	app.queueCard(full)
+	app.publishStatus(full.ID, false)
 	return full, nil
 }
 
@@ -178,6 +179,9 @@ func (app *App) purgeStatus(id string) error {
 	app.db.Exec(`DELETE FROM statuses WHERE boost_of_id=?`, id)
 	app.db.Exec(`UPDATE statuses SET in_reply_to_id='' WHERE in_reply_to_id=?`, id)
 	_, err = app.db.Exec(`DELETE FROM statuses WHERE id=?`, id)
+	if err == nil {
+		app.publishDelete(id)
+	}
 	return err
 }
 
@@ -238,6 +242,7 @@ func (app *App) Boost(me *Account, st *Status) error {
 	if err := app.insertStatus(b); err != nil {
 		return err
 	}
+	app.publishStatus(b.ID, false)
 	if st.Account.IsLocal() {
 		app.notify(st.AccountID, "reblog", me.ID, st.ID)
 	}
