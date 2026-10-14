@@ -67,7 +67,7 @@ func usage() {
 
 usage:
   trough serve [flags]                         run the server
-  trough user create [flags] <name> [--admin]  create a local account (prints a password)
+  trough user create [flags] <name> [-admin]   create a local account (prints a password)
   trough user password [flags] <name>          set a new random password
   trough user admin [flags] <name> on|off      grant/revoke admin
   trough user list [flags]                     list local accounts
@@ -174,6 +174,22 @@ func cmdUser(args []string) error {
 		os.Exit(2)
 	}
 	sub := args[0]
+	// allow flags after the user name (trough user create alice -admin)
+	var flags, pos []string
+	for i := 1; i < len(args); i++ {
+		a := args[i]
+		if strings.HasPrefix(a, "-") {
+			flags = append(flags, a)
+			name := strings.TrimLeft(a, "-")
+			if (name == "host" || name == "listen" || name == "data") && i+1 < len(args) {
+				flags = append(flags, args[i+1])
+				i++
+			}
+		} else {
+			pos = append(pos, a)
+		}
+	}
+	args = append([]string{sub}, append(flags, pos...)...)
 	fs := flag.NewFlagSet("user "+sub, flag.ExitOnError)
 	admin := fs.Bool("admin", false, "make the new user an admin")
 	pwStdin := fs.Bool("password-stdin", false, "read the password from stdin instead of generating one")

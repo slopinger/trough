@@ -77,7 +77,10 @@ localhost:
 ```
 
 Then log in on both and search for `@alice@127.0.0.1:8801` from bob's side.
-Run unit tests with `go test ./...`.
+
+Tests: `go test ./...` for unit tests; `python3 test/federation.py <alice-pw> <bob-pw>` drives both
+instances' web interfaces end to end (follow/accept, follow requests, posts, mentions, likes, boosts,
+replies, visibility, DMs, profile updates, deletes, blocks).
 
 ### Deployment on fedi.freifick.net
 
