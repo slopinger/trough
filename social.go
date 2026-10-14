@@ -88,7 +88,7 @@ func (app *App) React(me *Account, st *Status, emoji string) error {
 	if st.Account.IsLocal() {
 		app.notify(st.AccountID, "reaction", me.ID, st.ID)
 	} else {
-		app.enqueue(me, []string{st.Account.Inbox}, reactActivity(uri, me, st, emoji))
+		app.enqueue(me, []string{st.Account.DeliveryInbox()}, reactActivity(uri, me, st, emoji))
 	}
 	return nil
 }
@@ -109,7 +109,7 @@ func (app *App) Unreact(me *Account, st *Status, emoji string) error {
 	app.db.Exec(`DELETE FROM reactions WHERE status_id=? AND account_id=? AND emoji=?`, st.ID, me.ID, emoji)
 	app.db.Exec(`DELETE FROM notifications WHERE type='reaction' AND from_account_id=? AND status_id=?`, me.ID, st.ID)
 	if !st.Account.IsLocal() {
-		app.enqueue(me, []string{st.Account.Inbox}, undoActivity(me, reactActivity(uri, me, st, emoji)))
+		app.enqueue(me, []string{st.Account.DeliveryInbox()}, undoActivity(me, reactActivity(uri, me, st, emoji)))
 	}
 	return nil
 }

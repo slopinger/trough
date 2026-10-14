@@ -118,7 +118,7 @@ func (app *App) Vote(me *Account, st *Status, choices []int) error {
 		if !author.IsLocal() {
 			note := obj{"id": uri, "type": "Note", "name": p.Options[c].Name, "attributedTo": me.URI, "inReplyTo": st.URI,
 				"to": []any{author.URI}, "published": apTime(time.Now())}
-			app.enqueue(me, []string{author.Inbox}, withContext(obj{
+			app.enqueue(me, []string{author.DeliveryInbox()}, withContext(obj{
 				"id": uri + "/activity", "type": "Create", "actor": me.URI, "to": []any{author.URI}, "object": note,
 			}))
 		}

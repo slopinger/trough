@@ -117,7 +117,7 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 		if quoted.Account.IsLocal() {
 			app.notify(quoted.AccountID, "quote", me.ID, st.ID)
 		} else if st.Visibility == "public" || st.Visibility == "unlisted" {
-			inboxes = append(inboxes, quoted.Account.Inbox)
+			inboxes = append(inboxes, quoted.Account.DeliveryInbox())
 		}
 	}
 	app.enqueue(me, inboxes, app.createActivity(full))
@@ -197,7 +197,7 @@ func (app *App) Like(me *Account, st *Status) error {
 	if st.Account.IsLocal() {
 		app.notify(st.AccountID, "favourite", me.ID, st.ID)
 	} else {
-		app.enqueue(me, []string{st.Account.Inbox}, likeActivity(me, likeID, st))
+		app.enqueue(me, []string{st.Account.DeliveryInbox()}, likeActivity(me, likeID, st))
 	}
 	return nil
 }
@@ -213,7 +213,7 @@ func (app *App) Unlike(me *Account, st *Status) error {
 	app.db.Exec(`DELETE FROM likes WHERE id=?`, likeID)
 	app.db.Exec(`DELETE FROM notifications WHERE type='favourite' AND from_account_id=? AND status_id=?`, me.ID, st.ID)
 	if !st.Account.IsLocal() {
-		app.enqueue(me, []string{st.Account.Inbox}, undoActivity(me, likeActivity(me, likeID, st)))
+		app.enqueue(me, []string{st.Account.DeliveryInbox()}, undoActivity(me, likeActivity(me, likeID, st)))
 	}
 	return nil
 }
@@ -243,7 +243,7 @@ func (app *App) Boost(me *Account, st *Status) error {
 	}
 	inboxes := app.followerInboxes(me.ID)
 	if !st.Account.IsLocal() {
-		inboxes = append(inboxes, st.Account.Inbox)
+		inboxes = append(inboxes, st.Account.DeliveryInbox())
 	}
 	app.enqueue(me, inboxes, app.announceActivity(b))
 	return nil
@@ -263,7 +263,7 @@ func (app *App) Unboost(me *Account, st *Status) error {
 	app.db.Exec(`DELETE FROM notifications WHERE type='reblog' AND from_account_id=? AND status_id=?`, me.ID, st.ID)
 	inboxes := app.followerInboxes(me.ID)
 	if !st.Account.IsLocal() {
-		inboxes = append(inboxes, st.Account.Inbox)
+		inboxes = append(inboxes, st.Account.DeliveryInbox())
 	}
 	app.enqueue(me, inboxes, act)
 	return nil
