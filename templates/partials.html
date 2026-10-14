@@ -68,11 +68,27 @@
 
 {{define "compose"}}{{$c := .C}}{{$p := .P}}
 <form class="compose" id="compose" method="post" action="/statuses" enctype="multipart/form-data">
+  <button type="submit" disabled hidden aria-hidden="true" tabindex="-1"></button>{{/* swallows Enter in single-line fields */}}
   <input type="hidden" name="csrf" value="{{$p.CSRF}}">
   {{if $c.ReplyTo}}<input type="hidden" name="in_reply_to" value="{{$c.ReplyTo.ID}}">
   <div class="replying">{{template "icon" "reply"}} Replying to <a href="{{$c.ReplyTo.Account.Path}}">{{handle $c.ReplyTo.Account}}</a>: <span class="muted">{{plain $c.ReplyTo.Content}}</span></div>{{end}}
   <input class="cw-input" name="spoiler" maxlength="500" placeholder="Content warning (optional)" value="{{$c.Spoiler}}">
   <textarea name="text" rows="4" maxlength="{{maxChars}}" placeholder="What's on your mind?" aria-label="Post text">{{$c.Text}}</textarea>
+  {{if $p.AI}}
+  <details class="ai-panel"{{if $c.AIInstruction}} open{{end}}>
+    <summary>✨ Write with AI</summary>
+    <input name="ai_instruction" maxlength="2000" value="{{$c.AIInstruction}}" aria-label="Instructions for the AI"
+      placeholder="{{if $c.ReplyTo}}What do you want to say? (optional){{else}}What should the post be about? e.g. invite people to my baking stream on Sunday{{end}}">
+    <div class="ai-row">
+      {{if $c.ReplyTo}}<button class="btn small" type="submit" formaction="/compose/ai" name="ai_mode" value="reply">✨ Draft a reply</button>
+      {{else}}<button class="btn small" type="submit" formaction="/compose/ai" name="ai_mode" value="write">✨ Draft a post</button>{{end}}
+      <button class="btn small" type="submit" formaction="/compose/ai" name="ai_mode" value="improve">Improve my draft</button>
+      <button class="btn small ai-undo" type="button" hidden>Undo</button>
+      <span class="ai-status" aria-live="polite"></span>
+    </div>
+    <p class="muted small">Drafts are written by an AI model ({{aiModel}}). Your instructions and draft{{if $c.ReplyTo}}, plus the thread you are replying to,{{end}} are sent to the AI provider. Nothing is posted until you press {{if $c.ReplyTo}}Reply{{else}}Post{{end}}.</p>
+  </details>
+  {{end}}
   <details class="attach"><summary>{{template "icon" "image"}} Attach images</summary>
     <div class="att-row"><input type="file" name="media0" accept="image/png,image/jpeg,image/gif,image/webp"><input name="alt0" maxlength="1500" placeholder="Describe the image (alt text)"></div>
     <div class="att-row"><input type="file" name="media1" accept="image/png,image/jpeg,image/gif,image/webp"><input name="alt1" maxlength="1500" placeholder="Describe the image (alt text)"></div>

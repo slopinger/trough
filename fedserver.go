@@ -26,6 +26,12 @@ func writeJSON(w http.ResponseWriter, contentType string, v any) {
 	enc.Encode(v)
 }
 
+// writeSSE writes one server-sent event with a JSON payload.
+func writeSSE(w http.ResponseWriter, v any) {
+	b, _ := json.Marshal(v)
+	fmt.Fprintf(w, "data: %s\n\n", b)
+}
+
 func writeAP(w http.ResponseWriter, v any) {
 	writeJSON(w, `application/activity+json; charset=utf-8`, v)
 }

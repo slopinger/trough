@@ -58,14 +58,18 @@ type Page struct {
 	Heading       string
 	Empty         string
 	Deliveries    []DeliveryInfo
+	AI            bool   // AI writing available
+	AIKeySource   string // admin: where the key comes from
+	AIModel       string
 }
 
 type Compose struct {
-	ReplyTo    *Status
-	Text       string
-	Spoiler    string
-	Visibility string
-	Sensitive  bool
+	AIInstruction string
+	ReplyTo       *Status
+	Text          string
+	Spoiler       string
+	Visibility    string
+	Sensitive     bool
 }
 
 type DomainBlock struct {
@@ -128,6 +132,7 @@ func (app *App) web(requireLogin bool, h handler) http.HandlerFunc {
 					p.Admin = app.isAdmin(acc.ID)
 					p.Unread = app.unreadNotifications(acc.ID)
 					p.Requests = app.followRequestCount(acc.ID)
+					p.AI = app.aiEnabled()
 					now := time.Now().Unix()
 					app.db.Exec(`UPDATE users SET last_seen=? WHERE account_id=? AND last_seen < ?`, now, acc.ID, now-3600)
 				}

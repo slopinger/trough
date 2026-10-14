@@ -24,6 +24,21 @@
   </form>
 </section>
 <section class="card">
+  <h3>AI writing</h3>
+  <p>Users can have an AI model draft posts and replies in the compose box. Status: <b>{{if .AI}}on{{else}}off{{end}}</b>.
+    API key: {{if .AIKeySource}}set (from {{.AIKeySource}}){{else}}<b>not set</b>{{end}}.</p>
+  <form method="post" action="/admin/ai" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label class="check"><input type="checkbox" name="enabled"{{if ne (setting "ai_disabled") "1"}} checked{{end}}> Offer AI drafting to users</label>
+    <label>Model <input name="model" list="ai-models" value="{{.AIModel}}"></label>
+    <datalist id="ai-models"><option value="deepseek-v4-pro"><option value="deepseek-flash"></datalist>
+    <label>DeepSeek API key <input type="password" name="api_key" autocomplete="off" placeholder="{{if .AIKeySource}}leave empty to keep the current key{{else}}sk-...{{end}}"></label>
+    {{if eq .AIKeySource "admin settings"}}<label class="check"><input type="checkbox" name="remove_key"> remove the stored key</label>{{end}}
+    <button class="btn">Save AI settings</button>
+  </form>
+  <p class="muted small">A key in the environment (<code>TROUGH_DEEPSEEK_API_KEY</code>) takes precedence over one stored here. Each user can make 30 AI requests per hour.</p>
+</section>
+<section class="card">
   <h3>Users</h3>
   <table class="tbl">
     <tr><th>User</th><th>Role</th><th>Last seen</th><th></th></tr>

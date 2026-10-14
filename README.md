@@ -15,7 +15,8 @@ Running instance: **https://fedi.freifick.net**
 **Federation**
 - WebFinger (`/.well-known/webfinger`), host-meta, NodeInfo 2.0/2.1, a minimal `/api/v1/instance`
 - Actors with RSA keys; HTTP Signatures (draft-cavage, `rsa-sha256`/`hs2019`) on every outgoing request,
-  verified on every incoming inbox POST (digest, date window, key ownership, re-fetch on key rotation)
+  verified on every incoming inbox POST (digest, date window, key ownership, re-fetch on key rotation).
+  Incoming RFC 9421 HTTP Message Signatures (Fedify-based servers such as Hollo and Ghost) are verified too.
 - A signed instance actor (`/actor`) for fetches, so servers in "authorized fetch" mode work
 - Inbox (shared and per-user) handling `Follow`, `Accept`, `Reject`, `Undo`, `Create`, `Update`, `Delete`,
   `Like`, `Announce`, `Block`
@@ -28,11 +29,21 @@ Running instance: **https://fedi.freifick.net**
 - SSRF protection: remote fetches never connect to loopback/private/link-local addresses
 - Remote HTML is sanitized (bluemonday); custom emoji, polls (read-only), content warnings,
   sensitive media, Articles and other object types are displayed
+- Groups: Lemmy communities and similar groups that relay posts as `Announce{Create}` show up as boosts by
+  the group; relayed activities are always re-fetched from their origin. PeerTube videos (channel +
+  account authors, Markdown descriptions, thumbnails) and Lemmy link posts display properly.
+- Tested for compatibility (see below) with Mastodon, GoToSocial, Misskey/Sharkey, Pleroma/Akkoma,
+  Pixelfed, Friendica, WordPress, Fedify, Lemmy and PeerTube payloads and signature styles
 
 **Web interface**
 - Home, local and federated timelines, hashtag timelines, threads with nested replies
 - Compose with content warnings, four visibilities (public, unlisted, followers-only, direct),
   up to 4 images with alt text, @mentions (resolved via WebFinger) and #hashtags
+- **AI writing (optional):** "Write with AI" in the compose box drafts a post from a short instruction,
+  improves the current draft, or drafts a reply with the thread as context. The draft streams into the
+  text box and is never posted automatically. Uses DeepSeek's chat completions API (any
+  OpenAI-compatible endpoint works); remote post text is passed to the model as delimited data, not
+  instructions. 30 requests per user and hour; admins switch it on and off and pick the model on `/admin`.
 - Like, boost, reply and delete; likes and boosts update in place with JS, or via plain forms without it
 - Profiles with header, avatar, bio, profile fields, locked accounts and bot flag; follow, unfollow and block
 - Notifications (mentions, replies, likes, boosts, follows, follow requests), follow request management
@@ -79,7 +90,16 @@ localhost:
 
 Then log in on both and search for `@alice@127.0.0.1:8801` from bob's side.
 
-Tests: `go test ./...` for unit tests. Run `python3 test/run-federation.py` to build trough and
+AI writing needs an API key: `TROUGH_DEEPSEEK_API_KEY` (or `DEEPSEEK_API_KEY`) in the environment, or one
+entered on `/admin`. Optional: `TROUGH_AI_MODEL` (default `deepseek-v4-pro`, also `deepseek-flash`) and
+`TROUGH_AI_BASE_URL` (default `https://api.deepseek.com`). On fedi.freifick.net the key lives in the
+root-only `/etc/trough-secrets.env`, which `trough.service` loads.
+
+Tests: `go test ./...` for unit tests. The ActivityPub compatibility suite (`compat_*_test.go`) runs a
+live instance against a fake remote that reproduces the actor/object shapes and signature styles of
+Mastodon, GoToSocial, Misskey, Pleroma, Pixelfed, Friendica, WordPress, Fedify (RFC 9421), Lemmy and
+PeerTube through a whole follow/post/like/boost/edit/undo/delete lifecycle, verifying our signatures
+with the independent go-fed/httpsig implementation. Run `python3 test/run-federation.py` to build trough and
 exercise two disposable instances end to end: follow/accept, follow requests, posts, mentions, likes,
 boosts, replies, visibility, DMs, profile updates, deletes and blocks. The runner uses randomly selected
 loopback ports and temporary databases, stops both processes, and removes its data on exit. It does
@@ -117,7 +137,8 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 | `main.go` | CLI, configuration |
 | `app.go` | app setup, instance actor, local users, workers |
 | `db.go`, `models.go` | SQLite schema/migrations, accounts, statuses, relationships |
-| `httpsig.go` | HTTP Signatures |
+| `httpsig.go`, `rfc9421.go` | HTTP Signatures (draft-cavage, RFC 9421) |
+| `ai.go` | AI drafting of posts and replies |
 | `fetch.go` | SSRF-safe HTTP client, signed fetches, actors, keys, WebFinger client |
 | `ap.go`, `outbound.go` | ActivityStreams helpers, JSON for actors/notes/activities, addressing |
 | `inbox.go`, `remote.go` | incoming activities, storing remote posts, backfill, URL resolution |
@@ -134,7 +155,7 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 
 Mastodon client API/OAuth (so no third-party apps), voting in polls, editing posts, pinned posts,
 mutes and filters, reports (`Flag`), account migration (`Move`), streaming updates, sign-ups,
-RFC 9421 signatures.
+outgoing RFC 9421 signatures.
 
 ## License
 

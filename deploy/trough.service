@@ -8,6 +8,8 @@ Wants=network-online.target
 User=trough
 Group=trough
 EnvironmentFile=/etc/trough.env
+# secrets (TROUGH_DEEPSEEK_API_KEY), root-only; optional
+EnvironmentFile=-/etc/trough-secrets.env
 ExecStart=/usr/local/bin/trough serve
 Restart=on-failure
 RestartSec=2s

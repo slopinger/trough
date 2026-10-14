@@ -360,3 +360,15 @@ details.sensitive > summary { cursor: pointer; padding: 18px; text-align: center
 .bigsearch input { flex: 1; min-width: 0; }
 .follow-hint { margin: 8px 16px 0; padding: 8px 12px; border-radius: 10px; background: var(--accent-soft); font-size: 14px; overflow-wrap: anywhere; }
 .follow-hint:target { outline: 2px solid var(--accent); }
+
+/* ---- AI drafting ---- */
+.ai-panel > summary { cursor: pointer; color: var(--muted); padding: 2px 0; }
+.ai-panel[open] { background: var(--panel-2); border-radius: 10px; padding: 8px 10px; }
+.ai-panel input[name=ai_instruction] { width: 100%; margin-top: 6px; }
+.ai-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 4px; }
+.ai-status { font-size: 13px; color: var(--muted); }
+.ai-status.err { color: var(--danger); }
+.ai-status.busy::after { content: ""; display: inline-block; width: .9em; height: .9em; margin-left: 6px; vertical-align: -2px;
+  border: 2px solid var(--accent); border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+textarea.ai-writing { border-color: var(--accent); }

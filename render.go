@@ -181,6 +181,8 @@ func (app *App) templateFuncs() template.FuncMap {
 		},
 		"plain":    func(s string) string { return truncateRunes(plainText(s), 200) },
 		"maxChars": func() int { return maxStatusChars },
+		"aiModel":  app.aiModel,
+		"setting":  app.getSetting,
 		"actions": func(v ...string) [][]string {
 			var out [][]string
 			for i := 0; i+3 <= len(v); i += 3 {

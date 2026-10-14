@@ -38,6 +38,7 @@ func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Users, _ = app.ListUsers()
 	p.DomainBlocks = app.domainBlockList()
 	p.Description = app.getSetting("description")
+	p.AIKeySource, p.AIModel = app.aiKeySource(), app.aiModel()
 	p.Stats = map[string]int{
 		"users":     app.countInt(`SELECT COUNT(*) FROM users`),
 		"local":     app.countInt(`SELECT COUNT(*) FROM statuses WHERE local=1 AND boost_of_id=''`),
@@ -84,6 +85,23 @@ func (app *App) handleAdminResetPassword(w http.ResponseWriter, r *http.Request,
 	} else {
 		setFlash(w, "New password for @"+acc.Username+": "+pw)
 	}
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *App) handleAdminAI(w http.ResponseWriter, r *http.Request, p *Page) {
+	if k := strings.TrimSpace(r.FormValue("api_key")); k != "" {
+		app.setSetting("ai_api_key", k)
+	}
+	if r.FormValue("remove_key") != "" {
+		app.db.Exec(`DELETE FROM settings WHERE key='ai_api_key'`)
+	}
+	disabled := "0"
+	if r.FormValue("enabled") == "" {
+		disabled = "1"
+	}
+	app.setSetting("ai_disabled", disabled)
+	app.setSetting("ai_model", strings.TrimSpace(r.FormValue("model")))
+	setFlash(w, "AI settings saved.")
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
 }
 

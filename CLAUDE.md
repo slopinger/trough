@@ -7,6 +7,13 @@ Keep these notes and README up to date whenever code behavior, commands or opera
 - `go test ./...` and `go vet ./...` are baseline checks. Use `go test -race ./...` for concurrency changes.
 - `python3 test/run-federation.py` builds two disposable loopback instances and exercises signed
   federation via the real web UI; it removes processes/data on exit. It never uses live credentials.
+- `compat_*_test.go` is the ActivityPub compatibility suite: a live instance against a fake remote that
+  speaks like Mastodon, GoToSocial, Misskey, Pleroma, Pixelfed, Friendica, WordPress, Fedify (RFC 9421),
+  Lemmy and PeerTube, cross-checking signatures with go-fed/httpsig. Add a flavor/fixture when fixing an
+  interop bug. `ai_test.go` covers AI drafting against a fake streaming chat completions server.
+- AI drafting (`ai.go`) calls DeepSeek (OpenAI-compatible) with the key from `TROUGH_DEEPSEEK_API_KEY`
+  (production: root-only `/etc/trough-secrets.env`) or the admin setting. Drafts never post themselves;
+  keep remote text delimited as data in prompts.
 - Parser and media cache repair/cleanup regression/fuzz tests are in `media_test.go`; thread cycle/depth tests in `timeline_test.go`;
   redirect/signature/domain-policy tests in `fetch_test.go`; incoming Undo tests in `inbox_test.go`.
 - `go test -run '^$' -fuzz '^FuzzJPEGOrientation$' -fuzztime=30s` fuzzes JPEG metadata.
