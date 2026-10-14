@@ -1,11 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
+	"image"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -136,5 +142,143 @@ func TestProxySerializesFailedFetches(t *testing.T) {
 	}
 	if got := <-third; got != http.StatusBadGateway {
 		t.Fatalf("third response: %d", got)
+	}
+}
+
+func TestProxyRepairsMissingOrInvalidCache(t *testing.T) {
+	for _, invalidType := range []bool{false, true} {
+		name := "missing body"
+		if invalidType {
+			name = "invalid metadata"
+		}
+		t.Run(name, func(t *testing.T) {
+			app := testApp(t)
+			app.cfg.Insecure = true
+			app.mediaClient = newHTTPClient(true)
+			var pngData bytes.Buffer
+			if err := png.Encode(&pngData, image.NewNRGBA(image.Rect(0, 0, 1, 1))); err != nil {
+				t.Fatal(err)
+			}
+			var hits atomic.Int32
+			remote := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				hits.Add(1)
+				w.Header().Set("Content-Type", "image/png")
+				w.Write(pngData.Bytes())
+			}))
+			defer remote.Close()
+			target := remote.URL + "/picture.png"
+			file := filepath.Join(app.cacheDir, sha256Hex(target))
+			metadata := "image/png"
+			if invalidType {
+				metadata = "not/a-media-type"
+				if err := os.WriteFile(file, []byte("bad cache"), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := os.WriteFile(file+".type", []byte(metadata), 0600); err != nil {
+				t.Fatal(err)
+			}
+			for i := 0; i < 2; i++ {
+				req := httptest.NewRequest("GET", "/proxy/"+app.proxySig(target)+"?url="+url.QueryEscape(target), nil)
+				req.SetPathValue("sig", app.proxySig(target))
+				response := httptest.NewRecorder()
+				app.handleProxy(response, req)
+				if response.Code != http.StatusOK {
+					t.Fatalf("response=%d, body=%s", response.Code, response.Body.String())
+				}
+				if response.Header().Get("Content-Type") != "image/png" || !bytes.Equal(response.Body.Bytes(), pngData.Bytes()) {
+					t.Fatal("served corrupt cached data")
+				}
+			}
+			if hits.Load() != 1 {
+				t.Fatalf("remote fetches=%d, want 1", hits.Load())
+			}
+		})
+	}
+}
+
+func TestProxyRejectsEmptyRemoteMedia(t *testing.T) {
+	app := testApp(t)
+	app.cfg.Insecure = true
+	app.mediaClient = newHTTPClient(true)
+	remote := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Header().Set("Content-Type", "image/png") }))
+	defer remote.Close()
+	target := remote.URL + "/empty.png"
+	req := httptest.NewRequest("GET", "/proxy/"+app.proxySig(target)+"?url="+url.QueryEscape(target), nil)
+	req.SetPathValue("sig", app.proxySig(target))
+	response := httptest.NewRecorder()
+	app.handleProxy(response, req)
+	if response.Code != http.StatusBadGateway {
+		t.Fatalf("response=%d, want 502", response.Code)
+	}
+}
+
+func TestCacheCleanupWaitsForFreshDownload(t *testing.T) {
+	app := testApp(t)
+	app.cfg.Insecure = true
+	app.mediaClient = newHTTPClient(true)
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var picture bytes.Buffer
+	if err := png.Encode(&picture, image.NewNRGBA(image.Rect(0, 0, 1, 1))); err != nil {
+		t.Fatal(err)
+	}
+	remote := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(started)
+		<-release
+		w.Header().Set("Content-Type", "image/png")
+		w.Write(picture.Bytes())
+	}))
+	defer remote.Close()
+	defer close(release)
+	target := remote.URL + "/picture.png"
+	file := filepath.Join(app.cacheDir, sha256Hex(target))
+	old := time.Now().Add(-48 * time.Hour)
+	for name, content := range map[string][]byte{file: []byte("old media"), file + ".type": []byte("invalid")} {
+		if err := os.WriteFile(name, content, 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(name, old, old); err != nil {
+			t.Fatal(err)
+		}
+	}
+	done := make(chan *httptest.ResponseRecorder, 1)
+	go func() {
+		req := httptest.NewRequest("GET", "/proxy/"+app.proxySig(target)+"?url="+url.QueryEscape(target), nil)
+		req.SetPathValue("sig", app.proxySig(target))
+		response := httptest.NewRecorder()
+		app.handleProxy(response, req)
+		done <- response
+	}()
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("download did not start")
+	}
+	cleaned := make(chan struct{})
+	go func() { app.cleanCache(24 * time.Hour); close(cleaned) }()
+	select {
+	case <-cleaned:
+		t.Fatal("cleanup bypassed the active download lock")
+	case <-time.After(50 * time.Millisecond):
+	}
+	release <- struct{}{}
+	select {
+	case response := <-done:
+		if response.Code != http.StatusOK || !bytes.Equal(response.Body.Bytes(), picture.Bytes()) {
+			t.Fatal("download failed")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("download did not finish")
+	}
+	select {
+	case <-cleaned:
+	case <-time.After(2 * time.Second):
+		t.Fatal("cleanup did not finish")
+	}
+	for _, name := range []string{file, file + ".type"} {
+		if _, err := os.Stat(name); err != nil {
+			t.Fatalf("fresh cache entry removed: %v", err)
+		}
 	}
 }

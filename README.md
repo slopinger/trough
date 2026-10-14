@@ -41,7 +41,8 @@ Running instance: **https://fedi.freifick.net**
   subdomains), federation stats and failing deliveries
 - Media: uploads are re-encoded, which strips EXIF metadata such as GPS positions while keeping the
   orientation. Remote media goes through an HMAC-signed caching proxy, so remote servers never see visitors'
-  IP addresses and the page can use a strict CSP (`img-src 'self'`).
+  IP addresses and the page can use a strict CSP (`img-src 'self'`). Cache entries with missing data
+  or invalid metadata are refetched; per-URL locks coordinate fetches and expiry cleanup.
 - Light and dark theme, responsive layout with a bottom navigation bar on phones
 - Security: bcrypt passwords, login rate limiting, HttpOnly/SameSite session cookies, per-session CSRF
   tokens, Origin checks, strict Content-Security-Policy (no inline scripts or styles)

@@ -311,24 +311,38 @@ func (app *App) handleProxy(w http.ResponseWriter, r *http.Request) {
 	file := filepath.Join(app.cacheDir, key)
 	unlock := app.proxyLocks.lock(key)
 	ct, err := os.ReadFile(file + ".type")
+	var f *os.File
+	if err == nil {
+		if !proxyTypes[string(ct)] {
+			err = errors.New("invalid cache metadata")
+		} else {
+			f, err = os.Open(file)
+		}
+	}
 	if err != nil {
+		// A crash or cache cleanup can leave only one half of the pair.
+		// Treat it as a cache miss rather than a persistent 500 response.
 		var typ string
 		typ, err = app.fetchToCache(r, u, file)
 		ct = []byte(typ)
+		if err == nil {
+			f, err = os.Open(file)
+		}
 	}
+	// Open the file while holding the same lock used by cache cleanup.
+	// Unlinking it after this point cannot interrupt this response.
 	unlock()
 	if err != nil {
 		w.Header().Set("Cache-Control", "public, max-age=300")
 		http.Error(w, "could not fetch media", http.StatusBadGateway)
 		return
 	}
-	f, err := os.Open(file)
+	defer f.Close()
+	st, err := f.Stat()
 	if err != nil {
 		http.Error(w, "cache error", http.StatusInternalServerError)
 		return
 	}
-	defer f.Close()
-	st, _ := f.Stat()
 	w.Header().Set("Content-Type", string(ct))
 	w.Header().Set("Cache-Control", "public, max-age=604800")
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
@@ -408,9 +422,14 @@ func (app *App) cleanCache(maxAge time.Duration) {
 	}
 	cut := time.Now().Add(-maxAge)
 	for _, e := range entries {
-		info, err := e.Info()
+		key := strings.TrimSuffix(e.Name(), ".type")
+		unlock := app.proxyLocks.lock(key)
+		// Stat under the lock: a fresh download may have replaced the entry
+		// since ReadDir, and must not be removed using stale timestamps.
+		info, err := os.Stat(filepath.Join(app.cacheDir, e.Name()))
 		if err == nil && info.ModTime().Before(cut) {
 			os.Remove(filepath.Join(app.cacheDir, e.Name()))
 		}
+		unlock()
 	}
 }

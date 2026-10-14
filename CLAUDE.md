@@ -7,7 +7,7 @@ Keep these notes and README up to date whenever code behavior, commands or opera
 - `go test ./...` and `go vet ./...` are baseline checks. Use `go test -race ./...` for concurrency changes.
 - `python3 test/run-federation.py` builds two disposable loopback instances and exercises signed
   federation via the real web UI; it removes processes/data on exit. It never uses live credentials.
-- Parser regression/fuzz tests are in `media_test.go`; thread cycle/depth tests in `timeline_test.go`;
+- Parser and media cache repair/cleanup regression/fuzz tests are in `media_test.go`; thread cycle/depth tests in `timeline_test.go`;
   redirect/signature/domain-policy tests in `fetch_test.go`; incoming Undo tests in `inbox_test.go`.
 - `go test -run '^$' -fuzz '^FuzzJPEGOrientation$' -fuzztime=30s` fuzzes JPEG metadata.
 - Keep remote content untrusted. Preserve visibility checks, HTTP signature/actor ownership checks,
