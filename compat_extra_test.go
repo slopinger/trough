@@ -263,6 +263,19 @@ func TestCompatOurDocuments(t *testing.T) {
 	if !strings.HasPrefix(resp.Header.Get("Content-Type"), "text/html") {
 		t.Errorf("browser got %s", resp.Header.Get("Content-Type"))
 	}
+	// discovery documents are readable by browser-based clients (Phanpy, Elk)
+	for _, path := range []string{"/.well-known/host-meta", "/.well-known/nodeinfo", "/.well-known/webfinger?resource=acct:bob@" + la.host()} {
+		req, _ := http.NewRequest("GET", la.base+path, nil)
+		req.Header.Set("Origin", "https://phanpy.social")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if resp.Header.Get("Access-Control-Allow-Origin") != "*" {
+			t.Errorf("%s lacks CORS", path)
+		}
+	}
 	// NodeInfo
 	code, ni, _ := get(la.base+"/.well-known/nodeinfo", "application/json")
 	if code != 200 || len(objsOf(ni["links"])) == 0 {

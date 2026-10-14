@@ -12,10 +12,10 @@ func (app *App) Handler() http.Handler {
 	mux := http.NewServeMux()
 
 	// discovery
-	mux.HandleFunc("GET /.well-known/webfinger", app.handleWebfinger)
-	mux.HandleFunc("GET /.well-known/host-meta", app.handleHostMeta)
-	mux.HandleFunc("GET /.well-known/nodeinfo", app.handleNodeInfoIndex)
-	mux.HandleFunc("GET /nodeinfo/{version}", app.handleNodeInfo)
+	mux.Handle("GET /.well-known/webfinger", cors(http.HandlerFunc(app.handleWebfinger)))
+	mux.Handle("GET /.well-known/host-meta", cors(http.HandlerFunc(app.handleHostMeta)))
+	mux.Handle("GET /.well-known/nodeinfo", cors(http.HandlerFunc(app.handleNodeInfoIndex)))
+	mux.Handle("GET /nodeinfo/{version}", cors(http.HandlerFunc(app.handleNodeInfo)))
 	app.apiRoutes(mux)
 
 	// ActivityPub
@@ -133,6 +133,8 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	// preflight for everything under /api and /oauth
 	mux.Handle("OPTIONS /api/", cors(http.NotFoundHandler()))
 	mux.Handle("OPTIONS /oauth/", cors(http.NotFoundHandler()))
+	mux.Handle("OPTIONS /.well-known/", cors(http.NotFoundHandler()))
+	mux.Handle("OPTIONS /nodeinfo/", cors(http.NotFoundHandler()))
 
 	h("GET /.well-known/oauth-authorization-server", app.handleOAuthMetadata)
 	h("POST /oauth/token", app.handleToken)
