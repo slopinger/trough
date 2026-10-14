@@ -81,6 +81,14 @@
     <button class="btn danger-outline">Move followers</button>
   </form>
 </section>
+<section class="card" id="apps">
+  <h3>Apps</h3>
+  <p class="muted small">You can use Mastodon apps (Tusky, Ivory, Elk, Phanpy, Ice Cubes, Fedilab, …) with this account: sign in to <code>{{.Host}}</code> in the app.</p>
+  {{if .Apps}}<table class="tbl"><tr><th>App</th><th>Access</th><th>Last used</th><th></th></tr>
+  {{range .Apps}}<tr><td>{{.Name}}</td><td class="small">{{.Scopes}}</td><td>{{if .LastUsed.IsZero}}{{ago .Created}}{{else}}{{ago .LastUsed}}{{end}}</td>
+    <td><form method="post" action="/settings/apps/{{.TokenID}}/revoke" class="confirm" data-confirm="Revoke access for {{.Name}}?"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small">Revoke</button></form></td></tr>{{end}}</table>
+  {{else}}<p class="muted small">No apps connected.</p>{{end}}
+</section>
 <section class="card">
   <h3>Your fediverse address</h3>
   <p>People on other servers can find and follow you as <code>{{handle $a}}</code>.</p>

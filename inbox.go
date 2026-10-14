@@ -393,7 +393,10 @@ func (app *App) inAnnouncedActivity(ctx context.Context, group *Account, act, in
 		if !existing.Local && existing.InReplyToURI != "" {
 			return nil // comments show up in threads, not as boosts in timelines
 		}
-		return app.insertStatus(b)
+		if err := app.insertStatus(b); err != nil {
+			return err
+		}
+		return nil
 	case "Delete":
 		st, err := app.StatusByURI(objIRI)
 		if err != nil {

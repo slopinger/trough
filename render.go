@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"path"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -196,6 +197,25 @@ func (app *App) templateFuncs() template.FuncMap {
 		"maxChars":        func() int { return maxStatusChars },
 		"aiModel":         app.aiModel,
 		"reactionChoices": func() []string { return reactionChoices },
+		"scopeList": func(s string) []string {
+			desc := map[string]string{"read": "read your timelines, posts, notifications and account data", "write": "post, edit, delete, like and boost on your behalf, and change your profile",
+				"follow": "follow, unfollow, block and mute accounts", "push": "receive push notifications", "profile": "see your profile",
+				"admin:read": "read admin data", "admin:write": "perform admin actions"}
+			var out []string
+			for sc := range parseScopes(s) {
+				d := desc[sc]
+				if d == "" {
+					if base := strings.SplitN(sc, ":", 2)[0]; desc[base] != "" {
+						d = desc[base] + " (" + sc + ")"
+					} else {
+						d = sc
+					}
+				}
+				out = append(out, d)
+			}
+			sort.Strings(out)
+			return out
+		},
 		"sinceID": func(sts []*Status) string {
 			if len(sts) > 0 {
 				return sts[0].ID

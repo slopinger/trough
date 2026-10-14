@@ -477,3 +477,5 @@ input.num { width: 5em; }
 .card h4 { margin: 16px 0 4px; font-size: 15px; }
 .new-posts[hidden] { display: none; }
 .poll meter { -webkit-appearance: none; appearance: none; height: 100%; background: var(--panel-2); }
+.scopes { padding-left: 20px; }
+code.bigcode { font-size: 18px; padding: 6px 10px; user-select: all; overflow-wrap: anywhere; }

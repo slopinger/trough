@@ -68,6 +68,8 @@ type Page struct {
 	Aliases       []*Account
 	MovedTo       *Account
 	Timeline      string // home/local/federated: enables live "new posts"
+	OAuth         *authorizeReq
+	Apps          []ConnectedApp
 	AI            bool   // AI writing available
 	AIKeySource   string // admin: where the key comes from
 	AIModel       string
@@ -914,6 +916,7 @@ func (app *App) handleSettings(w http.ResponseWriter, r *http.Request, p *Page) 
 	p.Title, p.Section = "Settings", "settings"
 	p.Account = p.Me
 	p.Filters = app.filtersFor(p.Me.ID)
+	p.Apps = app.connectedApps(p.Me.ID)
 	for _, uri := range p.Me.AlsoKnownAs {
 		if a, err := app.AccountByURI(uri); err == nil {
 			p.Aliases = append(p.Aliases, a)
@@ -1191,4 +1194,10 @@ func (app *App) handleNewCount(w http.ResponseWriter, r *http.Request, p *Page) 
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, "application/json", obj{"new": n, "notifications": app.unreadNotifications(p.Me.ID), "requests": app.followRequestCount(p.Me.ID)})
+}
+
+func (app *App) handleRevokeApp(w http.ResponseWriter, r *http.Request, p *Page) {
+	app.db.Exec(`DELETE FROM oauth_tokens WHERE id=? AND account_id=?`, r.PathValue("id"), p.Me.ID)
+	setFlash(w, "Access revoked.")
+	http.Redirect(w, r, "/settings#apps", http.StatusSeeOther)
 }

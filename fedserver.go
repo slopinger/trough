@@ -118,26 +118,6 @@ func (app *App) handleNodeInfo(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// handleInstanceAPI is a tiny subset of Mastodon's /api/v1/instance, which
-// many crawlers and tools look at.
-func (app *App) handleInstanceAPI(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, "application/json", obj{
-		"uri":               app.cfg.Host,
-		"title":             app.instanceTitle(),
-		"short_description": app.getSetting("description"),
-		"description":       app.getSetting("description"),
-		"version":           "4.0.0 (compatible; " + softwareName + " " + softwareVersion + ")",
-		"registrations":     false,
-		"approval_required": true,
-		"stats": obj{
-			"user_count":   app.countInt(`SELECT COUNT(*) FROM users`),
-			"status_count": app.countInt(`SELECT COUNT(*) FROM statuses WHERE local=1 AND boost_of_id=''`),
-			"domain_count": app.countInt(`SELECT COUNT(DISTINCT domain) FROM accounts WHERE domain != ''`),
-		},
-		"languages": []string{"en"},
-	})
-}
-
 func (app *App) handleActor(w http.ResponseWriter, r *http.Request) {
 	acc, err := app.LocalAccount(r.PathValue("name"))
 	if err != nil {

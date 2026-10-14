@@ -1,0 +1,17 @@
+{{define "content"}}
+<section class="card narrow">
+  {{if .OAuth}}
+  <h2>Authorize {{.OAuth.App.Name}}</h2>
+  <p><b>{{.OAuth.App.Name}}</b>{{if .OAuth.App.Website}} (<a href="{{.OAuth.App.Website}}" target="_blank" rel="noopener noreferrer">{{hostOf .OAuth.App.Website}}</a>){{end}} wants to use your account <b>{{handle .Me}}</b>.</p>
+  <p class="muted small">It will be able to:</p>
+  <ul class="scopes">{{range scopeList .OAuth.Scope}}<li>{{.}}</li>{{end}}</ul>
+  <form method="post" action="/oauth/authorize" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input type="hidden" name="query" value="{{.Query}}">
+    <button class="btn primary" name="approve" value="1">Allow</button>
+    <button class="btn" name="deny" value="1">Deny</button>
+  </form>
+  <p class="muted small">You can revoke access any time in Settings.</p>
+  {{end}}
+</section>
+{{end}}

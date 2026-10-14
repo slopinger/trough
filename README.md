@@ -4,9 +4,10 @@ A small, single-binary **fediverse (ActivityPub) server** with a built-in web in
 Pigs eat slop from a trough; this one feeds you posts from the fediverse.
 
 It is modelled on [GoToSocial](https://gotosocial.org/): one Go binary, SQLite, low resource use,
-federating with Mastodon, GoToSocial, Misskey, Pleroma/Akkoma and friends. Unlike GoToSocial it doesn't
-implement the Mastodon client API. Instead it ships its own server-rendered web interface that works
-without JavaScript; a little JS only adds conveniences.
+federating with Mastodon, GoToSocial, Misskey, Pleroma/Akkoma and friends. Like GoToSocial it speaks the
+Mastodon client API, so apps such as Tusky, Ivory, Elk, Phanpy, Ice Cubes or Fedilab work with it, and it
+also ships its own server-rendered web interface that works without JavaScript (a little JS only adds
+conveniences).
 
 Running instance: **https://fedi.freifick.net**
 
@@ -34,6 +35,17 @@ Running instance: **https://fedi.freifick.net**
   account authors, Markdown descriptions, thumbnails) and Lemmy link posts display properly.
 - Tested for compatibility (see below) with Mastodon, GoToSocial, Misskey/Sharkey, Pleroma/Akkoma,
   Pixelfed, Friendica, WordPress, Fedify, Lemmy and PeerTube payloads and signature styles
+
+**Mastodon client API**
+- OAuth 2: app registration, authorization code with PKCE (consent page, out-of-band codes), client
+  credentials and password grants, revocation, `/.well-known/oauth-authorization-server`; connected apps
+  can be revoked in Settings
+- Accounts, statuses (post with media/polls/quotes, edit, delete, context, source, history), favourites,
+  reblogs, bookmarks, pins, reactions (Pleroma-style), polls, media upload (v1/v2), home/public/hashtag
+  timelines, notifications (with type filters), relationships, follow/block/mute, follow requests, search v2
+  with remote resolving, markers, filters, conversations, instance v1/v2, CORS for browser clients
+- Mastodon-style pagination (`max_id`/`since_id`/`min_id`, `Link` headers) and Idempotency-Key
+- Checked with the Mastodon.py client library (`test/mastodon_py.py`) and Go tests (`api_test.go`)
 
 **Web interface**
 - Home, local and federated timelines, hashtag timelines, threads with nested replies
@@ -150,6 +162,8 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 | `db.go`, `models.go` | SQLite schema/migrations, accounts, statuses, relationships |
 | `httpsig.go`, `rfc9421.go` | HTTP Signatures (draft-cavage, RFC 9421) |
 | `ai.go` | AI drafting of posts and replies |
+| `api_oauth.go`, `api_entities.go`, `api_handlers.go` | Mastodon client API, OAuth |
+| `features.go`, `polls.go`, `social.go`, `accounts.go` | edits, pins, bookmarks, mutes, filters, reports, polls, reactions, quotes, link cards, migration, sign-ups |
 | `fetch.go` | SSRF-safe HTTP client, signed fetches, actors, keys, WebFinger client |
 | `ap.go`, `outbound.go` | ActivityStreams helpers, JSON for actors/notes/activities, addressing |
 | `inbox.go`, `remote.go` | incoming activities, storing remote posts, backfill, URL resolution |

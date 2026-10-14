@@ -263,6 +263,47 @@ CREATE TABLE link_cards (
 	site TEXT NOT NULL DEFAULT '',
 	fetched_at INTEGER NOT NULL
 );
+`, `
+CREATE TABLE oauth_apps (
+	id TEXT PRIMARY KEY,
+	client_id TEXT NOT NULL UNIQUE,
+	client_secret TEXT NOT NULL,
+	name TEXT NOT NULL,
+	website TEXT NOT NULL DEFAULT '',
+	redirect_uris TEXT NOT NULL,
+	scopes TEXT NOT NULL,
+	created_at INTEGER NOT NULL
+);
+
+CREATE TABLE oauth_codes (
+	code TEXT PRIMARY KEY,
+	app_id TEXT NOT NULL REFERENCES oauth_apps(id) ON DELETE CASCADE,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	redirect_uri TEXT NOT NULL,
+	scopes TEXT NOT NULL,
+	challenge TEXT NOT NULL DEFAULT '',
+	challenge_method TEXT NOT NULL DEFAULT '',
+	expires_at INTEGER NOT NULL
+);
+
+CREATE TABLE oauth_tokens (
+	id TEXT PRIMARY KEY,
+	token_hash TEXT NOT NULL UNIQUE,
+	app_id TEXT NOT NULL REFERENCES oauth_apps(id) ON DELETE CASCADE,
+	account_id TEXT REFERENCES accounts(id) ON DELETE CASCADE,
+	scopes TEXT NOT NULL,
+	created_at INTEGER NOT NULL,
+	last_used INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE markers (
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	timeline TEXT NOT NULL,
+	last_read_id TEXT NOT NULL,
+	version INTEGER NOT NULL DEFAULT 0,
+	updated_at INTEGER NOT NULL,
+	PRIMARY KEY (account_id, timeline)
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

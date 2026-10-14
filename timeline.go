@@ -403,16 +403,20 @@ type Notification struct {
 }
 
 func (app *App) notifications(v *Account, maxID string) ([]*Notification, error) {
-	q := `SELECT n.id, n.type, n.from_account_id, n.status_id, n.created_at, n.read FROM notifications n
-		JOIN accounts a ON a.id=n.from_account_id WHERE n.account_id=? AND a.suspended=0
+	where := `n.account_id=? AND a.suspended=0
 		AND NOT EXISTS(SELECT 1 FROM mutes mu WHERE mu.account_id=n.account_id AND mu.target_id=n.from_account_id)`
 	args := []any{v.ID}
 	if maxID != "" {
-		q += ` AND n.id < ?`
+		where += ` AND n.id < ?`
 		args = append(args, maxID)
 	}
-	q += ` ORDER BY n.id DESC LIMIT ?`
-	args = append(args, pageSize*2)
+	return app.notificationsWhere(v, where, args, "DESC", pageSize*2)
+}
+
+func (app *App) notificationsWhere(v *Account, where string, args []any, order string, limit int) ([]*Notification, error) {
+	q := `SELECT n.id, n.type, n.from_account_id, n.status_id, n.created_at, n.read FROM notifications n
+		JOIN accounts a ON a.id=n.from_account_id WHERE ` + where + ` ORDER BY n.id ` + order + ` LIMIT ?`
+	args = append(args, limit)
 	rows, err := app.db.Query(q, args...)
 	if err != nil {
 		return nil, err
