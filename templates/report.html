@@ -1,0 +1,14 @@
+{{define "content"}}{{$p := .}}
+<h2 class="pagetitle">Report {{handle .Account}}</h2>
+<form method="post" action="/report" class="card stack">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <input type="hidden" name="account" value="{{.Account.ID}}">
+  <p class="muted small">Reports go to the admins of this server. Select the posts that are a problem and tell us what's wrong.</p>
+  <div class="report-posts">
+  {{range .Statuses}}{{if not .IsBoost}}<label class="check report-post"><input type="checkbox" name="status" value="{{.ID}}"{{if $p.Status}}{{if eq $p.Status.ID .ID}} checked{{end}}{{end}}> <span>{{plain .Content}}{{if not .Content}}(media){{end}} <span class="muted small">· {{ago .CreatedAt}}</span></span></label>{{end}}{{end}}
+  </div>
+  <label>What's wrong? <textarea name="comment" rows="3" maxlength="1000" placeholder="Spam, harassment, illegal content, …"></textarea></label>
+  {{if not .Account.IsLocal}}<label class="check"><input type="checkbox" name="forward" checked> Also send an anonymous copy to the admins of {{.Account.Domain}}</label>{{end}}
+  <button class="btn primary">Send report</button>
+</form>
+{{end}}

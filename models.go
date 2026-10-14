@@ -33,6 +33,9 @@ type Account struct {
 	Emojis                             []Emoji
 	CreatedAt, FetchedAt               time.Time
 	Suspended                          bool
+	FeaturedURI                        string
+	AlsoKnownAs                        []string
+	MovedTo                            string // actor IRI the account moved to
 }
 
 func (a *Account) IsLocal() bool { return a.Domain == "" }
@@ -65,17 +68,17 @@ func (a *Account) DeliveryInbox() string {
 
 const accountCols = `a.id,a.username,a.domain,a.uri,a.url,a.display_name,a.note,a.note_source,a.avatar,a.header,
 a.inbox,a.shared_inbox,a.outbox,a.followers_uri,a.following_uri,a.public_key_id,a.public_key,a.private_key,
-a.actor_type,a.locked,a.fields,a.emojis,a.created_at,a.fetched_at,a.suspended`
+a.actor_type,a.locked,a.fields,a.emojis,a.created_at,a.fetched_at,a.suspended,a.featured_uri,a.also_known_as,a.moved_to`
 
 type scanner interface{ Scan(...any) error }
 
 func scanAccount(r scanner) (*Account, error) {
 	a := &Account{}
-	var fields, emojis string
+	var fields, emojis, aka string
 	var created, fetched int64
 	err := r.Scan(&a.ID, &a.Username, &a.Domain, &a.URI, &a.URL, &a.DisplayName, &a.Note, &a.NoteSource, &a.Avatar, &a.Header,
 		&a.Inbox, &a.SharedInbox, &a.Outbox, &a.FollowersURI, &a.FollowingURI, &a.PublicKeyID, &a.PublicKey, &a.PrivateKey,
-		&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended)
+		&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errNotFound
 	}
@@ -84,6 +87,7 @@ func scanAccount(r scanner) (*Account, error) {
 	}
 	json.Unmarshal([]byte(fields), &a.Fields)
 	json.Unmarshal([]byte(emojis), &a.Emojis)
+	json.Unmarshal([]byte(aka), &a.AlsoKnownAs)
 	a.CreatedAt = time.Unix(created, 0)
 	a.FetchedAt = time.Unix(fetched, 0)
 	return a, nil
@@ -135,6 +139,10 @@ func (app *App) saveAccount(a *Account) error {
 	if a.Emojis == nil {
 		emojis = []byte("[]")
 	}
+	aka, _ := json.Marshal(a.AlsoKnownAs)
+	if a.AlsoKnownAs == nil {
+		aka = []byte("[]")
+	}
 	if a.ID == "" {
 		a.ID = newID()
 	}
@@ -142,17 +150,19 @@ func (app *App) saveAccount(a *Account) error {
 		a.CreatedAt = time.Now()
 	}
 	_, err := app.db.Exec(`INSERT INTO accounts (id,username,domain,uri,url,display_name,note,note_source,avatar,header,
-		inbox,shared_inbox,outbox,followers_uri,following_uri,public_key_id,public_key,private_key,actor_type,locked,fields,emojis,created_at,fetched_at,suspended)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+		inbox,shared_inbox,outbox,followers_uri,following_uri,public_key_id,public_key,private_key,actor_type,locked,fields,emojis,created_at,fetched_at,suspended,featured_uri,also_known_as,moved_to)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 		ON CONFLICT(id) DO UPDATE SET username=excluded.username, url=excluded.url, display_name=excluded.display_name,
 		note=excluded.note, note_source=excluded.note_source, avatar=excluded.avatar, header=excluded.header, inbox=excluded.inbox,
 		shared_inbox=excluded.shared_inbox, outbox=excluded.outbox, followers_uri=excluded.followers_uri,
 		following_uri=excluded.following_uri, public_key_id=excluded.public_key_id, public_key=excluded.public_key,
 		actor_type=excluded.actor_type, locked=excluded.locked, fields=excluded.fields, emojis=excluded.emojis,
-		fetched_at=excluded.fetched_at, suspended=excluded.suspended`,
+		fetched_at=excluded.fetched_at, suspended=excluded.suspended, featured_uri=excluded.featured_uri,
+		also_known_as=excluded.also_known_as, moved_to=excluded.moved_to`,
 		a.ID, a.Username, a.Domain, a.URI, a.URL, a.DisplayName, a.Note, a.NoteSource, a.Avatar, a.Header,
 		a.Inbox, a.SharedInbox, a.Outbox, a.FollowersURI, a.FollowingURI, a.PublicKeyID, a.PublicKey, a.PrivateKey,
-		a.ActorType, a.Locked, string(fields), string(emojis), a.CreatedAt.Unix(), a.FetchedAt.Unix(), a.Suspended)
+		a.ActorType, a.Locked, string(fields), string(emojis), a.CreatedAt.Unix(), a.FetchedAt.Unix(), a.Suspended,
+		a.FeaturedURI, string(aka), a.MovedTo)
 	return err
 }
 
@@ -172,11 +182,11 @@ func (app *App) ListUsers() ([]*User, error) {
 	for rows.Next() {
 		a := &Account{}
 		u := &User{Account: a}
-		var fields, emojis string
+		var fields, emojis, aka string
 		var created, fetched, seen int64
 		if err := rows.Scan(&a.ID, &a.Username, &a.Domain, &a.URI, &a.URL, &a.DisplayName, &a.Note, &a.NoteSource, &a.Avatar, &a.Header,
 			&a.Inbox, &a.SharedInbox, &a.Outbox, &a.FollowersURI, &a.FollowingURI, &a.PublicKeyID, &a.PublicKey, &a.PrivateKey,
-			&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &u.Admin, &seen); err != nil {
+			&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &u.Admin, &seen); err != nil {
 			return nil, err
 		}
 		a.CreatedAt = time.Unix(created, 0)
@@ -236,6 +246,8 @@ type Status struct {
 	Emojis                    []Emoji
 	Poll                      *Poll
 	CreatedAt, EditedAt       time.Time
+	PinnedAt                  time.Time
+	QuoteURI, CardURL         string
 
 	// hydrated
 	Account          *Account
@@ -248,6 +260,22 @@ type Status struct {
 	Likes, Boosts    int
 	Replies          int
 	Depth            int
+	Bookmarked       bool
+	Quote            *Status         // quoted post, if known and visible
+	Card             *LinkCard       // link preview
+	Reactions        []ReactionCount // emoji reactions (Misskey, Pleroma, ...)
+	FilteredBy       string          // matching keyword filter ("warn")
+	MyVotes          map[int]bool    // poll choices the viewer voted for
+}
+
+type ReactionCount struct {
+	Emoji, URL string
+	Count      int
+	Mine       bool
+}
+
+type LinkCard struct {
+	URL, Title, Description, Image, Site string
 }
 
 func (s *Status) IsBoost() bool { return s.BoostOfID != "" }
@@ -256,14 +284,16 @@ func (s *Status) IsBoost() bool { return s.BoostOfID != "" }
 func (s *Status) Path() string { return "/s/" + s.ID }
 
 const statusCols = `s.id,s.uri,s.url,s.account_id,s.local,s.in_reply_to_uri,s.in_reply_to_id,s.in_reply_to_account_id,s.boost_of_id,
-s.content,s.source,s.spoiler,s.sensitive,s.visibility,s.language,s.emojis,s.poll,s.created_at,s.edited_at`
+s.content,s.source,s.spoiler,s.sensitive,s.visibility,s.language,s.emojis,s.poll,s.created_at,s.edited_at,
+s.pinned_at,s.quote_uri,s.card_url`
 
 func scanStatus(r scanner) (*Status, error) {
 	s := &Status{}
 	var emojis, poll string
-	var created, edited int64
+	var created, edited, pinned int64
 	err := r.Scan(&s.ID, &s.URI, &s.URL, &s.AccountID, &s.Local, &s.InReplyToURI, &s.InReplyToID, &s.InReplyToAccountID, &s.BoostOfID,
-		&s.Content, &s.Source, &s.Spoiler, &s.Sensitive, &s.Visibility, &s.Language, &emojis, &poll, &created, &edited)
+		&s.Content, &s.Source, &s.Spoiler, &s.Sensitive, &s.Visibility, &s.Language, &emojis, &poll, &created, &edited,
+		&pinned, &s.QuoteURI, &s.CardURL)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errNotFound
 	}
@@ -278,6 +308,9 @@ func scanStatus(r scanner) (*Status, error) {
 	s.CreatedAt = time.Unix(created, 0)
 	if edited > 0 {
 		s.EditedAt = time.Unix(edited, 0)
+	}
+	if pinned > 0 {
+		s.PinnedAt = time.Unix(pinned, 0)
 	}
 	return s, nil
 }
@@ -304,9 +337,10 @@ func (app *App) insertStatus(s *Status) error {
 		edited = s.EditedAt.Unix()
 	}
 	_, err := app.db.Exec(`INSERT INTO statuses (id,uri,url,account_id,local,in_reply_to_uri,in_reply_to_id,in_reply_to_account_id,boost_of_id,
-		content,source,spoiler,sensitive,visibility,language,emojis,poll,created_at,edited_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		content,source,spoiler,sensitive,visibility,language,emojis,poll,created_at,edited_at,quote_uri,card_url) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		s.ID, s.URI, s.URL, s.AccountID, s.Local, s.InReplyToURI, s.InReplyToID, s.InReplyToAccountID, s.BoostOfID,
-		s.Content, s.Source, s.Spoiler, s.Sensitive, s.Visibility, s.Language, string(emojis), poll, s.CreatedAt.Unix(), edited)
+		s.Content, s.Source, s.Spoiler, s.Sensitive, s.Visibility, s.Language, string(emojis), poll, s.CreatedAt.Unix(), edited,
+		s.QuoteURI, s.CardURL)
 	return err
 }
 
@@ -320,8 +354,8 @@ func (app *App) updateStatusContent(s *Status) error {
 		b, _ := json.Marshal(s.Poll)
 		poll = string(b)
 	}
-	_, err := app.db.Exec(`UPDATE statuses SET content=?, source=?, spoiler=?, sensitive=?, emojis=?, poll=?, edited_at=? WHERE id=?`,
-		s.Content, s.Source, s.Spoiler, s.Sensitive, string(emojis), poll, time.Now().Unix(), s.ID)
+	_, err := app.db.Exec(`UPDATE statuses SET content=?, source=?, spoiler=?, sensitive=?, emojis=?, poll=?, edited_at=?, quote_uri=?, card_url=? WHERE id=?`,
+		s.Content, s.Source, s.Spoiler, s.Sensitive, string(emojis), poll, time.Now().Unix(), s.QuoteURI, s.CardURL, s.ID)
 	return err
 }
 
@@ -360,7 +394,7 @@ func inClause(q string, ids []string) (string, []any) {
 // ---- relationships ----
 
 type Relationship struct {
-	Following, Requested, FollowedBy, RequestedBy, Blocking, BlockedBy bool
+	Following, Requested, FollowedBy, RequestedBy, Blocking, BlockedBy, Muting bool
 }
 
 func (app *App) relationship(me, other string) Relationship {
@@ -377,6 +411,7 @@ func (app *App) relationship(me, other string) Relationship {
 	var x int
 	r.Blocking = app.db.QueryRow(`SELECT 1 FROM blocks WHERE account_id=? AND target_id=?`, me, other).Scan(&x) == nil
 	r.BlockedBy = app.db.QueryRow(`SELECT 1 FROM blocks WHERE account_id=? AND target_id=?`, other, me).Scan(&x) == nil
+	r.Muting = app.isMuting(me, other)
 	return r
 }
 

@@ -39,6 +39,7 @@ func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.DomainBlocks = app.domainBlockList()
 	p.Description = app.getSetting("description")
 	p.AIKeySource, p.AIModel = app.aiKeySource(), app.aiModel()
+	p.Reports = app.openReports()
 	p.Stats = map[string]int{
 		"users":     app.countInt(`SELECT COUNT(*) FROM users`),
 		"local":     app.countInt(`SELECT COUNT(*) FROM statuses WHERE local=1 AND boost_of_id=''`),
@@ -86,6 +87,12 @@ func (app *App) handleAdminResetPassword(w http.ResponseWriter, r *http.Request,
 		setFlash(w, "New password for @"+acc.Username+": "+pw)
 	}
 	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *App) handleResolveReport(w http.ResponseWriter, r *http.Request, p *Page) {
+	app.db.Exec(`UPDATE reports SET resolved_at=? WHERE id=?`, time.Now().Unix(), r.PathValue("id"))
+	setFlash(w, "Report marked as resolved.")
+	http.Redirect(w, r, "/admin#reports", http.StatusSeeOther)
 }
 
 func (app *App) handleAdminAI(w http.ResponseWriter, r *http.Request, p *Page) {

@@ -31,6 +31,7 @@
     <a href="/federated" class="{{if eq .Section "federated"}}active{{end}}">{{template "icon" "globe"}}<span>Federated</span></a>
     <a href="/search" class="{{if eq .Section "search"}}active{{end}} hide-wide">{{template "icon" "search"}}<span>Search</span></a>
     {{if .Requests}}<a href="/follow_requests" class="{{if eq .Section "requests"}}active{{end}}">{{template "icon" "userplus"}}<span>Requests</span><b class="badge">{{.Requests}}</b></a>{{end}}
+    <a href="/bookmarks" class="{{if eq .Section "bookmarks"}}active{{end}} hide-narrow">{{template "icon" "bookmark"}}<span>Bookmarks</span></a>
     <a href="{{.Me.Path}}" class="{{if eq .Section "profile"}}active{{end}} hide-narrow">{{template "icon" "user"}}<span>Profile</span></a>
     <a href="/settings" class="{{if eq .Section "settings"}}active{{end}} hide-narrow">{{template "icon" "gear"}}<span>Settings</span></a>
     {{if .Admin}}<a href="/admin" class="{{if eq .Section "admin"}}active{{end}} hide-narrow">{{template "icon" "shield"}}<span>Admin</span></a>{{end}}

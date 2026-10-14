@@ -28,8 +28,8 @@
         btn.classList.remove("busy");
         if (res.error) { window.alert(res.error); return; }
         var kind = form.dataset.kind;
-        var on = kind === "like" ? res.liked : res.boosted;
-        var count = kind === "like" ? res.likes : res.boosts;
+        var on = { like: res.liked, boost: res.boosted, bookmark: res.bookmarked }[kind];
+        var count = { like: res.likes, boost: res.boosts }[kind];
         var id = form.action.split("/statuses/")[1].split("/")[0];
         // update every copy of this post on the page (it may appear boosted too)
         document.querySelectorAll('form.toggle[data-kind="' + kind + '"]').forEach(function (f) {
@@ -38,7 +38,7 @@
           var b = f.querySelector("button");
           b.classList.toggle("on", !!on);
           var n = b.querySelector(".n");
-          if (n) n.textContent = count ? String(count) : "";
+          if (n && count !== undefined) n.textContent = count ? String(count) : "";
         });
       })
       .catch(function () {
@@ -224,6 +224,20 @@
         }
         run(btn, ta.value);
       });
+    });
+  });
+
+  // post menus: copy link, close when clicking elsewhere
+  document.addEventListener("click", function (ev) {
+    var copy = ev.target.closest && ev.target.closest(".copy-link");
+    if (copy) {
+      var done = function () { copy.textContent = "✓ Copied"; };
+      if (navigator.clipboard) navigator.clipboard.writeText(copy.dataset.url).then(done, function () { window.prompt("Link:", copy.dataset.url); });
+      else window.prompt("Link:", copy.dataset.url);
+      return;
+    }
+    document.querySelectorAll("details.menu[open]").forEach(function (d) {
+      if (!d.contains(ev.target)) d.open = false;
     });
   });
 

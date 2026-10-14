@@ -181,6 +181,88 @@ CREATE TABLE settings (
 	key TEXT PRIMARY KEY,
 	value TEXT NOT NULL
 );
+`, `
+ALTER TABLE statuses ADD COLUMN pinned_at INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE statuses ADD COLUMN quote_uri TEXT NOT NULL DEFAULT '';
+ALTER TABLE statuses ADD COLUMN card_url TEXT NOT NULL DEFAULT '';
+CREATE INDEX statuses_pinned ON statuses(account_id, pinned_at) WHERE pinned_at > 0;
+ALTER TABLE accounts ADD COLUMN featured_uri TEXT NOT NULL DEFAULT '';
+ALTER TABLE accounts ADD COLUMN also_known_as TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE accounts ADD COLUMN moved_to TEXT NOT NULL DEFAULT '';
+
+CREATE TABLE bookmarks (
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	status_id TEXT NOT NULL REFERENCES statuses(id) ON DELETE CASCADE,
+	created_at INTEGER NOT NULL,
+	PRIMARY KEY (account_id, status_id)
+);
+
+CREATE TABLE mutes (
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	target_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	created_at INTEGER NOT NULL,
+	PRIMARY KEY (account_id, target_id)
+);
+
+CREATE TABLE filters (
+	id TEXT PRIMARY KEY,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	phrase TEXT NOT NULL,
+	whole_word INTEGER NOT NULL DEFAULT 1,
+	action TEXT NOT NULL DEFAULT 'warn',
+	created_at INTEGER NOT NULL
+);
+CREATE INDEX filters_account ON filters(account_id);
+
+CREATE TABLE poll_votes (
+	status_id TEXT NOT NULL REFERENCES statuses(id) ON DELETE CASCADE,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	choice INTEGER NOT NULL,
+	uri TEXT NOT NULL DEFAULT '',
+	created_at INTEGER NOT NULL,
+	PRIMARY KEY (status_id, account_id, choice)
+);
+
+CREATE TABLE reactions (
+	status_id TEXT NOT NULL REFERENCES statuses(id) ON DELETE CASCADE,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	emoji TEXT NOT NULL,
+	emoji_url TEXT NOT NULL DEFAULT '',
+	uri TEXT NOT NULL DEFAULT '',
+	created_at INTEGER NOT NULL,
+	PRIMARY KEY (status_id, account_id, emoji)
+);
+CREATE INDEX reactions_uri ON reactions(uri);
+
+CREATE TABLE reports (
+	id TEXT PRIMARY KEY,
+	uri TEXT NOT NULL DEFAULT '',
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	target_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	status_ids TEXT NOT NULL DEFAULT '[]',
+	comment TEXT NOT NULL DEFAULT '',
+	forwarded INTEGER NOT NULL DEFAULT 0,
+	created_at INTEGER NOT NULL,
+	resolved_at INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE invites (
+	code TEXT PRIMARY KEY,
+	created_by TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	uses INTEGER NOT NULL DEFAULT 0,
+	max_uses INTEGER NOT NULL DEFAULT 1,
+	expires_at INTEGER NOT NULL DEFAULT 0,
+	created_at INTEGER NOT NULL
+);
+
+CREATE TABLE link_cards (
+	url TEXT PRIMARY KEY,
+	title TEXT NOT NULL DEFAULT '',
+	description TEXT NOT NULL DEFAULT '',
+	image TEXT NOT NULL DEFAULT '',
+	site TEXT NOT NULL DEFAULT '',
+	fetched_at INTEGER NOT NULL
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

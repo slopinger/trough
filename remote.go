@@ -14,6 +14,11 @@ import (
 
 func jsonUnmarshal(b []byte, v any) error { return json.Unmarshal(b, v) }
 
+func jsonMarshal(v any) (string, error) {
+	b, err := json.Marshal(v)
+	return string(b), err
+}
+
 // bestImage returns the largest of a post's image/icon objects.
 func bestImage(note obj) obj {
 	var best obj

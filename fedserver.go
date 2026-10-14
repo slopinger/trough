@@ -331,6 +331,21 @@ func (app *App) handleFollowCollection(followers bool) http.HandlerFunc {
 	}
 }
 
+func (app *App) handleFeatured(w http.ResponseWriter, r *http.Request) {
+	acc, err := app.LocalAccount(r.PathValue("name"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	items := []any{}
+	for _, st := range app.pinnedStatuses(nil, acc) {
+		items = append(items, app.noteJSON(st))
+	}
+	writeAP(w, withContext(obj{
+		"id": acc.URI + "/collections/featured", "type": "OrderedCollection", "totalItems": len(items), "orderedItems": items,
+	}))
+}
+
 func (app *App) handleEmptyCollection(w http.ResponseWriter, r *http.Request) {
 	writeAP(w, withContext(obj{
 		"id": app.cfg.BaseURL() + r.URL.Path, "type": "OrderedCollection", "totalItems": 0, "orderedItems": []any{},

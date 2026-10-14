@@ -36,6 +36,12 @@ func (app *App) actorJSON(acc *Account) obj {
 		m["following"] = acc.FollowingURI
 		m["featured"] = acc.URI + "/collections/featured"
 	}
+	if len(acc.AlsoKnownAs) > 0 {
+		m["alsoKnownAs"] = acc.AlsoKnownAs
+	}
+	if acc.MovedTo != "" {
+		m["movedTo"] = acc.MovedTo
+	}
 	if acc.Avatar != "" {
 		m["icon"] = imageObj(acc.Avatar)
 	}

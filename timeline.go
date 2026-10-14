@@ -145,7 +145,7 @@ func (app *App) hydrate(v *Account, sts []*Status) ([]*Status, error) {
 	mentions := map[string][]*Account{}
 	tags := map[string][]string{}
 	likes, boosts, replies := map[string]int{}, map[string]int{}, map[string]int{}
-	liked, boosted := map[string]bool{}, map[string]bool{}
+	liked, boosted, bookmarked := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	{
 		q, args := inClause(`SELECT m.status_id, `+accountCols+` FROM mentions m JOIN accounts a ON a.id=m.account_id WHERE m.status_id IN (%s)`, stIDs)
 		rows, err := app.db.Query(q, args...)
@@ -199,6 +199,15 @@ func (app *App) hydrate(v *Account, sts []*Status) ([]*Status, error) {
 			}
 			rows.Close()
 		}
+		q, args = inClause(`SELECT status_id FROM bookmarks WHERE account_id=? AND status_id IN (%s)`, stIDs)
+		if rows, err := app.db.Query(q, append([]any{v.ID}, args...)...); err == nil {
+			for rows.Next() {
+				var id string
+				rows.Scan(&id)
+				bookmarked[id] = true
+			}
+			rows.Close()
+		}
 		q, args = inClause(`SELECT boost_of_id FROM statuses WHERE account_id=? AND boost_of_id IN (%s)`, stIDs)
 		if rows, err := app.db.Query(q, append([]any{v.ID}, args...)...); err == nil {
 			for rows.Next() {
@@ -216,7 +225,7 @@ func (app *App) hydrate(v *Account, sts []*Status) ([]*Status, error) {
 		s.Mentions = mentions[s.ID]
 		s.Tags = tags[s.ID]
 		s.Likes, s.Boosts, s.Replies = likes[s.ID], boosts[s.ID], replies[s.ID]
-		s.Liked, s.Boosted = liked[s.ID], boosted[s.ID]
+		s.Liked, s.Boosted, s.Bookmarked = liked[s.ID], boosted[s.ID], bookmarked[s.ID]
 	}
 	out := sts[:0]
 	for _, s := range sts {
@@ -250,22 +259,26 @@ func (p prefixScanner) Scan(dest ...any) error {
 // ---- timelines ----
 
 func (app *App) homeTimeline(v *Account, maxID string) ([]*Status, error) {
-	return app.queryStatuses(v, `s.account_id=? OR s.account_id IN (SELECT target_id FROM follows WHERE account_id=? AND accepted=1)
-		OR EXISTS(SELECT 1 FROM mentions m2 WHERE m2.status_id=s.id AND m2.account_id=?)`,
-		[]any{v.ID, v.ID, v.ID}, maxID, pageSize, false)
+	mute, margs := muteSQL(v)
+	return app.queryStatuses(v, `(s.account_id=? OR s.account_id IN (SELECT target_id FROM follows WHERE account_id=? AND accepted=1)
+		OR EXISTS(SELECT 1 FROM mentions m2 WHERE m2.status_id=s.id AND m2.account_id=?)) AND `+mute,
+		append([]any{v.ID, v.ID, v.ID}, margs...), maxID, pageSize, false)
 }
 
 func (app *App) localTimeline(v *Account, maxID string) ([]*Status, error) {
-	return app.queryStatuses(v, `s.local=1 AND s.visibility='public' AND s.boost_of_id=''`, nil, maxID, pageSize, false)
+	mute, margs := muteSQL(v)
+	return app.queryStatuses(v, `s.local=1 AND s.visibility='public' AND s.boost_of_id='' AND `+mute, margs, maxID, pageSize, false)
 }
 
 func (app *App) federatedTimeline(v *Account, maxID string) ([]*Status, error) {
-	return app.queryStatuses(v, `s.visibility='public' AND s.boost_of_id=''`, nil, maxID, pageSize, false)
+	mute, margs := muteSQL(v)
+	return app.queryStatuses(v, `s.visibility='public' AND s.boost_of_id='' AND `+mute, margs, maxID, pageSize, false)
 }
 
 func (app *App) tagTimeline(v *Account, tag, maxID string) ([]*Status, error) {
-	return app.queryStatuses(v, `s.visibility='public' AND s.id IN (SELECT status_id FROM status_tags WHERE tag=?)`,
-		[]any{strings.ToLower(tag)}, maxID, pageSize, false)
+	mute, margs := muteSQL(v)
+	return app.queryStatuses(v, `s.visibility='public' AND s.id IN (SELECT status_id FROM status_tags WHERE tag=?) AND `+mute,
+		append([]any{strings.ToLower(tag)}, margs...), maxID, pageSize, false)
 }
 
 func (app *App) accountTimeline(v *Account, acc *Account, withReplies, mediaOnly bool, maxID string) ([]*Status, error) {
@@ -277,6 +290,10 @@ func (app *App) accountTimeline(v *Account, acc *Account, withReplies, mediaOnly
 		where += ` AND s.boost_of_id='' AND EXISTS(SELECT 1 FROM attachments at WHERE at.status_id=s.id)`
 	}
 	return app.queryStatuses(v, where, []any{acc.ID}, maxID, pageSize, false)
+}
+
+func (app *App) bookmarksTimeline(v *Account, maxID string) ([]*Status, error) {
+	return app.queryStatuses(v, `s.id IN (SELECT status_id FROM bookmarks WHERE account_id=?)`, []any{v.ID}, maxID, pageSize, false)
 }
 
 func (app *App) canSee(v *Account, st *Status) bool {
@@ -374,7 +391,8 @@ type Notification struct {
 
 func (app *App) notifications(v *Account, maxID string) ([]*Notification, error) {
 	q := `SELECT n.id, n.type, n.from_account_id, n.status_id, n.created_at, n.read FROM notifications n
-		JOIN accounts a ON a.id=n.from_account_id WHERE n.account_id=? AND a.suspended=0`
+		JOIN accounts a ON a.id=n.from_account_id WHERE n.account_id=? AND a.suspended=0
+		AND NOT EXISTS(SELECT 1 FROM mutes mu WHERE mu.account_id=n.account_id AND mu.target_id=n.from_account_id)`
 	args := []any{v.ID}
 	if maxID != "" {
 		q += ` AND n.id < ?`

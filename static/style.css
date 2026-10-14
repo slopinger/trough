@@ -404,3 +404,33 @@ form.ai-busy textarea { animation: shimmer 1.6s ease-in-out infinite; border-col
   .btn.lucky { padding: 8px 10px; }
   .lucky-label { display: none; }
 }
+
+/* ---- post menu ---- */
+details.menu { position: relative; }
+details.menu > summary { list-style: none; }
+details.menu > summary::-webkit-details-marker { display: none; }
+.menu-list {
+  position: absolute; right: 0; bottom: 100%; z-index: 15; min-width: 220px; padding: 6px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 24px rgb(0 0 0 / 15%);
+  display: flex; flex-direction: column;
+}
+.menu-list form { margin: 0; }
+.menu-list a, .menu-list button {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px;
+  background: none; color: var(--text); font: inherit; font-size: 14px; text-align: left; cursor: pointer; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.menu-list a:hover, .menu-list button:hover { background: var(--panel-2); text-decoration: none; }
+.menu-list .danger { color: var(--danger); }
+.menu-list .ico { width: 16px; height: 16px; }
+.act.bookmark.on { color: var(--accent); }
+.act.bookmark.on .ico { fill: currentColor; }
+.boostedby.pinned .ico { color: var(--accent); }
+details.filtered > summary { cursor: pointer; color: var(--muted); padding: 6px 0; list-style: none; display: flex; gap: 10px; align-items: center; }
+details.filtered > summary::-webkit-details-marker { display: none; }
+.report { border-top: 1px solid var(--line); padding: 10px 0; }
+.report:first-of-type { border-top: 0; }
+.report blockquote { margin: 6px 0; padding-left: 10px; border-left: 3px solid var(--line); }
+.report-posts { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.report-post { align-items: flex-start; font-size: 14px; }
+.report-post input { margin-top: 3px; flex: none; }

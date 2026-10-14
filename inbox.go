@@ -111,6 +111,10 @@ func (app *App) processActivity(ctx context.Context, actor *Account, act obj) er
 		return app.inAnnounce(ctx, actor, act)
 	case "Block":
 		return app.inBlock(actor, act)
+	case "Add", "Remove":
+		return app.inAddRemove(ctx, actor, act)
+	case "Flag":
+		return app.inFlag(actor, act)
 	}
 	return nil
 }

@@ -310,6 +310,9 @@ func (app *App) upsertActor(m obj) (*Account, error) {
 		}
 	}
 	acc.Emojis = emojisOf(m)
+	acc.FeaturedURI = idOf(m["featured"])
+	acc.AlsoKnownAs = idsOf(m["alsoKnownAs"])
+	acc.MovedTo = idOf(m["movedTo"])
 	acc.FetchedAt = time.Now()
 	if err := app.saveAccount(acc); err != nil {
 		return nil, err

@@ -7,5 +7,6 @@
   <a href="{{.Account.Path}}?tab=replies" class="{{if eq .Tab "replies"}}active{{end}}">Posts &amp; replies</a>
   <a href="{{.Account.Path}}?tab=media" class="{{if eq .Tab "media"}}active{{end}}">Media</a>
 </nav>
+{{$p := .}}{{range .Pinned}}{{template "status" (dict "S" . "P" $p "Pinned" true)}}{{end}}
 {{template "statuslist" .}}
 {{end}}

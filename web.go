@@ -58,12 +58,17 @@ type Page struct {
 	Heading       string
 	Empty         string
 	Deliveries    []DeliveryInfo
+	Pinned        []*Status
+	Blocked       []*Account
+	Filters       []*Filter
+	Reports       []*Report
 	AI            bool   // AI writing available
 	AIKeySource   string // admin: where the key comes from
 	AIModel       string
 }
 
 type Compose struct {
+	EditOf        *Status
 	AIInstruction string
 	ReplyTo       *Status
 	Text          string
@@ -314,7 +319,7 @@ func (app *App) handleHome(w http.ResponseWriter, r *http.Request, p *Page) {
 		return
 	}
 	p.Title, p.Section, p.Heading = "Home", "home", "Home"
-	p.Statuses = sts
+	p.Statuses = app.applyFilters(p.Me, sts)
 	p.NextURL = nextURL(r, sts)
 	p.Compose = &Compose{Visibility: "public"}
 	p.Empty = "Your home timeline is empty. Follow some people! Use search to find accounts on other servers, e.g. @someone@mastodon.social."
@@ -328,7 +333,7 @@ func (app *App) handleLocal(w http.ResponseWriter, r *http.Request, p *Page) {
 		return
 	}
 	p.Title, p.Section, p.Heading = "Local timeline", "local", "Local timeline"
-	p.Statuses = sts
+	p.Statuses = app.applyFilters(p.Me, sts)
 	p.NextURL = nextURL(r, sts)
 	p.Empty = "Nobody here has posted anything public yet."
 	app.render(w, "timeline", p)
@@ -341,7 +346,7 @@ func (app *App) handleFederated(w http.ResponseWriter, r *http.Request, p *Page)
 		return
 	}
 	p.Title, p.Section, p.Heading = "Federated timeline", "federated", "Federated timeline"
-	p.Statuses = sts
+	p.Statuses = app.applyFilters(p.Me, sts)
 	p.NextURL = nextURL(r, sts)
 	p.Empty = "No public posts known yet."
 	app.render(w, "timeline", p)
@@ -359,7 +364,7 @@ func (app *App) handleTag(w http.ResponseWriter, r *http.Request, p *Page) {
 		return
 	}
 	p.Title, p.Heading = "#"+tag, "#"+tag
-	p.Statuses = sts
+	p.Statuses = app.applyFilters(p.Me, sts)
 	p.NextURL = nextURL(r, sts)
 	p.Empty = "No public posts with this hashtag are known here."
 	if p.Me != nil {
@@ -452,6 +457,19 @@ func (app *App) handleComposePage(w http.ResponseWriter, r *http.Request, p *Pag
 	if t := r.URL.Query().Get("text"); t != "" {
 		p.Compose.Text = t
 	}
+	if id := r.URL.Query().Get("edit"); id != "" {
+		st, err := app.loadStatus(p.Me, id)
+		if err != nil || st.AccountID != p.Me.ID || st.IsBoost() || !st.Local {
+			app.notFound(w, p)
+			return
+		}
+		text := st.Source
+		if text == "" {
+			text = plainText(st.Content)
+		}
+		p.Title = "Edit post"
+		p.Compose = &Compose{EditOf: st, Text: text, Spoiler: st.Spoiler, Sensitive: st.Sensitive, Visibility: st.Visibility}
+	}
 	app.render(w, "compose", p)
 }
 
@@ -528,6 +546,27 @@ func (app *App) handleStatusAction(w http.ResponseWriter, r *http.Request, p *Pa
 		err = app.Boost(p.Me, target)
 	case "unboost":
 		err = app.Unboost(p.Me, target)
+	case "bookmark":
+		err = app.Bookmark(p.Me, target)
+	case "unbookmark":
+		err = app.Unbookmark(p.Me, target)
+	case "pin":
+		err = app.Pin(p.Me, target)
+	case "unpin":
+		err = app.Unpin(p.Me, target)
+	case "edit":
+		var edited *Status
+		edited, err = app.EditStatus(r.Context(), p.Me, target, r.FormValue("text"), r.FormValue("spoiler"), r.FormValue("sensitive") != "")
+		if err == nil && !isFetch(r) {
+			http.Redirect(w, r, edited.Path(), http.StatusSeeOther)
+			return
+		}
+		if err != nil && !isFetch(r) {
+			p.Title, p.Error = "Edit post", err.Error()
+			p.Compose = &Compose{EditOf: target, Text: r.FormValue("text"), Spoiler: r.FormValue("spoiler"), Visibility: target.Visibility}
+			app.renderStatus(w, http.StatusBadRequest, "compose", p)
+			return
+		}
 	case "delete":
 		err = app.DeleteStatus(p.Me, st)
 		if err == nil && !isFetch(r) {
@@ -550,6 +589,7 @@ func (app *App) handleStatusAction(w http.ResponseWriter, r *http.Request, p *Pa
 		res := obj{"ok": true}
 		if fresh != nil {
 			res["liked"], res["boosted"], res["likes"], res["boosts"] = fresh.Liked, fresh.Boosted, fresh.Likes, fresh.Boosts
+			res["bookmarked"], res["pinned"] = fresh.Bookmarked, !fresh.PinnedAt.IsZero()
 		}
 		writeJSON(w, "application/json", res)
 		return
@@ -633,6 +673,11 @@ func (app *App) showProfile(w http.ResponseWriter, r *http.Request, p *Page, acc
 		ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
 		app.backfillOutbox(ctx, acc)
 		cancel()
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			app.syncFeatured(ctx, acc)
+		}()
 	}
 	app.profileCommon(p, acc)
 	p.Tab = r.URL.Query().Get("tab")
@@ -642,6 +687,20 @@ func (app *App) showProfile(w http.ResponseWriter, r *http.Request, p *Page, acc
 		return
 	}
 	p.Statuses = sts
+	if p.Tab == "" && r.URL.Query().Get("max_id") == "" {
+		p.Pinned = app.pinnedStatuses(p.Me, acc)
+		pinned := map[string]bool{}
+		for _, st := range p.Pinned {
+			pinned[st.ID] = true
+		}
+		rest := sts[:0:0]
+		for _, st := range sts {
+			if !pinned[st.ID] {
+				rest = append(rest, st)
+			}
+		}
+		p.Statuses = rest
+	}
 	p.NextURL = nextURL(r, sts)
 	p.Title = acc.Name() + " (@" + acc.Username + "@" + app.accountHost(acc) + ")"
 	if p.Me != nil && p.Me.ID == acc.ID {
@@ -684,6 +743,10 @@ func (app *App) handleAccountAction(w http.ResponseWriter, r *http.Request, p *P
 		err = app.Block(p.Me, target)
 	case "unblock":
 		err = app.Unblock(p.Me, target)
+	case "mute":
+		err = app.Mute(p.Me, target)
+	case "unmute":
+		err = app.Unmute(p.Me, target)
 	case "accept":
 		err = app.AcceptFollow(p.Me, target)
 	case "reject", "remove_follower":
@@ -794,6 +857,9 @@ func (app *App) handleAuthorizeInteraction(w http.ResponseWriter, r *http.Reques
 func (app *App) handleSettings(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Title, p.Section = "Settings", "settings"
 	p.Account = p.Me
+	p.Filters = app.filtersFor(p.Me.ID)
+	p.Accounts, _ = app.accountsQuery(`SELECT `+accountCols+` FROM mutes m JOIN accounts a ON a.id=m.target_id WHERE m.account_id=? ORDER BY m.created_at DESC`, p.Me.ID)
+	p.Blocked, _ = app.accountsQuery(`SELECT `+accountCols+` FROM blocks b JOIN accounts a ON a.id=b.target_id WHERE b.account_id=? ORDER BY b.created_at DESC`, p.Me.ID)
 	app.render(w, "settings", p)
 }
 
@@ -928,4 +994,62 @@ func (app *App) handleAbout(w http.ResponseWriter, r *http.Request, p *Page) {
 	}
 	p.DomainBlocks = app.domainBlockList()
 	app.render(w, "about", p)
+}
+
+func (app *App) handleBookmarks(w http.ResponseWriter, r *http.Request, p *Page) {
+	sts, err := app.bookmarksTimeline(p.Me, r.URL.Query().Get("max_id"))
+	if err != nil {
+		http.Error(w, "db error", 500)
+		return
+	}
+	p.Title, p.Section, p.Heading = "Bookmarks", "bookmarks", "Bookmarks"
+	p.Statuses = sts
+	p.NextURL = nextURL(r, sts)
+	p.Empty = "Nothing bookmarked yet. Use the bookmark button on a post to keep it here (only you can see your bookmarks)."
+	app.render(w, "timeline", p)
+}
+
+func (app *App) handleAddFilter(w http.ResponseWriter, r *http.Request, p *Page) {
+	if err := app.AddFilter(p.Me, r.FormValue("phrase"), r.FormValue("whole_word") != "", r.FormValue("action")); err != nil {
+		setFlash(w, err.Error())
+	} else {
+		setFlash(w, "Filter added.")
+	}
+	http.Redirect(w, r, "/settings#filters", http.StatusSeeOther)
+}
+
+func (app *App) handleDeleteFilter(w http.ResponseWriter, r *http.Request, p *Page) {
+	app.db.Exec(`DELETE FROM filters WHERE id=? AND account_id=?`, r.PathValue("id"), p.Me.ID)
+	http.Redirect(w, r, "/settings#filters", http.StatusSeeOther)
+}
+
+func (app *App) handleReportForm(w http.ResponseWriter, r *http.Request, p *Page) {
+	acc, err := app.AccountByID(r.URL.Query().Get("account"))
+	if err != nil || acc.ID == p.Me.ID {
+		app.notFound(w, p)
+		return
+	}
+	p.Title, p.Account = "Report @"+acc.Acct(), acc
+	sts, _ := app.accountTimeline(p.Me, acc, true, false, "")
+	if id := r.URL.Query().Get("status"); id != "" {
+		if st, err := app.loadStatus(p.Me, id); err == nil && st.AccountID == acc.ID {
+			p.Status = st
+		}
+	}
+	p.Statuses = sts
+	app.render(w, "report", p)
+}
+
+func (app *App) handleReport(w http.ResponseWriter, r *http.Request, p *Page) {
+	acc, err := app.AccountByID(r.FormValue("account"))
+	if err != nil {
+		http.Error(w, "account not found", http.StatusNotFound)
+		return
+	}
+	if err := app.FileReport(p.Me, acc, r.Form["status"], r.FormValue("comment"), r.FormValue("forward") != ""); err != nil {
+		setFlash(w, err.Error())
+	} else {
+		setFlash(w, "Thanks, the report was sent to the admins"+map[bool]string{true: " of this server and " + acc.Domain, false: ""}[r.FormValue("forward") != "" && !acc.IsLocal()]+".")
+	}
+	http.Redirect(w, r, acc.Path(), http.StatusSeeOther)
 }

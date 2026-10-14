@@ -348,6 +348,11 @@ func (app *App) handleAICompose(w http.ResponseWriter, r *http.Request, p *Page)
 	}
 	compose := &Compose{Text: req.Draft, Spoiler: r.FormValue("spoiler"), Visibility: r.FormValue("visibility"),
 		Sensitive: r.FormValue("sensitive") != "", AIInstruction: req.Instruction}
+	if id := r.FormValue("edit"); id != "" {
+		if st, err := app.loadStatus(p.Me, id); err == nil && st.AccountID == p.Me.ID {
+			compose.EditOf = st
+		}
+	}
 	if id := r.FormValue("in_reply_to"); id != "" {
 		if st, err := app.loadStatus(p.Me, id); err == nil {
 			if st.IsBoost() {
