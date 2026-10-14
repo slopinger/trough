@@ -2,8 +2,12 @@ package main
 
 import (
 	"encoding/binary"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"testing"
+	"time"
 )
 
 func orientationEXIF(order binary.ByteOrder, orientation uint16) []byte {
@@ -68,4 +72,69 @@ func FuzzJPEGOrientation(f *testing.F) {
 			t.Fatalf("orientation out of range: %d", got)
 		}
 	})
+}
+
+// A failed fetch should stay serialized with requests already waiting for the
+// same URL, even when another request arrives after the first one finishes.
+func TestProxySerializesFailedFetches(t *testing.T) {
+	app := testApp(t)
+	app.cfg.Insecure = true
+	app.mediaClient = newHTTPClient(true)
+	started := make(chan struct{}, 3)
+	release := make(chan struct{}, 3)
+	remote := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		started <- struct{}{}
+		<-release
+		http.Error(w, "retry later", http.StatusServiceUnavailable)
+	}))
+	defer remote.Close()
+	defer close(release)
+	target := remote.URL + "/image.png"
+	fetch := func() <-chan int {
+		done := make(chan int, 1)
+		go func() {
+			req := httptest.NewRequest("GET", "/proxy/"+app.proxySig(target)+"?url="+url.QueryEscape(target), nil)
+			req.SetPathValue("sig", app.proxySig(target))
+			recorder := httptest.NewRecorder()
+			app.handleProxy(recorder, req)
+			done <- recorder.Code
+		}()
+		return done
+	}
+	awaitStart := func() {
+		t.Helper()
+		select {
+		case <-started:
+		case <-time.After(2 * time.Second):
+			t.Fatal("remote request did not start")
+		}
+	}
+	first := fetch()
+	awaitStart()
+	second := fetch()
+	time.Sleep(30 * time.Millisecond) // allow the second request to wait on the first
+	release <- struct{}{}
+	if got := <-first; got != http.StatusBadGateway {
+		t.Fatalf("first response: %d", got)
+	}
+	awaitStart()
+	third := fetch()
+	select {
+	case <-started:
+		t.Error("third request fetched concurrently with the existing waiter")
+		release <- struct{}{}
+	case <-time.After(100 * time.Millisecond):
+	}
+	release <- struct{}{}
+	if got := <-second; got != http.StatusBadGateway {
+		t.Fatalf("second response: %d", got)
+	}
+	select {
+	case <-started:
+		release <- struct{}{}
+	case <-time.After(100 * time.Millisecond):
+	}
+	if got := <-third; got != http.StatusBadGateway {
+		t.Fatalf("third response: %d", got)
+	}
 }

@@ -28,6 +28,7 @@ type App struct {
 
 	mediaDir, cacheDir string
 	proxyKey           []byte
+	proxyLocks         proxyFetchLocks
 
 	instMu   sync.Mutex
 	instance *Account

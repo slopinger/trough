@@ -265,7 +265,41 @@ var proxyTypes = map[string]bool{
 	"audio/webm": true, "audio/flac": true, "audio/aac": true, "audio/opus": true,
 }
 
-var proxyLocks sync.Map
+// References include both holders and waiters. Keep an entry until all of
+// them have left, so a new request cannot bypass an existing waiter.
+type proxyFetchLocks struct {
+	mu      sync.Mutex
+	entries map[string]*proxyFetchLock
+}
+
+type proxyFetchLock struct {
+	mu   sync.Mutex
+	refs int
+}
+
+func (locks *proxyFetchLocks) lock(key string) func() {
+	locks.mu.Lock()
+	if locks.entries == nil {
+		locks.entries = make(map[string]*proxyFetchLock)
+	}
+	entry := locks.entries[key]
+	if entry == nil {
+		entry = &proxyFetchLock{}
+		locks.entries[key] = entry
+	}
+	entry.refs++
+	locks.mu.Unlock()
+	entry.mu.Lock()
+	return func() {
+		entry.mu.Unlock()
+		locks.mu.Lock()
+		entry.refs--
+		if entry.refs == 0 {
+			delete(locks.entries, key)
+		}
+		locks.mu.Unlock()
+	}
+}
 
 func (app *App) handleProxy(w http.ResponseWriter, r *http.Request) {
 	u := r.URL.Query().Get("url")
@@ -275,16 +309,14 @@ func (app *App) handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	key := sha256Hex(u)
 	file := filepath.Join(app.cacheDir, key)
-	mu, _ := proxyLocks.LoadOrStore(key, &sync.Mutex{})
-	mu.(*sync.Mutex).Lock()
+	unlock := app.proxyLocks.lock(key)
 	ct, err := os.ReadFile(file + ".type")
 	if err != nil {
 		var typ string
 		typ, err = app.fetchToCache(r, u, file)
 		ct = []byte(typ)
 	}
-	mu.(*sync.Mutex).Unlock()
-	proxyLocks.Delete(key)
+	unlock()
 	if err != nil {
 		w.Header().Set("Cache-Control", "public, max-age=300")
 		http.Error(w, "could not fetch media", http.StatusBadGateway)
