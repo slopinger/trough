@@ -26,3 +26,5 @@ Keep these notes and README up to date whenever code behavior, commands or opera
   Inspect live SQLite as `trough`, preserving WAL ownership. Never commit data, private keys or passwords.
 - Daily verified local backups come from the separate `slop/server-backups` project/timer, not this
   deploy script. Cache is disposable; database and uploaded media are not. Restore instructions are there.
+- Use small commits: one logical change per commit (with its tests/docs), each passing the checks above.
+  Don't bundle unrelated changes or a whole session's work into one commit.
