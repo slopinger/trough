@@ -44,6 +44,17 @@ Running instance: **https://fedi.freifick.net**
   text box and is never posted automatically. Uses DeepSeek's chat completions API (any
   OpenAI-compatible endpoint works); remote post text is passed to the model as delimited data, not
   instructions. 30 requests per user and hour; admins switch it on and off and pick the model on `/admin`.
+- Edit your posts, pin up to 5 to your profile (featured collection, `Add`/`Remove`), bookmarks
+- Polls (2-4 options, single or multiple choice) federated as `Question`; vote in remote polls; poll results
+  and end notifications
+- Quote posts (FEP-044f `quote`, `quoteUrl`, `_misskey_quote`, FEP-e232 links) shown as embedded posts;
+  emoji reactions (Misskey reactions, `EmojiReact`) shown as chips, and you can react yourself
+- Link previews (OpenGraph cards), fetched in the background
+- Mutes, keyword filters (collapse or hide), blocks; reports with optional anonymous forwarding (`Flag`)
+  and incoming reports for admins
+- Account migration: aliases (`alsoKnownAs`), moving followers to a new account (`Move`), and following
+  accounts that moved here
+- Sign-ups: closed, invite links or open (admin setting); live "new posts" banner and notification badge
 - Like, boost, reply and delete; likes and boosts update in place with JS, or via plain forms without it
 - Profiles with header, avatar, bio, profile fields, locked accounts and bot flag; follow, unfollow and block
 - Notifications (mentions, replies, likes, boosts, follows, follow requests), follow request management
@@ -153,9 +164,8 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 
 ## Not (yet) implemented
 
-Mastodon client API/OAuth (so no third-party apps), voting in polls, editing posts, pinned posts,
-mutes and filters, reports (`Flag`), account migration (`Move`), streaming updates, sign-ups,
-outgoing RFC 9421 signatures.
+Outgoing RFC 9421 signatures, edit history, lists, followed hashtags, custom emoji uploads, ActivityPub
+C2S.
 
 ## License
 
