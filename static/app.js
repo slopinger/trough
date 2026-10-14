@@ -73,7 +73,7 @@
         window.alert("Your post is too long.");
         return;
       }
-      var b = form.querySelector(".compose-row button[type=submit]");
+      var b = form.querySelector(".post-btn");
       if (b) { b.disabled = true; b.textContent = "Posting…"; }
     });
     // put the cursor after prefilled @mentions when replying
@@ -85,108 +85,144 @@
   });
 
   // AI drafting: stream the draft into the textarea (server-sent events).
-  // Without JS the buttons submit the form and the page comes back filled in.
+  // Without JS the AI buttons submit the form and the page comes back filled in.
   document.querySelectorAll("form.compose").forEach(function (form) {
+    var ai = form.querySelector(".ai");
+    if (!ai || !window.fetch || !window.TextDecoder || !window.ReadableStream) return;
     var ta = form.querySelector("textarea");
-    var status = form.querySelector(".ai-status");
-    var undo = form.querySelector(".ai-undo");
-    var buttons = form.querySelectorAll("button[name=ai_mode]");
-    if (!status || !window.fetch || !window.TextDecoder || !window.ReadableStream) return;
-    var before = null;
+    var input = ai.querySelector(".ai-input");
+    var status = ai.querySelector(".ai-status");
+    var undo = ai.querySelector(".ai-undo");
+    var retry = ai.querySelector(".ai-retry");
+    var note = ai.querySelector(".ai-note");
+    var buttons = form.querySelectorAll('button[formaction="/compose/ai"]');
+    var before = null, last = null, busy = false;
+    var mentionPrefix = /^(\s*@[A-Za-z0-9_.\-]+(@[A-Za-z0-9.\-:]+)?)+\s*/;
+
+    function hasText() { return ta.value.replace(mentionPrefix, "").trim() !== ""; }
+    function refresh() { ai.classList.toggle("has-text", hasText()); }
+    ta.addEventListener("input", refresh);
+    refresh();
+
     function setStatus(text, cls) {
       status.textContent = text;
       status.className = "ai-status" + (cls ? " " + cls : "");
+      note.hidden = !!text;
     }
-    function setBusy(busy) {
-      buttons.forEach(function (b) { b.disabled = busy; });
-      ta.readOnly = busy;
-      ta.classList.toggle("ai-writing", busy);
+    function setBusy(b) {
+      busy = b;
+      buttons.forEach(function (x) { x.disabled = b; });
+      ta.readOnly = b;
+      form.classList.toggle("ai-busy", b);
     }
-    var instr = form.querySelector("input[name=ai_instruction]");
-    instr.addEventListener("keydown", function (ev) {
+
+    input.addEventListener("keydown", function (ev) {
       if (ev.key === "Enter") {
         ev.preventDefault();
-        buttons[0].click();
+        ai.querySelector(".ai-go").click();
       }
     });
     undo.addEventListener("click", function () {
       if (before !== null) ta.value = before;
       ta.dispatchEvent(new Event("input"));
-      undo.hidden = true;
+      undo.hidden = retry.hidden = true;
       setStatus("");
+      ta.focus();
     });
+    retry.addEventListener("click", function () {
+      if (!last) return;
+      ta.value = last.draft;
+      run(last.btn, last.draft);
+    });
+
+    function run(btn, draft) {
+      var fd = new FormData(form);
+      fd.set(btn.name, btn.value);
+      fd.set("text", draft);
+      for (var i = 0; i < 4; i++) fd.delete("media" + i);
+      last = { btn: btn, draft: draft };
+      before = draft;
+      undo.hidden = retry.hidden = true;
+      setBusy(true);
+      setStatus(btn.value === "lucky" ? "Rolling the dice…" : "Asking the AI…", "busy");
+      var prefix = "", got = "", finished = false;
+      function handle(m) {
+        if (m.error) {
+          ta.value = before;
+          finished = true;
+          setStatus(m.error, "err");
+          retry.hidden = false;
+        } else if (m.start) {
+          prefix = m.prefix || "";
+        } else if (m.thinking) {
+          setStatus("Thinking…", "busy");
+        } else if (m.delta) {
+          if (!got) setStatus("Writing…", "busy");
+          got += m.delta;
+          ta.value = prefix + got;
+          ta.scrollTop = ta.scrollHeight;
+          ta.dispatchEvent(new Event("input"));
+        } else if (m.done) {
+          finished = true;
+          ta.value = m.text;
+          setStatus("✓ Draft ready — edit it, then post.");
+          undo.hidden = retry.hidden = false;
+          if (btn.name === "ai_mode" && (btn.value === "auto" || btn.value === "write" || btn.value === "reply")) input.value = "";
+        }
+      }
+      fetch("/compose/ai", { method: "POST", body: fd, credentials: "same-origin", headers: { "X-Requested-With": "fetch" } })
+        .then(function (resp) {
+          if (!resp.ok || !resp.body) throw new Error("HTTP " + resp.status);
+          var reader = resp.body.getReader();
+          var dec = new TextDecoder();
+          var buf = "";
+          function pump() {
+            return reader.read().then(function (r) {
+              if (r.done) return;
+              buf += dec.decode(r.value, { stream: true });
+              var i;
+              while ((i = buf.indexOf("\n\n")) >= 0) {
+                var evt = buf.slice(0, i);
+                buf = buf.slice(i + 2);
+                evt.split("\n").forEach(function (line) {
+                  if (line.indexOf("data:") === 0) {
+                    try { handle(JSON.parse(line.slice(5))); } catch (e) { /* ignore */ }
+                  }
+                });
+              }
+              return pump();
+            });
+          }
+          return pump();
+        })
+        .catch(function () {
+          ta.value = before;
+          setStatus("Could not reach the server.", "err");
+          retry.hidden = false;
+          finished = true;
+        })
+        .then(function () {
+          if (!finished) {
+            ta.value = before;
+            setStatus("The draft was interrupted.", "err");
+            retry.hidden = false;
+          }
+          setBusy(false);
+          ta.dispatchEvent(new Event("input"));
+          ta.focus();
+        });
+    }
+
     buttons.forEach(function (btn) {
       btn.addEventListener("click", function (ev) {
         ev.preventDefault();
-        var fd = new FormData(form);
-        fd.set("ai_mode", btn.value);
-        for (var i = 0; i < 4; i++) fd.delete("media" + i);
-        before = ta.value;
-        undo.hidden = true;
-        setBusy(true);
-        setStatus("Asking the AI…", "busy");
-        var prefix = "", got = "", finished = false;
-        function handle(m) {
-          if (m.error) {
-            ta.value = before;
-            finished = true;
-            setStatus(m.error, "err");
-          } else if (m.start) {
-            prefix = m.prefix || "";
-          } else if (m.thinking) {
-            setStatus("Thinking…", "busy");
-          } else if (m.delta) {
-            if (!got) setStatus("Writing…", "busy");
-            got += m.delta;
-            ta.value = prefix + got;
-            ta.scrollTop = ta.scrollHeight;
-            ta.dispatchEvent(new Event("input"));
-          } else if (m.done) {
-            finished = true;
-            ta.value = m.text;
-            setStatus("Draft ready. Review and edit it before posting.");
-            undo.hidden = false;
-          }
+        if (busy) return;
+        if (btn.value === "auto" && !input.value.trim() && !hasText() && !ai.dataset.reply) {
+          setStatus("Type what the post should be about, or try 🎲 I'm feeling lucky.", "err");
+          input.focus();
+          return;
         }
-        fetch("/compose/ai", { method: "POST", body: fd, credentials: "same-origin", headers: { "X-Requested-With": "fetch" } })
-          .then(function (resp) {
-            if (!resp.ok || !resp.body) throw new Error("HTTP " + resp.status);
-            var reader = resp.body.getReader();
-            var dec = new TextDecoder();
-            var buf = "";
-            function pump() {
-              return reader.read().then(function (r) {
-                if (r.done) return;
-                buf += dec.decode(r.value, { stream: true });
-                var i;
-                while ((i = buf.indexOf("\n\n")) >= 0) {
-                  var evt = buf.slice(0, i);
-                  buf = buf.slice(i + 2);
-                  evt.split("\n").forEach(function (line) {
-                    if (line.indexOf("data:") === 0) {
-                      try { handle(JSON.parse(line.slice(5))); } catch (e) { /* ignore */ }
-                    }
-                  });
-                }
-                return pump();
-              });
-            }
-            return pump();
-          })
-          .catch(function () {
-            ta.value = before;
-            setStatus("Could not reach the server.", "err");
-            finished = true;
-          })
-          .then(function () {
-            if (!finished) {
-              ta.value = before;
-              setStatus("The draft was interrupted. Try again.", "err");
-            }
-            setBusy(false);
-            ta.dispatchEvent(new Event("input"));
-            ta.focus();
-          });
+        run(btn, ta.value);
       });
     });
   });

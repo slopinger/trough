@@ -161,3 +161,30 @@ func TestULIDOrder(t *testing.T) {
 		t.Fatal("ids do not sort by time")
 	}
 }
+
+// Mentions of accounts we never fetched must still link to our own profile
+// pages, and replies must tag everyone who was mentioned.
+func TestUnknownMentions(t *testing.T) {
+	app := testApp(t)
+	me, _ := app.CreateLocalUser("me", "password123", false)
+	content := `<p><span class="h-card"><a href="https://remote.test/@alice" class="u-url mention">@<span>alice</span></a></span> ` +
+		`<a href="https://other.test/users/carol" class="u-url mention">@carol@other.test</a> ` +
+		`<a href="https://example.test/@me" class="u-url mention">@<span>me</span></a> ` +
+		`<a href="https://example.test/@me" class="u-url mention">@me</a> ` +
+		`<a href="https://remote.test/tags/x" class="mention hashtag">#<span>x</span></a> hi</p>`
+	out := string(app.renderHTML(content, nil, nil))
+	for _, want := range []string{`href="/@alice@remote.test"`, `href="/@carol@other.test"`, `href="/@me"`, `href="/tags/x"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("rendered HTML lacks %s: %s", want, out)
+		}
+	}
+	if strings.Contains(out, `href="https://remote.test/@alice"`) {
+		t.Errorf("mention still points to the remote instance: %s", out)
+	}
+	author := &Account{ID: "a1", Username: "bob", Domain: "remote.test", URI: "https://remote.test/users/bob"}
+	st := &Status{Account: author, Content: content, Visibility: "public"}
+	c := app.replyCompose(me, st)
+	if c.Text != "@bob@remote.test @alice@remote.test @carol@other.test " {
+		t.Errorf("reply prefill = %q", c.Text)
+	}
+}

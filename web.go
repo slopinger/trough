@@ -411,9 +411,26 @@ func (app *App) replyCompose(me *Account, st *Status) *Compose {
 			mentions = append(mentions, "@"+a.Acct())
 		}
 	}
+	seenAcct := map[string]bool{strings.ToLower(me.Acct()): true}
+	addAcct := func(acct string) {
+		if k := strings.ToLower(acct); acct != "" && !seenAcct[k] {
+			seenAcct[k] = true
+			mentions = append(mentions, "@"+acct)
+		}
+	}
+	add = func(a *Account) {
+		if a != nil && !seen[a.ID] {
+			seen[a.ID] = true
+			addAcct(a.Acct())
+		}
+	}
 	add(st.Account)
 	for _, m := range st.Mentions {
 		add(m)
+	}
+	// everyone mentioned in the post, including accounts we don't know yet
+	for _, l := range app.mentionLinks(st.Content) {
+		addAcct(l.Handle)
 	}
 	if len(mentions) > 0 {
 		c.Text = strings.Join(mentions, " ") + " "

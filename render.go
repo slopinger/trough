@@ -14,6 +14,7 @@ import (
 	"mime"
 	"net/http"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
@@ -234,6 +235,10 @@ func (app *App) renderHTML(content string, mentions []*Account, emojis []Emoji) 
 		}
 		mentionPaths[m.URI] = m.Path()
 	}
+	linkPaths := map[string]string{}
+	for _, l := range app.mentionLinks(content) {
+		linkPaths[l.Href] = "/@" + l.Handle
+	}
 	var out strings.Builder
 	z := xhtml.NewTokenizer(strings.NewReader(content))
 	for {
@@ -272,6 +277,8 @@ func (app *App) renderHTML(content string, mentions []*Account, emojis []Emoji) 
 					}
 				} else if p, ok := mentionPaths[href]; ok {
 					local = p
+				} else if p, ok := linkPaths[href]; ok {
+					local = p // mentioned account we haven't fetched (yet)
 				} else if strings.HasPrefix(href, app.cfg.BaseURL()+"/") {
 					local = strings.TrimPrefix(href, app.cfg.BaseURL())
 				}
@@ -297,3 +304,80 @@ func (app *App) renderHTML(content string, mentions []*Account, emojis []Emoji) 
 		}
 	}
 }
+
+type mentionLink struct {
+	Href, Handle string // Handle is user@domain, or user for local accounts
+}
+
+// mentionLinks finds the @mention links in post HTML (class "mention", not
+// hashtags) and derives each handle from the link text and host, so that
+// mentions of accounts we have never fetched still work.
+func (app *App) mentionLinks(content string) []mentionLink {
+	var out []mentionLink
+	seen := map[string]bool{}
+	z := xhtml.NewTokenizer(strings.NewReader(content))
+	var href string
+	var text strings.Builder
+	inMention := false
+	for {
+		switch z.Next() {
+		case xhtml.ErrorToken:
+			return out
+		case xhtml.StartTagToken:
+			tok := z.Token()
+			if tok.Data != "a" {
+				continue
+			}
+			var class string
+			href, class = "", ""
+			for _, a := range tok.Attr {
+				switch a.Key {
+				case "href":
+					href = a.Val
+				case "class":
+					class = a.Val
+				}
+			}
+			c := " " + class + " "
+			inMention = strings.Contains(c, " mention ") && !strings.Contains(c, " hashtag ")
+			text.Reset()
+		case xhtml.TextToken:
+			if inMention {
+				text.Write(z.Text())
+			}
+		case xhtml.EndTagToken:
+			if tok := z.Token(); tok.Data == "a" && inMention {
+				inMention = false
+				if h := app.handleFromLink(href, text.String()); h != "" && !seen[strings.ToLower(h)] {
+					seen[strings.ToLower(h)] = true
+					out = append(out, mentionLink{Href: href, Handle: h})
+				}
+			}
+		}
+	}
+}
+
+func (app *App) handleFromLink(href, text string) string {
+	t := strings.TrimSpace(text)
+	if !strings.HasPrefix(t, "@") {
+		return ""
+	}
+	t = strings.TrimPrefix(t, "@")
+	user, domain, _ := strings.Cut(t, "@")
+	if !usernameLikeRe.MatchString(user) {
+		return ""
+	}
+	if domain == "" {
+		domain = hostOf(href)
+	}
+	domain = strings.ToLower(domain)
+	if domain == "" || strings.ContainsAny(domain, " /?#@") {
+		return ""
+	}
+	if domain == app.cfg.Host {
+		return user
+	}
+	return user + "@" + domain
+}
+
+var usernameLikeRe = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_.\-]{0,63}$`)

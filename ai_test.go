@@ -145,7 +145,7 @@ func TestAIReplyPromptTreatsRemoteContentAsData(t *testing.T) {
 
 // End to end through the web handler: streaming for JS, full page without.
 func TestAIComposeEndpoint(t *testing.T) {
-	la, _, bob := aiFixture(t)
+	la, f, bob := aiFixture(t)
 	jar, _ := cookiejar.New(nil)
 	c := &http.Client{Jar: jar}
 	post := func(path string, form url.Values, fetch bool) (*http.Response, string) {
@@ -167,8 +167,8 @@ func TestAIComposeEndpoint(t *testing.T) {
 	resp, _ := c.Get(la.base + "/")
 	page, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
-	if !strings.Contains(string(page), "Write with AI") {
-		t.Fatal("AI panel missing from compose box")
+	if !strings.Contains(string(page), `class="ai-bar"`) || !strings.Contains(string(page), "feeling lucky") {
+		t.Fatal("AI prompt bar or lucky button missing from compose box")
 	}
 	csrf := strings.SplitN(strings.SplitN(string(page), `name="csrf" value="`, 2)[1], `"`, 2)[0]
 	mine, _ := la.PostStatus(context.Background(), bob, PostInput{Text: "my post", Visibility: "public"})
@@ -185,6 +185,37 @@ func TestAIComposeEndpoint(t *testing.T) {
 	resp, body = post("/compose/ai", url.Values{"csrf": {csrf}, "ai_mode": {"write"}, "ai_instruction": {"bread"}}, false)
 	if resp.StatusCode != 200 || !strings.Contains(body, "Fresh bread this Sunday! #baking</textarea>") {
 		t.Fatalf("no-JS draft: %d", resp.StatusCode)
+	}
+	// lucky: random angle, higher temperature, no instruction needed
+	_, body = post("/compose/ai", url.Values{"csrf": {csrf}, "ai_mode": {"lucky"}}, true)
+	if !strings.Contains(body, `"done":true`) {
+		t.Errorf("lucky failed: %s", body)
+	}
+	f.mu.Lock()
+	lucky := f.requests[len(f.requests)-1]
+	f.mu.Unlock()
+	if lucky["temperature"].(float64) <= 1 || !strings.Contains(str(objOf(lucky["messages"].([]any)[1]), "content"), "Angle:") {
+		t.Errorf("lucky request = %v", lucky)
+	}
+	// auto mode: empty box writes, a draft gets rewritten, presets rewrite with their instruction
+	modeOf := func(form url.Values) string {
+		form.Set("csrf", csrf)
+		post("/compose/ai", form, true)
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		return str(objOf(f.requests[len(f.requests)-1]["messages"].([]any)[1]), "content")
+	}
+	if c := modeOf(url.Values{"ai_mode": {"auto"}, "ai_instruction": {"cats"}}); !strings.Contains(c, "Write a post. What it should be about: cats") {
+		t.Errorf("auto without draft: %s", c)
+	}
+	if c := modeOf(url.Values{"ai_mode": {"auto"}, "ai_instruction": {"more cats"}, "text": {"I like dogs"}}); !strings.Contains(c, "<draft>I like dogs</draft>") || !strings.Contains(c, "Rewrite this draft: more cats") {
+		t.Errorf("auto with draft: %s", c)
+	}
+	if c := modeOf(url.Values{"ai_preset": {"shorter"}, "text": {"@carol a long draft"}}); !strings.Contains(c, "Make it shorter") || !strings.Contains(c, "<draft>a long draft</draft>") {
+		t.Errorf("preset: %s", c)
+	}
+	if c := modeOf(url.Values{"ai_mode": {"auto"}, "in_reply_to": {mine.ID}, "text": {"@carol "}}); !strings.Contains(c, "Post being replied to") {
+		t.Errorf("auto on an empty reply: %s", c)
 	}
 	_, body = post("/compose/ai", url.Values{"csrf": {csrf}, "ai_mode": {"improve"}, "text": {""}}, true)
 	if !strings.Contains(body, `"error"`) {
