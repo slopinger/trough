@@ -347,8 +347,19 @@ func (app *App) accountForKey(ctx context.Context, keyID string, refresh bool) (
 		return nil, err
 	}
 	var actor obj
-	if actorTypes[typeOf(m)] {
+	if actorTypes[typeOf(m)] && str(m, "inbox") != "" {
 		actor = m
+	} else if actorTypes[typeOf(m)] {
+		// GoToSocial serves the key URL as a stub actor without inbox etc.;
+		// the full document lives at the actor id.
+		id := str(m, "id")
+		if id == "" || !sameHost(id, keyID) {
+			return nil, errors.New("key stub points to a different host")
+		}
+		actor, err = app.fetchAP(ctx, id)
+		if err != nil {
+			return nil, err
+		}
 	} else if owner := str(m, "owner"); owner != "" {
 		// a standalone key document
 		if !sameHost(owner, keyID) {
@@ -374,16 +385,29 @@ func (app *App) accountForKey(ctx context.Context, keyID string, refresh bool) (
 // verifyRequest checks the HTTP signature of an incoming request and
 // returns the signing actor.
 func (app *App) verifyRequest(r *http.Request, body []byte) (*Account, error) {
-	p, err := parseSignatureHeader(r)
-	if err != nil {
-		return nil, err
-	}
-	if app.domainBlocked(hostOf(p.KeyID)) {
-		return nil, errBlocked
-	}
-	ss, err := checkSignatureShape(r, p, body)
-	if err != nil {
-		return nil, err
+	var p *sigParams
+	var ss string
+	var err error
+	if r.Header.Get("Signature-Input") != "" {
+		p, ss, err = parseRFC9421(r, body, app.cfg.Scheme)
+		if err != nil {
+			return nil, err
+		}
+		if app.domainBlocked(hostOf(p.KeyID)) {
+			return nil, errBlocked
+		}
+	} else {
+		p, err = parseSignatureHeader(r)
+		if err != nil {
+			return nil, err
+		}
+		if app.domainBlocked(hostOf(p.KeyID)) {
+			return nil, errBlocked
+		}
+		ss, err = checkSignatureShape(r, p, body)
+		if err != nil {
+			return nil, err
+		}
 	}
 	acc, err := app.accountForKey(r.Context(), p.KeyID, false)
 	if err != nil {

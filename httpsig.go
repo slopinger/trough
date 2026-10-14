@@ -25,6 +25,10 @@ func generateKey() (privPEM, pubPEM string, err error) {
 	if err != nil {
 		return "", "", err
 	}
+	return keyToPEM(key)
+}
+
+func keyToPEM(key *rsa.PrivateKey) (privPEM, pubPEM string, err error) {
 	privDER, err := x509.MarshalPKCS8PrivateKey(key)
 	if err != nil {
 		return "", "", err
@@ -282,10 +286,13 @@ func verifyRSA(pubPEM, signingString string, sig []byte, alg string) error {
 		return err
 	}
 	switch alg {
-	case "", "rsa-sha256", "hs2019":
+	case "", "rsa-sha256", "hs2019", "rsa-v1_5-sha256":
 	case "rsa-sha512":
 		h := sha512.Sum512([]byte(signingString))
 		return rsa.VerifyPKCS1v15(pub, crypto.SHA512, h[:], sig)
+	case "rsa-pss-sha512":
+		h := sha512.Sum512([]byte(signingString))
+		return rsa.VerifyPSS(pub, crypto.SHA512, h[:], sig, &rsa.PSSOptions{SaltLength: 64})
 	default:
 		return fmt.Errorf("unsupported algorithm %q", alg)
 	}

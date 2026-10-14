@@ -175,3 +175,31 @@ func mentionHTML(acc *Account) string {
 func (app *App) formatBio(ctx context.Context, text string) string {
 	return app.formatPost(ctx, text).HTML
 }
+
+var (
+	mdBold   = regexp.MustCompile(`\*\*([^*\n]+)\*\*`)
+	mdItalic = regexp.MustCompile(`(^|[^*\w])\*([^*\n]+)\*`)
+	mdCode   = regexp.MustCompile("`([^`\n]+)`")
+	mdLink   = regexp.MustCompile(`\[([^\]\n]+)\]\((https?://[^)\s]+)\)`)
+	mdURL    = regexp.MustCompile(`(^|[\s(])(https?://[^\s<)]+)`)
+)
+
+// markdownToHTML renders the small Markdown subset used in PeerTube and
+// Lemmy descriptions (paragraphs, bold, italics, code, links). The result is
+// sanitized by the caller.
+func markdownToHTML(md string) string {
+	var out strings.Builder
+	for _, para := range regexp.MustCompile(`\n{2,}`).Split(strings.TrimSpace(strings.ReplaceAll(md, "\r\n", "\n")), -1) {
+		if strings.TrimSpace(para) == "" {
+			continue
+		}
+		p := html.EscapeString(para)
+		p = mdLink.ReplaceAllString(p, `<a href="$2">$1</a>`)
+		p = mdURL.ReplaceAllString(p, `$1<a href="$2">$2</a>`)
+		p = mdBold.ReplaceAllString(p, `<strong>$1</strong>`)
+		p = mdItalic.ReplaceAllString(p, `$1<em>$2</em>`)
+		p = mdCode.ReplaceAllString(p, `<code>$1</code>`)
+		out.WriteString("<p>" + strings.ReplaceAll(p, "\n", "<br>") + "</p>")
+	}
+	return out.String()
+}

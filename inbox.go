@@ -294,6 +294,9 @@ func (app *App) inAnnounce(ctx context.Context, actor *Account, act obj) error {
 	if _, err := app.StatusByURI(uri); err == nil {
 		return nil
 	}
+	if inner, ok := act["object"].(obj); ok && wrappedActivityTypes[typeOf(inner)] {
+		return app.inAnnouncedActivity(ctx, actor, act, inner)
+	}
 	objIRI := idOf(act["object"])
 	orig, err := app.StatusByURI(objIRI)
 	if err != nil {
@@ -329,6 +332,85 @@ func (app *App) inAnnounce(ctx context.Context, actor *Account, act obj) error {
 	return nil
 }
 
+var wrappedActivityTypes = map[string]bool{"Create": true, "Update": true, "Delete": true, "Like": true, "Dislike": true,
+	"Undo": true, "Add": true, "Remove": true, "Lock": true, "Block": true, "Flag": true, "Follow": true, "Announce": true}
+
+// inAnnouncedActivity handles groups (Lemmy communities, Friendica forums,
+// guppe, ...) relaying activities of their members by wrapping them in an
+// Announce. The wrapped activity isn't signed by its author, so everything
+// is re-fetched from the origin server instead of trusting the embed.
+func (app *App) inAnnouncedActivity(ctx context.Context, group *Account, act, inner obj) error {
+	objIRI := idOf(inner["object"])
+	if objIRI == "" {
+		return nil
+	}
+	switch typeOf(inner) {
+	case "Create", "Update":
+		existing, err := app.StatusByURI(objIRI)
+		if err == nil {
+			if typeOf(inner) == "Update" {
+				return app.refreshStatus(ctx, existing)
+			}
+		} else {
+			if !app.hasLocalFollowers(group.ID) {
+				return nil
+			}
+			if existing, err = app.resolveStatus(ctx, objIRI); err != nil {
+				return err
+			}
+		}
+		if typeOf(inner) != "Create" || existing.Visibility == "private" || existing.Visibility == "direct" {
+			return nil
+		}
+		boostURI := str(act, "id")
+		if _, err := app.StatusByURI(boostURI); err == nil || boostURI == "" {
+			return nil
+		}
+		b := &Status{ID: newIDAt(existing.CreatedAt), URI: boostURI, URL: boostURI, AccountID: group.ID, BoostOfID: existing.ID,
+			Visibility: "public", CreatedAt: existing.CreatedAt}
+		if !existing.Local && existing.InReplyToURI != "" {
+			return nil // comments show up in threads, not as boosts in timelines
+		}
+		return app.insertStatus(b)
+	case "Delete":
+		st, err := app.StatusByURI(objIRI)
+		if err != nil {
+			return nil
+		}
+		// only believe the deletion if the origin no longer serves the post
+		m, err := app.fetchAP(ctx, objIRI)
+		if errors.Is(err, errGone) || errors.Is(err, errNotFound) || (err == nil && typeOf(m) == "Tombstone") {
+			return app.purgeStatus(st.ID)
+		}
+		return nil
+	}
+	return nil
+}
+
+// refreshStatus re-fetches a remote post from its origin and applies edits.
+func (app *App) refreshStatus(ctx context.Context, st *Status) error {
+	if st.Local {
+		return nil
+	}
+	m, err := app.fetchAP(ctx, st.URI)
+	if err != nil {
+		return err
+	}
+	acc, err := app.AccountByID(st.AccountID)
+	if err != nil {
+		return err
+	}
+	if _, listed := attributedTo(m, acc.URI); !listed || str(m, "id") != st.URI {
+		return errors.New("refetched post changed author or id")
+	}
+	app.applyNote(st, m)
+	if err := app.updateStatusContent(st); err != nil {
+		return err
+	}
+	app.replaceNoteExtras(ctx, st, m)
+	return nil
+}
+
 func (app *App) hasLocalFollowers(accountID string) bool {
 	var x int
 	return app.db.QueryRow(`SELECT 1 FROM follows f JOIN accounts a ON a.id=f.account_id WHERE f.target_id=? AND f.accepted=1 AND a.domain='' LIMIT 1`, accountID).Scan(&x) == nil
@@ -350,27 +432,49 @@ func (app *App) inCreate(ctx context.Context, actor *Account, act obj) error {
 	if !noteTypes[typeOf(note)] {
 		return nil
 	}
-	if idOf(note["attributedTo"]) != actor.URI || !sameHost(str(note, "id"), actor.URI) {
+	sender, author := actor, actor
+	if a, listed := attributedTo(note, actor.URI); !listed || !sameHost(str(note, "id"), actor.URI) {
 		// forwarded or forged: trust only what the origin server says
 		m, err := app.fetchAP(ctx, str(note, "id"))
 		if err != nil {
 			return err
 		}
 		note = m
-		author, err := app.getAccount(ctx, idOf(note["attributedTo"]))
+		a, _ = attributedTo(note, "")
+		author, err = app.getAccount(ctx, a)
 		if err != nil {
 			return err
 		}
-		actor = author
-		if !sameHost(str(note, "id"), actor.URI) {
+		if !sameHost(str(note, "id"), author.URI) {
 			return errors.New("note and author on different hosts")
 		}
 	}
-	if !app.relevant(actor, note) {
+	if !app.relevant(author, note) && !app.hasLocalFollowers(sender.ID) {
 		return nil
 	}
-	_, err := app.storeNote(ctx, actor, note, 0)
+	_, err := app.storeNote(ctx, author, note, 0)
 	return err
+}
+
+// attributedTo picks the author IRI of an object. attributedTo may be an
+// array (PeerTube lists the account and the channel); the sender wins if it
+// is listed, otherwise the first Person.
+func attributedTo(note obj, sender string) (string, bool) {
+	ids := idsOf(note["attributedTo"])
+	for _, id := range ids {
+		if id == sender && sender != "" {
+			return id, true
+		}
+	}
+	for _, o := range objsOf(note["attributedTo"]) {
+		if typeOf(o) == "Person" && str(o, "id") != "" {
+			return str(o, "id"), false
+		}
+	}
+	if len(ids) > 0 {
+		return ids[0], false
+	}
+	return "", false
 }
 
 // relevant decides whether we want an incoming post: it is by someone a
@@ -414,7 +518,7 @@ func (app *App) inUpdate(ctx context.Context, actor *Account, act obj) error {
 		if err != nil {
 			return nil
 		}
-		if st.AccountID != actor.ID || idOf(o["attributedTo"]) != actor.URI {
+		if _, listed := attributedTo(o, actor.URI); st.AccountID != actor.ID || !listed {
 			return errors.New("update of someone else's post")
 		}
 		app.applyNote(st, o)

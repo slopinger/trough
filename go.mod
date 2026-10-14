@@ -3,6 +3,7 @@ module git.freifick.net/slop/trough
 go 1.27.2
 
 require (
+	github.com/go-fed/httpsig v1.1.0
 	github.com/microcosm-cc/bluemonday v1.0.27
 	golang.org/x/crypto v0.58.0
 	golang.org/x/image v0.47.0

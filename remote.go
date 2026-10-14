@@ -14,6 +14,29 @@ import (
 
 func jsonUnmarshal(b []byte, v any) error { return json.Unmarshal(b, v) }
 
+// bestImage returns the largest of a post's image/icon objects.
+func bestImage(note obj) obj {
+	var best obj
+	bestW := -1.0
+	for _, k := range []string{"image", "icon"} {
+		for _, im := range objsOf(note[k]) {
+			w, _ := im["width"].(float64)
+			if urlOf(im["url"]) != "" && w > bestW {
+				best, bestW = obj{"type": "Image", "url": urlOf(im["url"]), "mediaType": str(im, "mediaType")}, w
+			}
+		}
+		if best != nil {
+			return best
+		}
+	}
+	return nil
+}
+
+func attributedToIncludes(note obj, iri string) bool {
+	_, ok := attributedTo(note, iri)
+	return ok
+}
+
 // storeNote saves a remote post (Note/Article/...) by author.
 func (app *App) storeNote(ctx context.Context, author *Account, note obj, depth int) (*Status, error) {
 	uri := str(note, "id")
@@ -84,22 +107,42 @@ func (app *App) applyNote(st *Status, note obj) {
 			}
 		}
 	}
+	if strings.HasPrefix(str(note, "mediaType"), "text/markdown") && !strings.Contains(content, "</") {
+		content = markdownToHTML(content) // PeerTube video descriptions
+	}
 	name := str(note, "name")
+	summary := str(note, "summary")
+	longform := false
 	switch typeOf(note) {
 	case "Article", "Page", "Event", "Video", "Audio", "Image":
-		if name != "" {
+		longform = name != ""
+		if longform {
 			link := urlOf(note["url"])
 			if link == "" {
 				link = str(note, "id")
 			}
-			content = `<p><strong><a href="` + html.EscapeString(link) + `">` + html.EscapeString(name) + `</a></strong></p>` + content
+			lead := ""
+			if summary != "" {
+				// for articles the summary is a teaser, not a content warning
+				lead = "<p><em>" + html.EscapeString(plainText(summary)) + "</em></p>"
+				summary = ""
+			}
+			content = `<p><strong><a href="` + html.EscapeString(link) + `">` + html.EscapeString(name) + `</a></strong></p>` + lead + content
+		}
+		// link posts (Lemmy): the link is an attachment, not in the text
+		for _, a := range objsOf(note["attachment"]) {
+			if typeOf(a) == "Link" && !strings.HasPrefix(str(a, "mediaType"), "image/") {
+				if href := str(a, "href"); href != "" && !strings.Contains(content, html.EscapeString(href)) {
+					content += `<p><a href="` + html.EscapeString(href) + `">` + html.EscapeString(href) + `</a></p>`
+				}
+			}
 		}
 	}
 	if content == "" && name != "" && typeOf(note) != "Note" {
 		content = "<p>" + html.EscapeString(name) + "</p>"
 	}
 	st.Content = sanitizeHTML(content)
-	st.Spoiler = truncateRunes(plainText(str(note, "summary")), 500)
+	st.Spoiler = truncateRunes(plainText(summary), 500)
 	st.Sensitive = boolOf(note, "sensitive") || st.Spoiler != ""
 	st.Emojis = emojisOf(note)
 	st.Poll = nil
@@ -163,12 +206,32 @@ func (app *App) replaceNoteExtras(ctx context.Context, st *Status, note obj) map
 			}
 		}
 	}
-	for i, a := range objsOf(note["attachment"]) {
+	atts := objsOf(note["attachment"])
+	hasMedia := false
+	for _, a := range atts {
+		if typeOf(a) != "Link" || strings.Contains(str(a, "mediaType"), "/") && !strings.HasPrefix(str(a, "mediaType"), "text/") {
+			hasMedia = true
+		}
+	}
+	if !hasMedia {
+		switch typeOf(note) {
+		case "Video", "Page", "Article", "Event", "Audio":
+			// show the thumbnail/preview image of videos and link posts
+			if img := bestImage(note); img != nil {
+				atts = append(atts, img)
+			}
+		}
+	}
+	for i, a := range atts {
 		if i >= 8 {
 			break
 		}
 		switch typeOf(a) {
 		case "Document", "Image", "Video", "Audio":
+		case "Link":
+			if mt := str(a, "mediaType"); !strings.HasPrefix(mt, "image/") && !strings.HasPrefix(mt, "video/") && !strings.HasPrefix(mt, "audio/") {
+				continue
+			}
 		default:
 			continue
 		}
@@ -231,7 +294,8 @@ func (app *App) storeFetchedNote(ctx context.Context, note obj, depth int) (*Sta
 	if !noteTypes[typeOf(note)] {
 		return nil, errors.New("not a post")
 	}
-	author, err := app.getAccount(ctx, idOf(note["attributedTo"]))
+	a, _ := attributedTo(note, "")
+	author, err := app.getAccount(ctx, a)
 	if err != nil {
 		return nil, err
 	}
@@ -305,7 +369,7 @@ func (app *App) backfillOutbox(ctx context.Context, acc *Account) {
 				continue
 			}
 		}
-		if !noteTypes[typeOf(note)] || idOf(note["attributedTo"]) != acc.URI || !sameHost(str(note, "id"), acc.URI) {
+		if !noteTypes[typeOf(note)] || !attributedToIncludes(note, acc.URI) || !sameHost(str(note, "id"), acc.URI) {
 			continue
 		}
 		if v := visibilityFrom(note, acc.FollowersURI); v != "public" && v != "unlisted" {
