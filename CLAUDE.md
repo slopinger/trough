@@ -11,8 +11,10 @@ Keep these notes and README up to date whenever code behavior, commands or opera
   local-CA Caddy (trough runs `-insecure -scheme https`); needs `caddy`, takes ~1 minute.
   `python3 test/run-mastodon.py` (optionally `AUTHORIZED_FETCH=true`) does the same with a real Mastodon
   in Docker, inside a private loopback-only network namespace so Caddy can use port 443;
-  `python3 test/run-akkoma.py` likewise with a real Akkoma (Nix). All three drive `test/interop.py`;
-  shared setup (netns, containers, Caddy, trough) is in `test/interop_env.py`.
+  `python3 test/run-akkoma.py` likewise with a real Akkoma (Nix). These drive `test/interop.py`;
+  `python3 test/run-misskey.py` drives a real Misskey through `test/interop_misskey.py` (its own API).
+  Shared setup (netns, containers, DNS, Caddy, trough) is in `test/interop_env.py`;
+  `INTEROP_PAUSE=<s>` keeps a failed run up for inspection.
 - `compat_*_test.go` is the ActivityPub compatibility suite: a live instance against a fake remote that
   speaks like Mastodon, GoToSocial, Misskey, Pleroma, Pixelfed, Friendica, WordPress, Fedify (RFC 9421),
   Lemmy and PeerTube, cross-checking signatures with go-fed/httpsig. Add a flavor/fixture when fixing an

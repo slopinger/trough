@@ -182,6 +182,17 @@ certificate store. There trough is `trough.localhost`: Erlang's TLS client rejec
 certificates for bare IP addresses. `AUTHORIZED_FETCH=true` turns on Akkoma's `authorized_fetch_mode`.
 Both runners check that secure mode really refuses unsigned fetches before running the scenario.
 
+`python3 test/run-misskey.py` federates with a real **Misskey** 2026.10.0 (`MISSKEY_IMAGE` picks another
+image) through `test/interop_misskey.py`, which drives Misskey's own API: follows, mentions, emoji reactions
+both ways, likes, renotes, quotes, replies, polls, followers-only and direct notes both ways, deletes,
+profile updates both ways and unfollows. Misskey ignores remote edits, so that check only warns. The
+namespace gets a tiny DNS responder and a dummy interface (documentation addresses, no routes), because
+Misskey resolves names through DNS and Node's resolver returns nothing on a loopback-only host.
+
+All runners take `INTEROP_PAUSE=<seconds>` to keep everything running before cleanup (the temp directory
+then holds the Caddy access log and server logs; stop it early with SIGTERM). Inside the namespace, use
+`sudo nsenter --net=/proc/$(sudo docker inspect -f '{{.State.Pid}}' <tag>-net)/ns/net ...`.
+
 To test two instances you started yourself, use `python3 test/federation.py <alice-pw> <bob-pw>`.
 It defaults to ports 8801/8802; `TROUGH_TEST_A` and `TROUGH_TEST_B` override the base URLs.
 The passwords can instead come from `TROUGH_TEST_ALICE_PASSWORD` and `TROUGH_TEST_BOB_PASSWORD`.
