@@ -532,6 +532,24 @@ func (app *App) apiTagTimeline(w http.ResponseWriter, r *http.Request, c *apiCtx
 	app.writeStatuses(w, r, c.Me, app.applyFilters(c.Me, sts), pq)
 }
 
+// apiLinkTimeline lists public posts whose link preview is the given URL
+// (GET /api/v1/timelines/link?url=, Mastodon 4.3).
+func (app *App) apiLinkTimeline(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	link := strings.TrimSpace(r.URL.Query().Get("url"))
+	if link == "" {
+		apiError(w, 422, "url is required")
+		return
+	}
+	pq := pageParams(r, 20, 40)
+	mute, margs := muteSQL(c.Me)
+	sts, err := app.pageStatuses(c.Me, `s.visibility='public' AND s.card_url=? AND `+mute, append([]any{link}, margs...), pq)
+	if err != nil {
+		apiError(w, 500, "db error")
+		return
+	}
+	app.writeStatuses(w, r, c.Me, app.applyFilters(c.Me, sts), pq)
+}
+
 // ---- statuses ----
 
 func (app *App) apiLoadStatus(w http.ResponseWriter, r *http.Request, c *apiCtx) (*Status, bool) {

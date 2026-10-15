@@ -271,6 +271,7 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	h("GET /api/v1/timelines/home", read(app.apiHome))
 	h("GET /api/v1/timelines/public", pub(app.apiPublic))
 	h("GET /api/v1/timelines/tag/{tag}", pub(app.apiTagTimeline))
+	h("GET /api/v1/timelines/link", pub(app.apiLinkTimeline))
 	h("GET /api/v1/timelines/list/{id}", read(app.apiListTimeline))
 
 	h("GET /api/v1/notifications", read(app.apiNotifications))

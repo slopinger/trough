@@ -94,3 +94,20 @@ func TestAPIStatusQuotes(t *testing.T) {
 		t.Errorf("anonymous sees %d quotes", len(got))
 	}
 }
+
+func TestAPILinkTimeline(t *testing.T) {
+	la, _, bob, alice := featureFixture(t)
+	link := "https://news.example/story"
+	for i, vis := range []string{"public", "public", "private"} {
+		la.insertStatus(&Status{ID: newID(), URI: alice.URI + "/s/" + string(rune('a'+i)), AccountID: alice.ID, Visibility: vis,
+			Content: "<p>read this</p>", CardURL: link, CreatedAt: parseTime("2026-01-01T00:00:00Z")})
+	}
+	la.PostStatus(context.Background(), bob, PostInput{Text: "unrelated", Visibility: "public"})
+	pub := &apiClient{t: t, base: la.base}
+	if got := pub.ok("GET", "/api/v1/timelines/link?url="+url.QueryEscape(link), nil).([]any); len(got) != 2 {
+		t.Errorf("link timeline has %d posts", len(got))
+	}
+	if code, _, _ := pub.do("GET", "/api/v1/timelines/link", nil); code != 422 {
+		t.Errorf("no url: %d", code)
+	}
+}
