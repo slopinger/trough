@@ -34,8 +34,9 @@ func TestDirectory(t *testing.T) {
 		t.Fatalf("local active directory = %v", got)
 	}
 	// newest first, posts not needed; hidden opted out, the remote actors say discoverable: true
-	if got := strings.Join(names("/api/v1/directory?order=new"), " "); !strings.HasPrefix(got, carol.Acct()+" ") ||
-		strings.Count(got, " ") != 3 || strings.Contains(got, "hidden") {
+	la.db.Exec(`UPDATE accounts SET created_at=1 WHERE id=?`, ann.ID)
+	if got := strings.Join(names("/api/v1/directory?order=new"), " "); !strings.HasSuffix(got, " ann") ||
+		strings.Count(got, " ") != 3 || strings.Contains(got, "hidden") || !strings.Contains(got, carol.Acct()) {
 		t.Fatalf("new directory = %v", got)
 	}
 	resp, err := http.Get(la.base + "/directory?order=new&scope=all")
