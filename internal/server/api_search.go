@@ -55,7 +55,7 @@ func (app *App) apiSearch(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 					var t string
 					var n int
 					rows.Scan(&t, &n)
-					out = append(out, obj{"name": t, "url": app.cfg.BaseURL() + "/tags/" + t, "history": []any{}, "following": false})
+					out = append(out, app.apiTag(t, c.Me != nil && app.followsTag(c.Me, t)))
 				}
 				rows.Close()
 			}

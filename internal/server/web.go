@@ -71,6 +71,8 @@ type Page struct {
 	List          *List
 	Relays        []Relay
 	Tag           string
+	TrendTags     []TrendTag
+	TrendLinks    []TrendLink
 	TagFollowed   bool
 	FollowedTags  []string
 	Versions      []StatusVersion

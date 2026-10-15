@@ -193,6 +193,8 @@ func (app *App) templateFuncs() template.FuncMap {
 			return map[string]string{"public": "Public", "unlisted": "Unlisted", "private": "Followers only", "direct": "Direct"}[v]
 		},
 		"hostOf":     ap.Host,
+		"sparkline":  sparkline,
+		"tagUses":    tagUses,
 		"remoteLink": func(s *Status) string { return s.URL },
 		"isImage":    func(at *Attachment) bool { return at.Kind() == "image" },
 		"localPath": func(u string) string {

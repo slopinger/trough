@@ -83,6 +83,9 @@
   emoji reactions (Misskey reactions, `EmojiReact`) shown as chips, and you can react yourself
 - Scheduled posts (compose box "Schedule", a Scheduled page, and `scheduled_at` / `/api/v1/scheduled_statuses`)
 - Link previews (OpenGraph cards), fetched in the background
+- Explore page and Mastodon trends API (`/api/v1/trends/{tags,statuses,links}`): posts with the most
+  likes, boosts and replies from the last three days, and hashtags and links used by at least two people
+  this week, with per-day history (also in every hashtag entity)
 - Custom emoji uploaded by admins, usable as `:shortcode:` in posts, names and bios, federated as `Emoji` tags
 - Featured accounts on profiles (Mastodon endorsements, not federated, like on Mastodon); attribution
   domains (`attributionDomains`) for websites that credit you with `fediverse:creator`

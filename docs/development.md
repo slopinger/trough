@@ -32,7 +32,7 @@ Files are grouped by prefix:
 | `timeline.go`, `conversations.go`, `lists.go`, `tags.go` | timelines, visibility rules, threads, notifications, DMs, lists, followed hashtags |
 | `social.go`, `features.go`, `polls.go`, `quotes.go`, `accounts.go` | edits, pins, bookmarks, mutes, filters, reports, polls, reactions, quotes and quote approval (FEP-044f), link cards, featured accounts, migration, sign-ups |
 | `media.go`, `emoji.go`, `text.go` | uploads (EXIF stripping), media proxy, custom emoji, post formatting and HTML sanitizing |
-| `scheduled.go`, `push.go` | scheduled posts, Web Push |
+| `scheduled.go`, `push.go`, `trends.go` | scheduled posts, Web Push, trends and the Explore page |
 | `ai.go`, `translate.go` | AI drafting and translation |
 | `fed_server.go` | federation endpoints: WebFinger, NodeInfo, actors, collections, objects |
 | `fed_inbox.go`, `fed_remote.go` | incoming activities, storing remote posts, backfill, URL resolution |

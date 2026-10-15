@@ -29,6 +29,7 @@
     <a href="/notifications" class="{{if eq .Section "notifications"}}active{{end}}">{{template "icon" "bell"}}<span>Notifications</span><b class="badge notif-badge"{{if not .Unread}} hidden{{end}}>{{.Unread}}</b></a>
     <a href="/local" class="{{if eq .Section "local"}}active{{end}}">{{template "icon" "users"}}<span>Local</span></a>
     <a href="/federated" class="{{if eq .Section "federated"}}active{{end}}">{{template "icon" "globe"}}<span>Federated</span></a>
+    <a href="/explore" class="{{if eq .Section "explore"}}active{{end}} hide-narrow">{{template "icon" "trend"}}<span>Explore</span></a>
     <a href="/search" class="{{if eq .Section "search"}}active{{end}} hide-wide">{{template "icon" "search"}}<span>Search</span></a>
     {{if .Requests}}<a href="/follow_requests" class="{{if eq .Section "requests"}}active{{end}}">{{template "icon" "userplus"}}<span>Requests</span><b class="badge">{{.Requests}}</b></a>{{end}}
     <a href="/lists" class="{{if eq .Section "lists"}}active{{end}} hide-narrow">{{template "icon" "list"}}<span>Lists</span></a>
@@ -42,6 +43,7 @@
     <a href="/compose" class="btn primary compose-btn {{if eq .Section "compose"}}active{{end}}">{{template "icon" "pen"}}<span>New post</span></a>
     {{else}}
     <a href="/" class="{{if eq .Section "local"}}active{{end}}">{{template "icon" "users"}}<span>Local</span></a>
+    <a href="/explore" class="{{if eq .Section "explore"}}active{{end}}">{{template "icon" "trend"}}<span>Explore</span></a>
     <a href="/about" class="{{if eq .Section "about"}}active{{end}}">{{template "icon" "info"}}<span>About</span></a>
     <a href="/login">{{template "icon" "login"}}<span>Log in</span></a>
     {{end}}

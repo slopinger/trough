@@ -78,7 +78,7 @@ func (app *App) handleTagFollow(w http.ResponseWriter, r *http.Request, p *Page)
 }
 
 func (app *App) apiTag(name string, following bool) obj {
-	return obj{"name": name, "url": app.cfg.BaseURL() + "/tags/" + name, "history": []any{}, "following": following}
+	return obj{"name": name, "url": app.cfg.BaseURL() + "/tags/" + name, "history": apiHistory(app.tagHistory(name)), "following": following}
 }
 
 func (app *App) apiFollowedTags(w http.ResponseWriter, r *http.Request, c *apiCtx) {

@@ -1,0 +1,26 @@
+{{define "content"}}
+<div class="pagehead"><h2 class="pagetitle">Explore</h2></div>
+<nav class="tabs">
+  <a href="/explore" class="{{if eq .Tab "posts"}}active{{end}}">Posts</a>
+  <a href="/explore?tab=tags" class="{{if eq .Tab "tags"}}active{{end}}">Hashtags</a>
+  <a href="/explore?tab=links" class="{{if eq .Tab "links"}}active{{end}}">News</a>
+</nav>
+{{if eq .Tab "tags"}}
+{{range .TrendTags}}
+<a class="trend" href="/tags/{{.Name}}">
+  <span class="trend-main"><b>#{{.Name}}</b><small>{{.Accounts}} people · {{tagUses .History}} posts this week</small></span>
+  <svg class="spark" viewBox="0 0 60 24" aria-hidden="true"><polyline points="{{sparkline .History}}"/></svg>
+</a>
+{{else}}<p class="empty">No hashtags are trending. A hashtag trends once several people use it.</p>{{end}}
+{{else if eq .Tab "links"}}
+{{range .TrendLinks}}
+<a class="trend" href="{{.Card.URL}}" target="_blank" rel="noopener noreferrer nofollow">
+  {{if .Card.Image}}<img class="trend-img" src="{{media .Card.Image}}" alt="" loading="lazy">{{end}}
+  <span class="trend-main">{{if .Card.Site}}<small>{{.Card.Site}}</small>{{end}}<b>{{if .Card.Title}}{{.Card.Title}}{{else}}{{.Card.URL}}{{end}}</b><small>shared by {{.Accounts}} people this week</small></span>
+  <svg class="spark" viewBox="0 0 60 24" aria-hidden="true"><polyline points="{{sparkline .History}}"/></svg>
+</a>
+{{else}}<p class="empty">No links are trending. A link trends once several people share it.</p>{{end}}
+{{else}}
+{{template "statuslist" .}}
+{{end}}
+{{end}}

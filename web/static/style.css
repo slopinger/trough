@@ -497,3 +497,14 @@ details.listedit[open] > summary { margin-bottom: 10px; }
 .emoji-list { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
 .emoji-pick { background: none; border: 1px solid transparent; border-radius: 8px; padding: 3px; cursor: pointer; }
 .emoji-pick:hover { border-color: var(--accent); }
+
+/* Explore: trending hashtags and links */
+.trend { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 8px; color: var(--text);
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.trend:hover { border-color: var(--accent); text-decoration: none; }
+.trend-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.trend-main b { overflow-wrap: anywhere; }
+.trend-main small { color: var(--muted); }
+.trend-img { width: 72px; height: 54px; object-fit: cover; border-radius: 8px; flex: none; background: var(--panel-2); }
+.spark { width: 60px; height: 24px; flex: none; }
+.spark polyline { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
