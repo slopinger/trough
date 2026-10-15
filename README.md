@@ -50,12 +50,18 @@ Running instance: **https://fedi.freifick.net**
 - OAuth 2: app registration, authorization code with PKCE (consent page, out-of-band codes), client
   credentials and password grants, revocation, `/.well-known/oauth-authorization-server`; connected apps
   can be revoked in Settings
-- Accounts, statuses (post with media/polls/quotes, edit, delete, context, source, history), favourites,
+- Reports itself as Mastodon 4.5.0 with `api_versions.mastodon` 7: everything the Mastodon docs list up to
+  API version 7 is there (quote posts with policies, featured accounts, attribution domains, blur filters,
+  media deletion, edit notifications)
+- Accounts (also several at once), statuses (post with media/polls/quotes, edit, delete keeping media for
+  redraft unless `delete_media`, several at once, context, source, history), favourites,
   reblogs, bookmarks, pins, reactions (Pleroma-style), polls, media upload (v1/v2), home/public/hashtag
   timelines, notifications (with type filters, plus Mastodon 4.3 grouped notifications at
   `/api/v2/notifications`: likes/boosts per post and follows per day collapse into groups), relationships, follow/block/mute, follow requests, search v2
-  with remote resolving, markers, filters (v1 and v2: titles, keywords, contexts, hide/warn, expiry), conversations (direct-message threads with unread state, mark
-  read, hide), reports (with forwarding), instance v1/v2, CORS
+  with remote resolving, markers, filters (v1 and v2: titles, keywords, contexts, hide/warn/blur, expiry), conversations (direct-message threads with unread state, mark
+  read, hide), reports (with forwarding), quote settings (`quote_approval`, `quote_approval_policy`,
+  `interaction_policy`, revoking quotes, default policy), endorsements (featured accounts),
+  `attribution_domains`, instance v1/v2, CORS
   for browser clients
 - Mastodon-style pagination (`max_id`/`since_id`/`min_id`, `Link` headers) and Idempotency-Key
 - Streaming API over WebSocket (`/api/v1/streaming`) and server-sent events (`/api/v1/streaming/user`, ...)
@@ -83,12 +89,20 @@ Running instance: **https://fedi.freifick.net**
 - Edit your posts (with an edit history), pin up to 5 to your profile (featured collection, `Add`/`Remove`), bookmarks
 - Polls (2-4 options, single or multiple choice) federated as `Question`; vote in remote polls; poll results
   and end notifications
-- Quote posts (FEP-044f `quote`, `quoteUrl`, `_misskey_quote`, FEP-e232 links) shown as embedded posts;
+- Quote posts (FEP-044f `quote`, `quoteUrl`, `_misskey_quote`, FEP-e232 links) shown as embedded posts,
+  with consent as Mastodon 4.5+ does it (FEP-044f): posts publish `interactionPolicy.canQuote` (anyone,
+  followers or only the author; a per-account default and per post), `QuoteRequest`s for our posts are
+  answered with `Accept` + a `QuoteAuthorization` stamp (served under `/users/<name>/quote_authorizations/`)
+  or `Reject`, quoting a post from such a server asks it first and stays pending until approved, and
+  approvals can be revoked either way. Quotes from software without the handshake work as before.
+  Edits notify those who boosted (`update`) or quoted (`quoted_update`) a post;
   emoji reactions (Misskey reactions, `EmojiReact`) shown as chips, and you can react yourself
 - Scheduled posts (compose box "Schedule", a Scheduled page, and `scheduled_at` / `/api/v1/scheduled_statuses`)
 - Link previews (OpenGraph cards), fetched in the background
 - Custom emoji uploaded by admins, usable as `:shortcode:` in posts, names and bios, federated as `Emoji` tags
-- Mutes, keyword filters (collapse or hide; through the API also grouped, per context and expiring), blocks; reports with optional anonymous forwarding (`Flag`)
+- Featured accounts on profiles (Mastodon endorsements, not federated, like on Mastodon); attribution
+  domains (`attributionDomains`) for websites that credit you with `fediverse:creator`
+- Mutes, keyword filters (collapse, hide media or hide; through the API also grouped, per context and expiring), blocks; reports with optional anonymous forwarding (`Flag`)
   and incoming reports for admins
 - Account migration: aliases (`alsoKnownAs`), moving followers to a new account (`Move`), and following
   accounts that moved here
@@ -175,7 +189,9 @@ Mastodon only federates with servers on port 443, so the whole test lives in a p
 (a `--network none` container that the others join, and the script re-runs itself in it with `nsenter`):
 there the throwaway Caddy serves `https://localhost` (Mastodon) and `https://127.0.0.1` (trough), and
 nothing is reachable from outside. `AUTHORIZED_FETCH=true` runs it against Mastodon's secure mode, where
-every fetch must be signed. It needs docker and sudo and takes about two minutes after the image pull.
+every fetch must be signed. Against servers reporting Mastodon API version 7 or later the scenario also
+quotes in both directions, waits for each side to approve the other's quote and revokes one. It needs
+docker and sudo and takes about two minutes after the image pull.
 
 `python3 test/run-akkoma.py` does the same with a real **Akkoma** 3.19.0 (the Pleroma fork, from
 `nixpkgs#akkoma` or `AKKOMA=/path/to/release`) and PostgreSQL, using the OAuth password grant. Akkoma
@@ -236,7 +252,8 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 | `translate.go` | AI translation of posts (Mastodon translate API), instance language endpoints |
 | `api_oauth.go`, `api_entities.go`, `api_handlers.go`, `api_stream.go`, `push.go` | Mastodon client API, OAuth, streaming, Web Push |
 | `relays.go`, `tags.go`, `lists.go`, `scheduled.go`, `emoji.go` | relays, followed hashtags, lists, scheduled posts, custom emoji |
-| `features.go`, `polls.go`, `social.go`, `accounts.go` | edits, pins, bookmarks, mutes, filters, reports, polls, reactions, quotes, link cards, migration, sign-ups |
+| `features.go`, `polls.go`, `social.go`, `accounts.go` | edits, pins, bookmarks, mutes, filters, reports, polls, reactions, quotes, link cards, featured accounts, migration, attribution domains, sign-ups |
+| `quotes.go` | quote approval (FEP-044f): policies, QuoteRequest/Accept/Reject, stamps, revoking |
 | `fetch.go` | SSRF-safe HTTP client, signed fetches, actors, keys, WebFinger client |
 | `ap.go`, `outbound.go` | ActivityStreams helpers, JSON for actors/notes/activities, addressing |
 | `inbox.go`, `remote.go` | incoming activities, storing remote posts, backfill, URL resolution |
