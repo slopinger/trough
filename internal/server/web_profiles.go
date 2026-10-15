@@ -65,6 +65,7 @@ func (app *App) profileCommon(p *Page, acc *Account) {
 	}
 	if p.Me != nil {
 		p.Rel = app.relationship(p.Me.ID, acc.ID)
+		p.Rel.DomainBlocking = app.blocksDomain(p.Me.ID, acc.Domain)
 		p.AccountNote = app.accountNote(p.Me, acc)
 	}
 	if acc.IsLocal() {

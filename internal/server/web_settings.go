@@ -27,6 +27,7 @@ func (app *App) handleSettings(w http.ResponseWriter, r *http.Request, p *Page) 
 		p.MovedTo, _ = app.AccountByURI(p.Me.MovedTo)
 	}
 	p.Accounts, _ = app.accountsQuery(`SELECT `+accountCols+` FROM mutes m JOIN accounts a ON a.id=m.target_id WHERE m.account_id=? ORDER BY m.created_at DESC`, p.Me.ID)
+	p.BlockedDomains = app.userDomainBlocks(p.Me)
 	p.Blocked, _ = app.accountsQuery(`SELECT `+accountCols+` FROM blocks b JOIN accounts a ON a.id=b.target_id WHERE b.account_id=? ORDER BY b.created_at DESC`, p.Me.ID)
 	app.render(w, "settings", p)
 }

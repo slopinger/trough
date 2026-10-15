@@ -308,7 +308,7 @@ func (app *App) apiRelationship(me *Account, other *Account) obj {
 		"id": other.ID, "following": r.Following, "showing_reblogs": r.Following, "notifying": false, "languages": nil,
 		"followed_by": r.FollowedBy, "blocking": r.Blocking, "blocked_by": r.BlockedBy, "muting": r.Muting,
 		"muting_notifications": r.Muting, "requested": r.Requested, "requested_by": r.RequestedBy,
-		"domain_blocking": false, "endorsed": r.Endorsed, "note": app.accountNote(me, other),
+		"domain_blocking": app.blocksDomain(me.ID, other.Domain), "endorsed": r.Endorsed, "note": app.accountNote(me, other),
 	}
 }
 

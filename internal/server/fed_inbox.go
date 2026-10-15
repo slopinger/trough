@@ -157,7 +157,7 @@ func (app *App) inFollow(actor *Account, act obj) error {
 	if followURI == "" {
 		return errors.New("follow without id")
 	}
-	if app.isBlockedBy(target.ID, actor.ID) {
+	if app.isBlockedBy(target.ID, actor.ID) || app.blocksDomain(target.ID, actor.Domain) {
 		app.enqueue(target, []string{actor.Inbox}, acceptRejectActivity("Reject", target, actor, followURI))
 		return nil
 	}

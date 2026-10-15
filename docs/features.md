@@ -89,6 +89,9 @@
 - Custom emoji uploaded by admins, usable as `:shortcode:` in posts, names and bios, federated as `Emoji` tags
 - Featured accounts on profiles (Mastodon endorsements, not federated, like on Mastodon); attribution
   domains (`attributionDomains`) for websites that credit you with `fediverse:creator`
+- Blocking whole servers for yourself (Settings, a profile's "Block server" button, `/api/v1/domain_blocks`):
+  hides their posts, boosts of them and notifications, removes followers there and refuses new ones;
+  the list of servers the instance blocks is public (`/api/v1/instance/domain_blocks`)
 - Mutes, keyword filters (collapse, hide media or hide; through the API also grouped, per context and expiring), blocks; reports with optional anonymous forwarding (`Flag`)
   and incoming reports for admins
 - Account migration: aliases (`alsoKnownAs`), moving followers to a new account (`Move`), and following

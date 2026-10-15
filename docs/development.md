@@ -34,6 +34,7 @@ Files are grouped by prefix:
 | `media.go`, `emoji.go`, `text.go` | uploads (EXIF stripping), media proxy, custom emoji, post formatting and HTML sanitizing |
 | `scheduled.go`, `push.go`, `trends.go` | scheduled posts, Web Push, trends and the Explore page |
 | `announcements.go` | server rules and announcements |
+| `domainblocks.go` | servers users block for themselves |
 | `ai.go`, `translate.go` | AI drafting and translation |
 | `fed_server.go` | federation endpoints: WebFinger, NodeInfo, actors, collections, objects |
 | `fed_inbox.go`, `fed_remote.go` | incoming activities, storing remote posts, backfill, URL resolution |

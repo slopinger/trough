@@ -226,14 +226,15 @@ func (app *App) isMuting(me, other string) bool {
 	return app.db.QueryRow(`SELECT 1 FROM mutes WHERE account_id=? AND target_id=?`, me, other).Scan(&x) == nil
 }
 
-// muteSQL hides posts (and boosts of posts) by accounts the viewer muted.
+// muteSQL hides posts (and boosts of posts) by accounts the viewer muted
+// and from servers they blocked.
 func muteSQL(v *Account) (string, []any) {
 	if v == nil {
 		return "1", nil
 	}
 	return `NOT EXISTS(SELECT 1 FROM mutes mu WHERE mu.account_id=? AND mu.target_id=s.account_id)
 		AND NOT (s.boost_of_id != '' AND EXISTS(SELECT 1 FROM statuses bo JOIN mutes mu2 ON mu2.target_id=bo.account_id
-			WHERE bo.id=s.boost_of_id AND mu2.account_id=?))`, []any{v.ID, v.ID}
+			WHERE bo.id=s.boost_of_id AND mu2.account_id=?)) AND ` + domainBlockSQL, []any{v.ID, v.ID, v.ID, v.ID}
 }
 
 // ---- keyword filters ----

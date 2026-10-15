@@ -71,6 +71,10 @@
   {{$p := .}}{{range .Accounts}}{{template "accountrow" (dict "A" . "P" $p "Actions" (actions "unmute" "Unmute" ""))}}{{else}}<p class="muted small">You haven't muted anyone.</p>{{end}}
   <h3>Blocked accounts</h3>
   {{range .Blocked}}{{template "accountrow" (dict "A" . "P" $p "Actions" (actions "unblock" "Unblock" ""))}}{{else}}<p class="muted small">You haven't blocked anyone.</p>{{end}}
+  <h3 id="domain-blocks">Blocked servers</h3>
+  <p class="muted small">Hides all posts and notifications from a server for you, removes your followers from there and refuses new ones.</p>
+  {{range .BlockedDomains}}<form method="post" action="/settings/domain_blocks" class="inline-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="unblock" value="{{.}}"><code>{{.}}</code><button class="btn small">Unblock</button></form>{{end}}
+  <form method="post" action="/settings/domain_blocks" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><input name="domain" placeholder="example.social" required><button class="btn">Block server</button></form>
 </section>
 <section class="card" id="account">
   <h3>Moving accounts</h3>

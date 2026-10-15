@@ -427,6 +427,7 @@ func inClause(q string, ids []string) (string, []any) {
 type Relationship struct {
 	Following, Requested, FollowedBy, RequestedBy, Blocking, BlockedBy, Muting bool
 	Endorsed                                                                   bool // featured on my profile
+	DomainBlocking                                                             bool // I blocked their server (set by the web UI)
 }
 
 func (app *App) relationship(me, other string) Relationship {
