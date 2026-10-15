@@ -73,7 +73,7 @@ bash -lc "nix-shell --pure '$repo/test/swift-shell.nix' --run 'bash $tmp/build.s
 port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])')
 host=127.0.0.1:$port
 flags=(-insecure -host "$host" -data "$tmp/data")
-(cd "$repo" && go build -o "$tmp/trough" .)
+(cd "$repo" && go build -o "$tmp/trough" ./cmd/trough)
 for u in alice bob; do echo "${u}password12" | "$tmp/trough" user create "${flags[@]}" -password-stdin $u >/dev/null 2>&1; done
 "$tmp/trough" serve "${flags[@]}" -listen "$host" >"$tmp/log" 2>&1 &
 pid=$!

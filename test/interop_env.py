@@ -102,7 +102,7 @@ def in_private_netns(tag, image, script, *args):
 
 
 def build(binary):
-    subprocess.run(["go", "build", "-o", str(binary), "."], cwd=REPO, check=True)
+    subprocess.run(["go", "build", "-o", str(binary), "./cmd/trough"], cwd=REPO, check=True)
 
 
 class Env:

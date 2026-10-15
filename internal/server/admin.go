@@ -1,0 +1,192 @@
+package server
+
+import (
+	"crypto/rand"
+	"encoding/base64"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+)
+
+func (app *App) requireAdmin(h handler) handler {
+	return func(w http.ResponseWriter, r *http.Request, p *Page) {
+		if !p.Admin {
+			http.Error(w, "admins only", http.StatusForbidden)
+			return
+		}
+		h(w, r, p)
+	}
+}
+
+func (app *App) domainBlockList() []DomainBlock {
+	rows, err := app.db.Query(`SELECT domain, reason, created_at FROM domain_blocks ORDER BY domain`)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	var out []DomainBlock
+	for rows.Next() {
+		var d DomainBlock
+		var t int64
+		rows.Scan(&d.Domain, &d.Reason, &t)
+		d.CreatedAt = time.Unix(t, 0)
+		out = append(out, d)
+	}
+	return out
+}
+
+func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
+	p.Title, p.Section = "Admin", "admin"
+	p.Users, _ = app.ListUsers()
+	p.DomainBlocks = app.domainBlockList()
+	p.Description = app.getSetting("description")
+	p.AIKeySource, p.AIModel = app.aiKeySource(), app.aiModel()
+	p.Reports = app.openReports()
+	p.Invites = app.invites()
+	p.Relays = app.relays()
+	p.CustomEmojis = app.customEmojis()
+	p.Registrations = app.registrationMode()
+	p.Stats = map[string]int{
+		"users":     app.countInt(`SELECT COUNT(*) FROM users`),
+		"local":     app.countInt(`SELECT COUNT(*) FROM statuses WHERE local=1 AND boost_of_id=''`),
+		"remote":    app.countInt(`SELECT COUNT(*) FROM statuses WHERE local=0`),
+		"accounts":  app.countInt(`SELECT COUNT(*) FROM accounts WHERE domain != ''`),
+		"instances": app.countInt(`SELECT COUNT(DISTINCT domain) FROM accounts WHERE domain != ''`),
+		"queued":    app.countInt(`SELECT COUNT(*) FROM deliveries`),
+		"retrying":  app.countInt(`SELECT COUNT(*) FROM deliveries WHERE attempts > 0`),
+	}
+	rows, err := app.db.Query(`SELECT inbox, attempts, next_try, last_error FROM deliveries WHERE attempts > 0 ORDER BY next_try LIMIT 20`)
+	if err == nil {
+		for rows.Next() {
+			var d DeliveryInfo
+			var t int64
+			rows.Scan(&d.Inbox, &d.Attempts, &t, &d.LastError)
+			d.NextTry = time.Unix(t, 0)
+			p.Deliveries = append(p.Deliveries, d)
+		}
+		rows.Close()
+	}
+	app.render(w, "admin", p)
+}
+
+func (app *App) handleAdminCreateUser(w http.ResponseWriter, r *http.Request, p *Page) {
+	pw := RandomPassword()
+	acc, err := app.CreateLocalUser(strings.TrimSpace(r.FormValue("username")), pw, r.FormValue("admin") != "")
+	if err != nil {
+		setFlash(w, "Could not create user: "+err.Error())
+	} else {
+		setFlash(w, "Created @"+acc.Username+" with password: "+pw)
+	}
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *App) handleAdminResetPassword(w http.ResponseWriter, r *http.Request, p *Page) {
+	acc, err := app.AccountByID(r.PathValue("id"))
+	if err != nil || !acc.IsLocal() {
+		http.NotFound(w, r)
+		return
+	}
+	pw := RandomPassword()
+	if err := app.SetPassword(acc.ID, pw); err != nil {
+		setFlash(w, err.Error())
+	} else {
+		setFlash(w, "New password for @"+acc.Username+": "+pw)
+	}
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *App) handleAdminRegistrations(w http.ResponseWriter, r *http.Request, p *Page) {
+	mode := r.FormValue("mode")
+	if mode != "open" && mode != "invite" {
+		mode = "closed"
+	}
+	app.setSetting("registrations", mode)
+	setFlash(w, "Registrations are now "+mode+".")
+	http.Redirect(w, r, "/admin#registrations", http.StatusSeeOther)
+}
+
+func (app *App) handleAdminInvite(w http.ResponseWriter, r *http.Request, p *Page) {
+	uses, _ := strconv.Atoi(r.FormValue("uses"))
+	days, _ := strconv.Atoi(r.FormValue("days"))
+	code, err := app.CreateInvite(p.Me, uses, time.Duration(days)*24*time.Hour)
+	if err != nil {
+		setFlash(w, err.Error())
+	} else {
+		setFlash(w, "Invite link: "+app.cfg.BaseURL()+"/signup?invite="+code)
+		if app.registrationMode() == "closed" {
+			app.setSetting("registrations", "invite")
+		}
+	}
+	http.Redirect(w, r, "/admin#registrations", http.StatusSeeOther)
+}
+
+func (app *App) handleResolveReport(w http.ResponseWriter, r *http.Request, p *Page) {
+	app.db.Exec(`UPDATE reports SET resolved_at=? WHERE id=?`, time.Now().Unix(), r.PathValue("id"))
+	setFlash(w, "Report marked as resolved.")
+	http.Redirect(w, r, "/admin#reports", http.StatusSeeOther)
+}
+
+func (app *App) handleAdminAI(w http.ResponseWriter, r *http.Request, p *Page) {
+	if k := strings.TrimSpace(r.FormValue("api_key")); k != "" {
+		app.setSetting("ai_api_key", k)
+	}
+	if r.FormValue("remove_key") != "" {
+		app.db.Exec(`DELETE FROM settings WHERE key='ai_api_key'`)
+	}
+	disabled := "0"
+	if r.FormValue("enabled") == "" {
+		disabled = "1"
+	}
+	app.setSetting("ai_disabled", disabled)
+	app.setSetting("ai_model", strings.TrimSpace(r.FormValue("model")))
+	setFlash(w, "AI settings saved.")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *App) handleAdminSettings(w http.ResponseWriter, r *http.Request, p *Page) {
+	app.setSetting("title", truncateRunes(strings.TrimSpace(r.FormValue("title")), 100))
+	app.setSetting("description", truncateRunes(strings.TrimSpace(r.FormValue("description")), 2000))
+	setFlash(w, "Instance settings saved.")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+func (app *App) handleAdminDomainBlock(w http.ResponseWriter, r *http.Request, p *Page) {
+	domain := strings.ToLower(strings.TrimSpace(r.FormValue("domain")))
+	domain = strings.TrimPrefix(strings.TrimPrefix(domain, "https://"), "http://")
+	domain = strings.Trim(domain, "/ ")
+	if r.FormValue("remove") != "" {
+		app.db.Exec(`DELETE FROM domain_blocks WHERE domain=?`, domain)
+		app.db.Exec(`UPDATE accounts SET suspended=0 WHERE domain=? OR domain LIKE ?`, domain, "%."+domain)
+		setFlash(w, "Unblocked "+domain+".")
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		return
+	}
+	if domain == "" || strings.ContainsAny(domain, " /@") || domain == app.cfg.Host {
+		setFlash(w, "Invalid domain.")
+		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		return
+	}
+	app.db.Exec(`INSERT INTO domain_blocks (domain, reason, created_at) VALUES (?,?,?) ON CONFLICT(domain) DO UPDATE SET reason=excluded.reason`,
+		domain, truncateRunes(r.FormValue("reason"), 500), time.Now().Unix())
+	match := []any{domain, "%." + domain}
+	app.db.Exec(`UPDATE accounts SET suspended=1 WHERE domain=? OR domain LIKE ?`, match...)
+	app.db.Exec(`DELETE FROM follows WHERE account_id IN (SELECT id FROM accounts WHERE domain=? OR domain LIKE ?)
+		OR target_id IN (SELECT id FROM accounts WHERE domain=? OR domain LIKE ?)`, domain, "%."+domain, domain, "%."+domain)
+	app.db.Exec(`DELETE FROM deliveries WHERE inbox LIKE ? OR inbox LIKE ?`, "https://"+domain+"/%", "https://%."+domain+"/%")
+	setFlash(w, "Blocked "+domain+".")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+// SetAdmin grants or revokes admin rights of a local account.
+func (app *App) SetAdmin(accountID string, admin bool) error {
+	_, err := app.db.Exec(`UPDATE users SET admin=? WHERE account_id=?`, admin, accountID)
+	return err
+}
+
+// RandomPassword returns a new random 20-character password.
+func RandomPassword() string {
+	b := make([]byte, 15)
+	rand.Read(b)
+	return base64.RawURLEncoding.EncodeToString(b)
+}

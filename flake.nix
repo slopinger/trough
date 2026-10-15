@@ -10,6 +10,7 @@
         pname = "trough";
         version = "0.1.0";
         src = self;
+        subPackages = [ "cmd/trough" ];
         vendorHash = "sha256-DeaWjQtYLjAkrq1MJz7TBzUDza4emoS502RsS42AXGE=";
         env.CGO_ENABLED = 0;
         ldflags = [ "-s" "-w" ];

@@ -50,7 +50,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="trough-federation-") as temp:
         root = Path(temp)
         binary = root / "trough"
-        subprocess.run(["go", "build", "-o", str(binary), "."], cwd=REPO, check=True)
+        subprocess.run(["go", "build", "-o", str(binary), "./cmd/trough"], cwd=REPO, check=True)
         env = os.environ.copy()
         # Never inherit production instance settings into the disposable test.
         for key in tuple(env):

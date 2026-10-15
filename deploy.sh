@@ -6,7 +6,7 @@ set -eu
 cd "$(dirname "$0")"
 
 go test ./...
-CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o build/trough .
+CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o build/trough ./cmd/trough
 
 if ! id trough >/dev/null 2>&1; then
 	sudo useradd --system --home-dir /var/lib/trough --shell /usr/bin/nologin trough
