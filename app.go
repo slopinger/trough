@@ -100,6 +100,7 @@ func (app *App) Start(ctx context.Context) {
 	}
 	go app.deliveryLoop(ctx)
 	go app.housekeeping(ctx)
+	go app.scheduleLoop(ctx)
 	go func() {
 		t := time.NewTicker(time.Minute)
 		defer t.Stop()
@@ -132,7 +133,8 @@ func (app *App) housekeeping(ctx context.Context) {
 // cleanOrphanMedia removes uploads that never got attached to a post.
 func (app *App) cleanOrphanMedia() {
 	cut := time.Now().Add(-24 * time.Hour).Unix()
-	rows, err := app.db.Query(`SELECT id, file FROM attachments WHERE status_id IS NULL AND created_at < ?`, cut)
+	rows, err := app.db.Query(`SELECT id, file FROM attachments WHERE status_id IS NULL AND created_at < ?
+		AND id NOT IN (SELECT j.value FROM scheduled_statuses ss, json_each(ss.media_ids) j)`, cut)
 	if err != nil {
 		return
 	}

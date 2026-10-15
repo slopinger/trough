@@ -583,6 +583,22 @@ func (app *App) apiPostStatus(w http.ResponseWriter, r *http.Request, c *apiCtx)
 		apiError(w, 422, "Validation failed: visibility is invalid")
 		return
 	}
+	if when := p.Get("scheduled_at"); when != "" {
+		at, err := time.Parse(time.RFC3339, when)
+		if err != nil {
+			apiError(w, 422, "Validation failed: scheduled_at is not a valid time")
+			return
+		}
+		in.PollStart = time.Now()
+		s, err := app.Schedule(c.Me, in, at)
+		if err != nil {
+			apiError(w, 422, "Validation failed: "+err.Error())
+			return
+		}
+		list, _ := app.scheduledFor(c.Me, s.ID)
+		apiJSON(w, 200, app.apiScheduled(list[0]))
+		return
+	}
 	st, err := app.PostStatus(r.Context(), c.Me, in)
 	if err != nil {
 		apiError(w, 422, "Validation failed: "+err.Error())

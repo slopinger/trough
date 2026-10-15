@@ -20,7 +20,8 @@ type PostInput struct {
 	InReplyTo                 string // local status id
 	MediaIDs                  []string
 	Poll                      *Poll
-	QuoteOf                   string // local status id of a quoted post
+	QuoteOf                   string    // local status id of a quoted post
+	PollStart                 time.Time // when the poll's duration was chosen (scheduled posts)
 }
 
 func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Status, error) {

@@ -77,6 +77,7 @@ type Page struct {
 	FollowedTags  []string
 	Versions      []StatusVersion
 	CustomEmojis  []CustomEmoji
+	Scheduled     []*ScheduledStatus
 	Apps          []ConnectedApp
 	AI            bool   // AI writing available
 	AIKeySource   string // admin: where the key comes from
@@ -566,6 +567,20 @@ func (app *App) handlePost(w http.ResponseWriter, r *http.Request, p *Page) {
 			}
 			in.MediaIDs = append(in.MediaIDs, at.ID)
 		}
+	}
+	when := r.FormValue("scheduled_at")
+	if when == "" {
+		when = r.FormValue("scheduled_local") // no JavaScript: taken as UTC
+	}
+	if at, ok := parseScheduleTime(when); ok {
+		in.PollStart = time.Now()
+		if _, err := app.Schedule(p.Me, in, at); err != nil {
+			fail(err.Error())
+			return
+		}
+		setFlash(w, "Post scheduled for "+at.UTC().Format("Mon, 2 Jan 15:04 MST")+".")
+		http.Redirect(w, r, "/scheduled", http.StatusSeeOther)
+		return
 	}
 	st, err := app.PostStatus(r.Context(), p.Me, in)
 	if err != nil {

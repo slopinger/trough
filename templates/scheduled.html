@@ -1,0 +1,12 @@
+{{define "content"}}
+<h2 class="pagetitle">Scheduled posts</h2>
+{{range .Scheduled}}
+<article class="status">
+  <div class="muted small">{{template "icon" "clock"}} <time datetime="{{isotime .ScheduledAt}}" class="localtime">{{fulltime .ScheduledAt}}</time> · {{visLabel .Input.Visibility}}{{if .Input.InReplyTo}} · reply{{end}}{{if .Input.Poll}} · with a poll{{end}}</div>
+  {{if .Input.Spoiler}}<p class="cwtext">⚠️ {{.Input.Spoiler}}</p>{{end}}
+  <p class="prewrap">{{.Input.Text}}</p>
+  {{if .Media}}<div class="muted small">{{len .Media}} image(s)</div>{{end}}
+  <form method="post" action="/scheduled/{{.ID}}/cancel" class="confirm" data-confirm="Cancel this scheduled post?"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small">Cancel</button></form>
+</article>
+{{else}}<div class="empty">Nothing scheduled. Use “Schedule” in the compose box to post later.</div>{{end}}
+{{end}}

@@ -369,6 +369,16 @@ CREATE TABLE push_subscriptions (
 	created_at INTEGER NOT NULL
 );
 CREATE INDEX push_subscriptions_account ON push_subscriptions(account_id);
+`, `
+CREATE TABLE scheduled_statuses (
+	id TEXT PRIMARY KEY,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	params TEXT NOT NULL,
+	media_ids TEXT NOT NULL DEFAULT '[]',
+	scheduled_at INTEGER NOT NULL,
+	created_at INTEGER NOT NULL
+);
+CREATE INDEX scheduled_due ON scheduled_statuses(scheduled_at);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

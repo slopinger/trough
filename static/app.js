@@ -227,6 +227,25 @@
     });
   });
 
+  // scheduling: send the local time as RFC 3339 with the browser's offset
+  document.querySelectorAll(".schedule-local").forEach(function (input) {
+    var form = input.closest("form");
+    var hidden = form.querySelector(".schedule-at");
+    var tz = form.querySelector(".schedule-tz");
+    if (tz) tz.textContent = "(your local time)";
+    var d = new Date(Date.now() + 60 * 60 * 1000);
+    input.min = new Date(Date.now() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    input.addEventListener("change", function () {
+      hidden.value = input.value ? new Date(input.value).toISOString() : "";
+      var b = form.querySelector(".post-btn");
+      if (b) b.textContent = input.value ? "Schedule" : (form.querySelector("input[name=in_reply_to]") ? "Reply" : "Post");
+    });
+  });
+  // show times in the viewer's timezone
+  document.querySelectorAll("time.localtime").forEach(function (t) {
+    t.textContent = new Date(t.getAttribute("datetime")).toLocaleString();
+  });
+
   // custom emoji picker: insert :shortcode: at the cursor
   document.addEventListener("click", function (ev) {
     var b = ev.target.closest && ev.target.closest(".emoji-pick");

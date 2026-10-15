@@ -64,6 +64,7 @@ Running instance: **https://fedi.freifick.net**
   and end notifications
 - Quote posts (FEP-044f `quote`, `quoteUrl`, `_misskey_quote`, FEP-e232 links) shown as embedded posts;
   emoji reactions (Misskey reactions, `EmojiReact`) shown as chips, and you can react yourself
+- Scheduled posts (compose box "Schedule", a Scheduled page, and `scheduled_at` / `/api/v1/scheduled_statuses`)
 - Link previews (OpenGraph cards), fetched in the background
 - Custom emoji uploaded by admins, usable as `:shortcode:` in posts, names and bios, federated as `Emoji` tags
 - Mutes, keyword filters (collapse or hide), blocks; reports with optional anonymous forwarding (`Flag`)
@@ -170,7 +171,7 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 | `httpsig.go`, `rfc9421.go` | HTTP Signatures (draft-cavage, RFC 9421) |
 | `ai.go` | AI drafting of posts and replies |
 | `api_oauth.go`, `api_entities.go`, `api_handlers.go`, `api_stream.go`, `push.go` | Mastodon client API, OAuth, streaming, Web Push |
-| `relays.go`, `tags.go`, `lists.go` | relays, followed hashtags, lists |
+| `relays.go`, `tags.go`, `lists.go`, `scheduled.go`, `emoji.go` | relays, followed hashtags, lists, scheduled posts, custom emoji |
 | `features.go`, `polls.go`, `social.go`, `accounts.go` | edits, pins, bookmarks, mutes, filters, reports, polls, reactions, quotes, link cards, migration, sign-ups |
 | `fetch.go` | SSRF-safe HTTP client, signed fetches, actors, keys, WebFinger client |
 | `ap.go`, `outbound.go` | ActivityStreams helpers, JSON for actors/notes/activities, addressing |
