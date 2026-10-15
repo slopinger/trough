@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -83,6 +84,11 @@ type remote struct {
 	key    *rsa.PrivateKey
 	PubPEM string
 
+	// RejectRFC9421 answers RFC 9421-signed POSTs with 401, like servers
+	// that only know draft-cavage; rejected() counts them.
+	RejectRFC9421 bool
+	nRejected     int
+
 	mu      sync.Mutex
 	docs    map[string]string
 	inbox   []received
@@ -129,6 +135,12 @@ func (r *remote) put(path, doc string) {
 	r.docs[path] = r.expand(doc)
 }
 
+func (r *remote) rejected() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.nRejected
+}
+
 func (r *remote) next() int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -144,6 +156,13 @@ func (r *remote) serve(w http.ResponseWriter, req *http.Request) {
 		body, _ := io.ReadAll(req.Body)
 		var act obj
 		json.Unmarshal(body, &act)
+		if r.RejectRFC9421 && req.Header.Get("Signature-Input") != "" {
+			r.mu.Lock()
+			r.nRejected++
+			r.mu.Unlock()
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 		rec := received{Path: req.URL.Path, Activity: act, Header: req.Header.Clone(), SigErr: r.verifyIncoming(req, body)}
 		r.mu.Lock()
 		r.inbox = append(r.inbox, rec)
@@ -188,6 +207,9 @@ func (r *remote) serve(w http.ResponseWriter, req *http.Request) {
 // would: go-fed verifier, key taken from trough's public actor document,
 // Digest checked against the body.
 func (r *remote) verifyIncoming(req *http.Request, body []byte) error {
+	if req.Header.Get("Signature-Input") != "" {
+		return r.verifyIncomingRFC9421(req, body)
+	}
 	req.Header.Set("Host", req.Host)
 	v, err := httpsig.NewVerifier(req)
 	if err != nil {
@@ -207,6 +229,66 @@ func (r *remote) verifyIncoming(req *http.Request, body []byte) error {
 		}
 	}
 	return nil
+}
+
+// verifyIncomingRFC9421 is a deliberately separate RFC 9421 verifier (it
+// shares no code with rfc9421.go): parse sig1's covered components, rebuild
+// the signature base, check Content-Digest and the RSA signature.
+func (r *remote) verifyIncomingRFC9421(req *http.Request, body []byte) error {
+	input := req.Header.Get("Signature-Input")
+	m := regexp.MustCompile(`^sig1=(\(([^)]*)\)(.*))$`).FindStringSubmatch(input)
+	if m == nil {
+		return fmt.Errorf("unexpected Signature-Input %q", input)
+	}
+	sigParams, covered, rest := m[1], strings.Fields(m[2]), m[3]
+	keyID := regexp.MustCompile(`;keyid="([^"]+)"`).FindStringSubmatch(rest)
+	created := regexp.MustCompile(`;created=(\d+)`).FindStringSubmatch(rest)
+	if keyID == nil || created == nil || !strings.Contains(rest, `;alg="rsa-v1_5-sha256"`) {
+		return fmt.Errorf("missing keyid/created/alg in %q", rest)
+	}
+	if c, _ := strconv.ParseInt(created[1], 10, 64); time.Since(time.Unix(c, 0)).Abs() > time.Minute {
+		return fmt.Errorf("created %s is not now", created[1])
+	}
+	want := map[string]bool{`"@method"`: true, `"@target-uri"`: true, `"content-digest"`: true}
+	var lines []string
+	for _, c := range covered {
+		delete(want, c)
+		name := strings.Trim(c, `"`)
+		var v string
+		switch name {
+		case "@method":
+			v = req.Method
+		case "@target-uri":
+			v = "http://" + req.Host + req.URL.RequestURI()
+		case "@authority":
+			v = req.Host
+		default:
+			if strings.HasPrefix(name, "@") {
+				return fmt.Errorf("unexpected component %s", name)
+			}
+			v = req.Header.Get(name)
+		}
+		lines = append(lines, c+": "+v)
+	}
+	if len(want) > 0 {
+		return fmt.Errorf("signature does not cover %v", want)
+	}
+	lines = append(lines, `"@signature-params": `+sigParams)
+	h := sha256.Sum256(body)
+	if req.Header.Get("Content-Digest") != "sha-256=:"+base64.StdEncoding.EncodeToString(h[:])+":" {
+		return fmt.Errorf("content-digest mismatch")
+	}
+	sm := regexp.MustCompile(`^sig1=:([A-Za-z0-9+/=]+):$`).FindStringSubmatch(req.Header.Get("Signature"))
+	if sm == nil {
+		return fmt.Errorf("unexpected Signature %q", req.Header.Get("Signature"))
+	}
+	sig, _ := base64.StdEncoding.DecodeString(sm[1])
+	pub, err := r.fetchLocalKey(keyID[1])
+	if err != nil {
+		return err
+	}
+	digest := sha256.Sum256([]byte(strings.Join(lines, "\n")))
+	return rsa.VerifyPKCS1v15(pub.(*rsa.PublicKey), crypto.SHA256, digest[:], sig)
 }
 
 func (r *remote) fetchLocalKey(keyID string) (crypto.PublicKey, error) {

@@ -317,3 +317,35 @@ func TestCompatOurDocuments(t *testing.T) {
 		t.Fatalf("replies page %v: %d %v", replies, code, rp)
 	}
 }
+
+// A server that signs with RFC 9421 but rejects it from us gets draft-cavage
+// after one 401 and keeps getting it.
+func TestCompatRFC9421Fallback(t *testing.T) {
+	la := startLiveApp(t)
+	bob, _ := la.CreateLocalUser("bob", "password123", false)
+	r := newRemote(t, la)
+	r.RejectRFC9421 = true
+	r.put("/@alice", fedifyActor)
+	keyID := r.Base + "/@alice#main-key"
+	follow := func(n string) {
+		t.Helper()
+		if code := r.send(obj{"@context": asContext, "id": r.Base + "/follows/" + n, "type": "Follow", "actor": r.Base + "/@alice", "object": bob.URI}, keyID, sigRFC9421); code != 202 {
+			t.Fatalf("follow rejected: %d", code)
+		}
+	}
+	follow("1")
+	eventually(t, "Accept delivered", func() bool { return len(r.receivedOf("Accept")) == 1 })
+	acc := r.receivedOf("Accept")[0]
+	if acc.SigErr != nil || acc.Header.Get("Signature-Input") != "" || acc.Header.Get("Signature") == "" {
+		t.Fatalf("fallback Accept: sig err %v, headers %v", acc.SigErr, acc.Header)
+	}
+	if r.rejected() != 1 || la.sigStyle(r.Host) != sigStyleCavage {
+		t.Fatalf("rejected %d, style %q", r.rejected(), la.sigStyle(r.Host))
+	}
+	// their next RFC 9421 request doesn't make us try again right away
+	follow("2")
+	eventually(t, "second Accept delivered", func() bool { return len(r.receivedOf("Accept")) == 2 })
+	if n := r.rejected(); n != 1 {
+		t.Errorf("retried RFC 9421 against a host that rejected it: %d rejections", n)
+	}
+}

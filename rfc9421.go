@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/base64"
@@ -14,8 +17,82 @@ import (
 
 // RFC 9421 HTTP Message Signatures, as sent by Fedify-based servers (Hollo,
 // Ghost, ...) and newer Mastodon versions. We verify the first signature
-// that carries a keyid. Outgoing requests still use draft-cavage, which
-// every implementation accepts.
+// that carries a keyid. Deliveries are signed with RFC 9421 for hosts that
+// have sent us valid RFC 9421 signatures themselves, falling back to
+// draft-cavage (which everyone accepts) if they answer 401/403.
+
+const (
+	sigStyleCavage  = "cavage"
+	sigStyleRFC9421 = "rfc9421"
+)
+
+// signRFC9421 adds Date, Content-Digest (if body != nil), Signature-Input and
+// Signature headers, covering the same things Fedify's signatures cover.
+func signRFC9421(r *http.Request, body []byte, keyID string, key *rsa.PrivateKey) error {
+	r.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
+	if r.Host == "" {
+		r.Host = r.URL.Host
+	}
+	components := []string{"@method", "@target-uri", "@authority", "date"}
+	if body != nil {
+		h := sha256.Sum256(body)
+		r.Header.Set("Content-Digest", "sha-256=:"+base64.StdEncoding.EncodeToString(h[:])+":")
+		components = append(components, "content-type", "content-digest")
+	}
+	quoted := make([]string, len(components))
+	var b strings.Builder
+	for i, c := range components {
+		quoted[i] = strconv.Quote(c)
+		var v string
+		switch c {
+		case "@method":
+			v = r.Method
+		case "@target-uri":
+			v = r.URL.Scheme + "://" + r.Host + r.URL.RequestURI()
+		case "@authority":
+			v = strings.ToLower(r.Host)
+		default:
+			v = strings.TrimSpace(r.Header.Get(c))
+		}
+		fmt.Fprintf(&b, "%q: %s\n", c, v)
+	}
+	params := fmt.Sprintf(`(%s);created=%d;keyid=%s;alg="rsa-v1_5-sha256"`, strings.Join(quoted, " "), time.Now().Unix(), strconv.Quote(keyID))
+	b.WriteString(`"@signature-params": ` + params)
+	hash := sha256.Sum256([]byte(b.String()))
+	sig, err := rsa.SignPKCS1v15(rand.Reader, key, crypto.SHA256, hash[:])
+	if err != nil {
+		return err
+	}
+	r.Header.Set("Signature-Input", "sig1="+params)
+	r.Header.Set("Signature", "sig1=:"+base64.StdEncoding.EncodeToString(sig)+":")
+	return nil
+}
+
+// sigStyle is how we sign requests to host: RFC 9421 only once the host has
+// shown it speaks it.
+func (app *App) sigStyle(host string) string {
+	var style string
+	app.db.QueryRow(`SELECT style FROM signature_styles WHERE host=?`, strings.ToLower(host)).Scan(&style)
+	if style == "" {
+		return sigStyleCavage
+	}
+	return style
+}
+
+// sawRFC9421 records a valid RFC 9421 signature from host. A host that
+// rejected ours keeps getting draft-cavage for a month before we try again.
+func (app *App) sawRFC9421(host string) {
+	app.db.Exec(`INSERT INTO signature_styles (host, style, updated_at) VALUES (?,?,?)
+		ON CONFLICT(host) DO UPDATE SET style=excluded.style, updated_at=excluded.updated_at
+		WHERE style=excluded.style OR updated_at < ?`,
+		strings.ToLower(host), sigStyleRFC9421, time.Now().Unix(), time.Now().Add(-30*24*time.Hour).Unix())
+}
+
+func (app *App) rejectedRFC9421(host string) {
+	app.db.Exec(`INSERT INTO signature_styles (host, style, updated_at) VALUES (?,?,?)
+		ON CONFLICT(host) DO UPDATE SET style=excluded.style, updated_at=excluded.updated_at`,
+		strings.ToLower(host), sigStyleCavage, time.Now().Unix())
+}
 
 type sfItem struct {
 	name   string

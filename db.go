@@ -379,6 +379,12 @@ CREATE TABLE scheduled_statuses (
 	created_at INTEGER NOT NULL
 );
 CREATE INDEX scheduled_due ON scheduled_statuses(scheduled_at);
+`, `
+CREATE TABLE signature_styles (
+	host TEXT PRIMARY KEY,
+	style TEXT NOT NULL,
+	updated_at INTEGER NOT NULL
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

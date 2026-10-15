@@ -318,6 +318,10 @@ func runScenario(t *testing.T, f flavor) {
 	if acc.SigErr != nil {
 		t.Fatalf("our Accept failed independent signature verification: %v", acc.SigErr)
 	}
+	// servers that sign with RFC 9421 get RFC 9421 back, the rest draft-cavage
+	if got := acc.Header.Get("Signature-Input") != ""; got != (f.style == sigRFC9421) {
+		t.Fatalf("Accept signed with RFC 9421 = %v for a %s sender", got, f.style)
+	}
 	if idOf(objOf(acc.Activity["object"])["id"]) != follow["id"] && idOf(acc.Activity["object"]) != follow["id"] {
 		t.Fatalf("Accept does not reference the Follow: %v", acc.Activity["object"])
 	}

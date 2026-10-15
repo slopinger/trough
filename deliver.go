@@ -130,30 +130,48 @@ func (app *App) post(ctx context.Context, signer *Account, key *rsa.PrivateKey, 
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(body))
+	style := app.sigStyle(u.Host)
+	code, status, msg, err := app.postOnce(ctx, u.String(), body, signer.PublicKeyID, key, style)
+	if style == sigStyleRFC9421 && (code == http.StatusUnauthorized || code == http.StatusForbidden) {
+		// double-knock: they don't take RFC 9421 (from us) after all
+		app.rejectedRFC9421(u.Host)
+		code, status, msg, err = app.postOnce(ctx, u.String(), body, signer.PublicKeyID, key, sigStyleCavage)
+	}
 	if err != nil {
+		return err
+	}
+	if code/100 == 2 {
+		return nil
+	}
+	err = fmt.Errorf("%s: %s", status, strings.TrimSpace(msg))
+	if code/100 == 4 && code != http.StatusTooManyRequests && code != http.StatusRequestTimeout {
 		return permanentError{err}
+	}
+	return err
+}
+
+func (app *App) postOnce(ctx context.Context, inbox string, body []byte, keyID string, key *rsa.PrivateKey, style string) (int, string, string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, inbox, bytes.NewReader(body))
+	if err != nil {
+		return 0, "", "", permanentError{err}
 	}
 	req.Header.Set("Content-Type", apMimeType)
 	req.Header.Set("Accept", apMimeType)
 	req.Header.Set("User-Agent", app.userAgent())
-	if err := signRequest(req, body, signer.PublicKeyID, key); err != nil {
-		return permanentError{err}
+	sign := signRequest
+	if style == sigStyleRFC9421 {
+		sign = signRFC9421
+	}
+	if err := sign(req, body, keyID, key); err != nil {
+		return 0, "", "", permanentError{err}
 	}
 	resp, err := app.client.Do(req)
 	if err != nil {
-		return err
+		return 0, "", "", err
 	}
 	defer resp.Body.Close()
 	msg, _ := io.ReadAll(io.LimitReader(resp.Body, 300))
-	if resp.StatusCode/100 == 2 {
-		return nil
-	}
-	err = fmt.Errorf("%s: %s", resp.Status, strings.TrimSpace(string(msg)))
-	if resp.StatusCode/100 == 4 && resp.StatusCode != http.StatusTooManyRequests && resp.StatusCode != http.StatusRequestTimeout {
-		return permanentError{err}
-	}
-	return err
+	return resp.StatusCode, resp.Status, string(msg), nil
 }
 
 func (app *App) finishDelivery(d delivery, err error) {

@@ -416,17 +416,20 @@ func (app *App) verifyRequest(r *http.Request, body []byte) (*Account, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fetching key %s: %w", p.KeyID, err)
 	}
-	if err := verifyRSA(acc.PublicKey, ss, p.Signature, p.Algorithm); err == nil {
-		return acc, nil
-	}
+	err = verifyRSA(acc.PublicKey, ss, p.Signature, p.Algorithm)
 	// maybe the key was rotated: refetch once, but not too often
-	if time.Since(acc.FetchedAt) > 5*time.Minute {
-		acc, err = app.accountForKey(r.Context(), p.KeyID, true)
-		if err == nil && verifyRSA(acc.PublicKey, ss, p.Signature, p.Algorithm) == nil {
-			return acc, nil
+	if err != nil && time.Since(acc.FetchedAt) > 5*time.Minute {
+		if acc, err = app.accountForKey(r.Context(), p.KeyID, true); err == nil {
+			err = verifyRSA(acc.PublicKey, ss, p.Signature, p.Algorithm)
 		}
 	}
-	return nil, errors.New("invalid signature")
+	if err != nil {
+		return nil, errors.New("invalid signature")
+	}
+	if r.Header.Get("Signature-Input") != "" {
+		app.sawRFC9421(hostOf(p.KeyID))
+	}
+	return acc, nil
 }
 
 // ---- webfinger ----
