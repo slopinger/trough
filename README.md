@@ -175,6 +175,13 @@ there the throwaway Caddy serves `https://localhost` (Mastodon) and `https://127
 nothing is reachable from outside. `AUTHORIZED_FETCH=true` runs it against Mastodon's secure mode, where
 every fetch must be signed. It needs docker and sudo and takes about two minutes after the image pull.
 
+`python3 test/run-akkoma.py` does the same with a real **Akkoma** 3.19.0 (the Pleroma fork, from
+`nixpkgs#akkoma` or `AKKOMA=/path/to/release`) and PostgreSQL, using the OAuth password grant. Akkoma
+runs in a container that mounts `/nix/store` read-only, because its HTTP client only trusts the OS
+certificate store. There trough is `trough.localhost`: Erlang's TLS client rejects the test CA's
+certificates for bare IP addresses. `AUTHORIZED_FETCH=true` turns on Akkoma's `authorized_fetch_mode`.
+Both runners check that secure mode really refuses unsigned fetches before running the scenario.
+
 To test two instances you started yourself, use `python3 test/federation.py <alice-pw> <bob-pw>`.
 It defaults to ports 8801/8802; `TROUGH_TEST_A` and `TROUGH_TEST_B` override the base URLs.
 The passwords can instead come from `TROUGH_TEST_ALICE_PASSWORD` and `TROUGH_TEST_BOB_PASSWORD`.

@@ -4,9 +4,11 @@
 #
 #   python3 test/interop.py <trough-base> <user> <password> <remote-base> <remote-email> <remote-password>
 #   python3 test/interop.py <trough-base> <user> <password> <remote-base> --token <remote-token>
+#   python3 test/interop.py <trough-base> <user> <password> <remote-base> --password <remote-user> <remote-password>
 #
-# The first form signs in through GoToSocial's web sign-in; test/run-gotosocial.py
-# and test/run-mastodon.py set everything up and call this.
+# The first form signs in through GoToSocial's web sign-in, the last uses the
+# OAuth password grant. test/run-{gotosocial,mastodon,akkoma}.py set everything
+# up and call this.
 import json, re, sys, time, urllib.error, urllib.parse, urllib.request, http.cookiejar
 
 OOB = "urn:ietf:wg:oauth:2.0:oob"
@@ -35,9 +37,9 @@ class API:
     post = lambda self, p, d=None, **kw: self.call("POST", p, d if d is not None else {}, **kw)
 
 
-def trough_token(base, user, pw):
+def password_token(base, user, pw):
     a = API(base)
-    app = a.post("/api/v1/apps", {"client_name": "gts-interop", "redirect_uris": OOB, "scopes": SCOPES})
+    app = a.post("/api/v1/apps", {"client_name": "trough-interop", "redirect_uris": OOB, "scopes": SCOPES})
     t = a.post("/oauth/token", {"grant_type": "password", "username": user, "password": pw, "scope": SCOPES,
                                 "client_id": app["client_id"], "client_secret": app["client_secret"]})
     return t["access_token"]
@@ -50,7 +52,7 @@ def gts_token(base, email, pw):
         r = urllib.request.Request(base + path, data=urllib.parse.urlencode(data).encode() if data is not None else None, method=method)
         with op.open(r, timeout=30) as resp:
             return resp.geturl(), resp.read().decode()
-    app = API(base).post("/api/v1/apps", {"client_name": "gts-interop", "redirect_uris": OOB, "scopes": SCOPES})
+    app = API(base).post("/api/v1/apps", {"client_name": "trough-interop", "redirect_uris": OOB, "scopes": SCOPES})
     req("GET", "/oauth/authorize?" + urllib.parse.urlencode(
         {"client_id": app["client_id"], "redirect_uri": OOB, "response_type": "code", "scope": SCOPES}))
     url, _ = req("POST", "/auth/sign_in", {"username": email, "password": pw})
@@ -98,9 +100,11 @@ def text(s):
 
 def main():
     tbase, tuser, tpw, gbase = sys.argv[1:5]
-    t = API(tbase, trough_token(tbase, tuser, tpw))
+    t = API(tbase, password_token(tbase, tuser, tpw))
     if sys.argv[5] == "--token":
         g = API(gbase, sys.argv[6])
+    elif sys.argv[5] == "--password":  # servers with the password grant (Pleroma, Akkoma)
+        g = API(gbase, password_token(gbase, sys.argv[6], sys.argv[7]))
     else:
         g = API(gbase, gts_token(gbase, sys.argv[5], sys.argv[6]))
     remote = g.get("/api/v1/instance")
