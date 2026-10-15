@@ -62,6 +62,7 @@ type Page struct {
 	Deliveries    []DeliveryInfo
 	Pinned        []*Status
 	Featured      []*Account // accounts the profile owner features
+	QuotePolicy   string     // settings: who may quote my new posts
 	Blocked       []*Account
 	Filters       []*Filter
 	Reports       []*Report
@@ -958,6 +959,7 @@ func (app *App) handleSettings(w http.ResponseWriter, r *http.Request, p *Page) 
 	p.Filters = app.filtersFor(p.Me.ID)
 	p.Apps = app.connectedApps(p.Me.ID)
 	p.FollowedTags = app.followedTags(p.Me)
+	p.QuotePolicy = app.defaultQuotePolicy(p.Me.ID)
 	for _, uri := range p.Me.AlsoKnownAs {
 		if a, err := app.AccountByURI(uri); err == nil {
 			p.Aliases = append(p.Aliases, a)
@@ -1022,6 +1024,11 @@ func (app *App) handleSettingsProfile(w http.ResponseWriter, r *http.Request, p 
 		}
 	}
 	var errs []string
+	if qp := r.FormValue("quote_policy"); qp != "" {
+		if err := app.SetDefaultQuotePolicy(me, qp); err != nil {
+			errs = append(errs, err.Error())
+		}
+	}
 	if domains, err := attributionDomains(strings.Fields(r.FormValue("attribution_domains"))); err == nil {
 		me.AttributionDomains = domains
 	} else {

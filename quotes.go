@@ -32,6 +32,22 @@ func quotePolicy(st *Status) string {
 	return st.QuotePolicy
 }
 
+// defaultQuotePolicy is who may quote a user's new posts unless they say
+// otherwise when posting.
+func (app *App) defaultQuotePolicy(accountID string) string {
+	policy := "public"
+	app.db.QueryRow(`SELECT quote_policy FROM users WHERE account_id=?`, accountID).Scan(&policy)
+	return policy
+}
+
+func (app *App) SetDefaultQuotePolicy(me *Account, policy string) error {
+	if !quotePolicies[policy] {
+		return errors.New("who may quote must be public, followers or nobody")
+	}
+	_, err := app.db.Exec(`UPDATE users SET quote_policy=? WHERE account_id=?`, policy, me.ID)
+	return err
+}
+
 func (app *App) followsAccepted(followerID, targetID string) bool {
 	var x int
 	return app.db.QueryRow(`SELECT 1 FROM follows WHERE account_id=? AND target_id=? AND accepted=1`, followerID, targetID).Scan(&x) == nil

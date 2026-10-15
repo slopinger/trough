@@ -128,7 +128,7 @@ func (app *App) apiPeers(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 
 func (app *App) apiPreferences(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 	apiJSON(w, 200, obj{"posting:default:visibility": "public", "posting:default:sensitive": false, "posting:default:language": nil,
-		"reading:expand:media": "default", "reading:expand:spoilers": false})
+		"reading:expand:media": "default", "reading:expand:spoilers": false, "posting:default:quoted_policy": app.defaultQuotePolicy(c.Me.ID)})
 }
 
 func (app *App) apiGetMarkers(w http.ResponseWriter, r *http.Request, c *apiCtx) {
@@ -217,6 +217,12 @@ func (app *App) apiUpdateCredentials(w http.ResponseWriter, r *http.Request, c *
 	}
 	if seenFields {
 		me.Fields = fields
+	}
+	if p.Has("source.quote_policy") {
+		if err := app.SetDefaultQuotePolicy(me, p.Get("source.quote_policy")); err != nil {
+			apiError(w, 422, "Validation failed: "+err.Error())
+			return
+		}
 	}
 	if p.Has("attribution_domains") || p.Has("attribution_domains[]") {
 		domains, err := attributionDomains(p.List("attribution_domains"))

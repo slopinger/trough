@@ -452,6 +452,8 @@ CREATE TABLE account_pins (
 );
 `, `
 ALTER TABLE accounts ADD COLUMN attribution_domains TEXT NOT NULL DEFAULT '[]';
+`, `
+ALTER TABLE users ADD COLUMN quote_policy TEXT NOT NULL DEFAULT 'public';
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

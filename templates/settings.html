@@ -24,6 +24,12 @@
     </fieldset>
     <label>Websites that may credit you as author <span class="muted small">(one domain per line; their pages can name you with <code>&lt;meta name="fediverse:creator" content="{{handle $a}}"&gt;</code>)</span>
       <textarea name="attribution_domains" rows="2" placeholder="blog.example">{{join $a.AttributionDomains "\n"}}</textarea></label>
+    <label>Who can quote your new public posts
+      <select name="quote_policy">{{$q := .QuotePolicy}}
+        <option value="public"{{if eq $q "public"}} selected{{end}}>Anyone</option>
+        <option value="followers"{{if eq $q "followers"}} selected{{end}}>Your followers</option>
+        <option value="nobody"{{if eq $q "nobody"}} selected{{end}}>Only you</option>
+      </select></label>
     <label class="check"><input type="checkbox" name="locked"{{if $a.Locked}} checked{{end}}> Approve followers manually</label>
     <label class="check"><input type="checkbox" name="bot"{{if $a.IsBot}} checked{{end}}> This is a bot account</label>
     <button class="btn primary">Save profile</button>

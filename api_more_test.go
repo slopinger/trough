@@ -533,3 +533,28 @@ func TestAttributionDomains(t *testing.T) {
 		t.Fatalf("%v %v", list, err)
 	}
 }
+
+// The default quote policy (Mastodon 4.5 source[quote_policy]) applies to
+// new posts and shows up in preferences.
+func TestDefaultQuotePolicy(t *testing.T) {
+	la, _, _, _ := featureFixture(t)
+	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}
+	me := c.ok("PATCH", "/api/v1/accounts/update_credentials", url.Values{"source[quote_policy]": {"followers"}}).(map[string]any)
+	if me["source"].(map[string]any)["quote_policy"] != "followers" {
+		t.Fatalf("source = %v", me["source"])
+	}
+	if p := c.ok("GET", "/api/v1/preferences", nil).(map[string]any); p["posting:default:quoted_policy"] != "followers" {
+		t.Fatalf("preferences = %v", p)
+	}
+	st := c.ok("POST", "/api/v1/statuses", url.Values{"status": {"hi"}}).(map[string]any)
+	if a := st["quote_approval"].(map[string]any)["automatic"].([]any); len(a) != 1 || a[0] != "followers" {
+		t.Fatalf("new post quote_approval = %v", st["quote_approval"])
+	}
+	st = c.ok("POST", "/api/v1/statuses", url.Values{"status": {"hi"}, "quote_approval_policy": {"public"}}).(map[string]any)
+	if a := st["quote_approval"].(map[string]any)["automatic"].([]any); a[0] != "public" {
+		t.Fatalf("explicit policy = %v", st["quote_approval"])
+	}
+	if code, _, _ := c.do("PATCH", "/api/v1/accounts/update_credentials", url.Values{"source[quote_policy]": {"everyone"}}); code != 422 {
+		t.Fatalf("invalid policy: %d", code)
+	}
+}

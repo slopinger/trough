@@ -64,7 +64,7 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 		quoted = q
 	}
 	if !quotePolicies[in.QuotePolicy] {
-		in.QuotePolicy = ""
+		in.QuotePolicy = app.defaultQuotePolicy(me.ID)
 	}
 	f := app.formatPost(ctx, text)
 	if quoted != nil {
