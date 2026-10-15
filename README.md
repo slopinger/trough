@@ -226,3 +226,20 @@ C2S activities other than the ones listed above.
 ## License
 
 MIT
+
+## Nix packaging
+
+`nix build` packages the single binary with Go 1.27 and runs the Go test suite
+in the sandbox. `nix flake check` builds that package check. `nix develop`
+provides Go 1.27, Python, Caddy and SQLite. Linux x86_64/aarch64 are defined;
+x86_64 was built and tested. `nix run . -- --help` runs the packaged CLI.
+After changing go.mod/go.sum, update the flake vendorHash to the hash reported
+by a build with `vendorHash = pkgs.lib.fakeHash`, then rebuild.
+
+Import `inputs.trough.nixosModules.default` and set `services.trough.enable`
+and `services.trough.host = "fedi.example.org";`. Options `package`, `listen`
+(default loopback 8790) and `environmentFile` configure the runtime. Secrets
+must be in a runtime file, never a store path or Nix literal. The module creates
+the trough user and `/var/lib/trough`; arrange TLS reverse proxying and backups
+separately. The public host becomes part of permanent federation IDs. Existing
+Arch deployment continues through `./deploy.sh`.
