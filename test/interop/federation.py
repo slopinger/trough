@@ -153,7 +153,11 @@ wait(lambda: "Unfollow" in bob.get(f"/@alice@{AH}")[1], "accepted follow request
 # direct message
 bob.get("/")
 bob.post("/statuses", text=f"@alice@{AH} psst, a direct message", visibility="direct")
-wait(lambda: "psst, a direct message" in alice.get("/notifications")[1], "direct message delivered")
+# alice doesn't follow bob, so his DM waits in her filtered notifications (as on Mastodon)
+wait(lambda: "psst, a direct message" in alice.get("/notifications/requests")[1], "direct message delivered to filtered notifications")
+assert "psst, a direct message" not in alice.get("/notifications")[1], "stranger DM not filtered"
+alice.post("/notifications/requests", account=re.search(r'name="account" value="([0-9A-Z]+)"', alice.get("/notifications/requests")[1]).group(1), action="accept")
+wait(lambda: "psst, a direct message" in alice.get("/notifications")[1], "accepted DM shows in notifications")
 assert "psst" not in Client(B).get("/@bob")[1], "DM visible to anonymous"
 print("  ok: direct message hidden from anonymous visitors")
 
