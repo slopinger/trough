@@ -70,6 +70,10 @@ Running instance: **https://fedi.freifick.net**
 - Checked with the Mastodon.py client library (`test/mastodon_py.py`), the toot CLI
   (`nix shell nixpkgs#toot --command bash test/toot.sh`: login, posting, threads, polls, media,
   favourites, boosts, bookmarks, pins, follows, lists, followed tags, mutes, blocks, deletes),
+  the iOS app Ice Cubes' own networking code (`bash test/run-icecubes.sh`: its `Models` and `NetworkClient`
+  packages built on Linux with Swift and a few shims for Apple-only APIs, then driven like its screens
+  use them: instance, accounts, posting, polls, quotes, timelines, grouped notifications with paging,
+  search, lists, filters, conversations, media; 45 checks on the decoded values),
   Phanpy and Elk in a browser, the Android app Tusky 33.1 in an emulator (OAuth login in its WebView,
   timelines, notifications, compose with visibility and language, edit, delete, threads, profiles; every
   API call it made answered 2xx), and Go tests (`api_test.go`)

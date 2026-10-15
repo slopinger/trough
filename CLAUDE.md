@@ -22,7 +22,9 @@ Keep these notes and README up to date whenever code behavior, commands or opera
   interop bug. `ai_test.go` covers AI drafting against a fake streaming chat completions server.
 - Mastodon client API (`api_*.go`): `api_test.go` drives OAuth (PKCE), posting, timelines, media,
   notifications and WebSocket streaming; `test/mastodon_py.py` checks a real client library against a dev
-  instance; `nix shell nixpkgs#toot --command bash test/toot.sh` runs the toot CLI against a disposable one. Keep entity shapes Mastodon-compatible (ids are strings, `Link` pagination, CORS).
+  instance; `nix shell nixpkgs#toot --command bash test/toot.sh` runs the toot CLI against a disposable one;
+  `bash test/run-icecubes.sh` builds the iOS app Ice Cubes' Models/NetworkClient (pinned revision) with
+  Swift on Linux and drives a disposable instance with them (`test/icecubes/main.swift`, ~5 min first run). Keep entity shapes Mastodon-compatible (ids are strings, `Link` pagination, CORS).
 - Quote approval (FEP-044f, `quotes.go`): `TestQuoteHandshake` in `social_test.go` covers both directions;
   the interop scenario checks it against real Mastodon. trough reports Mastodon 4.5.0 / API version 7:
   only raise these when everything the Mastodon docs list for the new API version is implemented.
