@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 // ActivityPub client-to-server: a local user's client POSTs activities to
@@ -194,7 +196,7 @@ func (app *App) c2sUpdate(ctx context.Context, me *Account, note obj) (string, e
 	if err != nil {
 		return "", err
 	}
-	return st.URI + "#updates/" + newID(), nil
+	return st.URI + "#updates/" + ulid.New(), nil
 }
 
 func (app *App) c2sUndo(ctx context.Context, me *Account, o any) (string, error) {
@@ -216,7 +218,7 @@ func (app *App) c2sUndo(ctx context.Context, me *Account, o any) (string, error)
 		}
 		target = x
 	}
-	undoID := me.URI + "#undo/" + newID()
+	undoID := me.URI + "#undo/" + ulid.New()
 	switch typ {
 	case "Like", "Announce":
 		st, err := app.c2sStatus(ctx, me, target)

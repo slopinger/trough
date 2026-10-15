@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 // Polls are ActivityStreams Questions. Votes are Notes whose name is the
@@ -111,7 +113,7 @@ func (app *App) Vote(me *Account, st *Status, choices []int) error {
 		return err
 	}
 	for _, c := range choices {
-		uri := me.URI + "#votes/" + newID()
+		uri := me.URI + "#votes/" + ulid.New()
 		app.db.Exec(`INSERT OR IGNORE INTO poll_votes (status_id, account_id, choice, uri, created_at) VALUES (?,?,?,?,?)`,
 			st.ID, me.ID, c, uri, time.Now().Unix())
 		p.Options[c].Votes++
@@ -250,12 +252,12 @@ func (app *App) closeEndedPolls() {
 		notified := false
 		for _, v := range voters {
 			app.db.Exec(`INSERT INTO notifications (id,account_id,type,from_account_id,status_id,created_at) VALUES (?,?,'poll',?,?,?)`,
-				newID(), v.ID, e.author, e.id, time.Now().Unix())
+				ulid.New(), v.ID, e.author, e.id, time.Now().Unix())
 			notified = true
 		}
 		if a, err := app.AccountByID(e.author); err == nil && a.IsLocal() {
 			app.db.Exec(`INSERT INTO notifications (id,account_id,type,from_account_id,status_id,created_at) VALUES (?,?,'poll',?,?,?)`,
-				newID(), a.ID, a.ID, e.id, time.Now().Unix())
+				ulid.New(), a.ID, a.ID, e.id, time.Now().Unix())
 			notified = true
 			if st, err := app.StatusByID(e.id); err == nil {
 				app.pollChanged(st) // final counts, now "closed"
@@ -264,7 +266,7 @@ func (app *App) closeEndedPolls() {
 		if !notified {
 			// remember that this poll is done so it isn't checked again
 			app.db.Exec(`INSERT INTO notifications (id,account_id,type,from_account_id,status_id,created_at,read) VALUES (?,?,'poll',?,?,?,1)`,
-				newID(), e.author, e.author, e.id, time.Now().Unix())
+				ulid.New(), e.author, e.author, e.id, time.Now().Unix())
 		}
 	}
 }

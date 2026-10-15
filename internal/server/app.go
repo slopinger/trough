@@ -20,6 +20,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"git.freifick.net/slop/trough/internal/httpsig"
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 type App struct {
@@ -211,7 +212,7 @@ func (app *App) ensureInstanceActor() (*Account, error) {
 }
 
 func (app *App) saveAccountInstance(acc *Account) error {
-	acc.ID = newID()
+	acc.ID = ulid.New()
 	acc.CreatedAt = time.Now()
 	return app.saveAccount(acc)
 }
@@ -253,7 +254,7 @@ func (app *App) CreateLocalUser(username, password string, admin bool) (*Account
 	}
 	uri := app.actorURI(username)
 	acc := &Account{
-		ID:           newID(),
+		ID:           ulid.New(),
 		Username:     username,
 		URI:          uri,
 		URL:          app.cfg.BaseURL() + "/@" + username,

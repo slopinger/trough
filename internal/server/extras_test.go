@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 const relayActor = `{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"],
@@ -84,7 +86,7 @@ func TestFollowedTagsAndLists(t *testing.T) {
 		t.Fatal(err)
 	}
 	add := func(acc *Account, html string, tags ...string) *Status {
-		st := &Status{ID: newID(), URI: r.Base + "/s/" + newID(), AccountID: acc.ID, Visibility: "public", Content: html, CreatedAt: time.Now()}
+		st := &Status{ID: ulid.New(), URI: r.Base + "/s/" + ulid.New(), AccountID: acc.ID, Visibility: "public", Content: html, CreatedAt: time.Now()}
 		la.insertStatus(st)
 		for _, tg := range tags {
 			la.db.Exec(`INSERT INTO status_tags (status_id, tag) VALUES (?,?)`, st.ID, tg)

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 // featureFixture: local bob, remote Mastodon alice who follows bob (and is
@@ -102,7 +104,7 @@ func TestBookmarksMutesFilters(t *testing.T) {
 	la, r, bob, alice := featureFixture(t)
 	ctx := context.Background()
 	for _, txt := range []string{"<p>talking about politics again</p>", "<p>spoilers for the finale</p>", "<p>cute cats</p>"} {
-		id := newID()
+		id := ulid.New()
 		la.insertStatus(&Status{ID: id, URI: r.Base + "/s/" + id, AccountID: alice.ID, Visibility: "public", Content: txt, CreatedAt: parseTime("2026-01-01T00:00:00Z")})
 	}
 	home := func() []*Status { s, _ := la.homeTimeline(bob, ""); return la.applyFilters(bob, s, "home") }
@@ -148,7 +150,7 @@ func TestBookmarksMutesFilters(t *testing.T) {
 func TestReportsFederate(t *testing.T) {
 	la, r, bob, alice := featureFixture(t)
 	admin, _ := la.CreateLocalUser("root2", "password123", true)
-	id := newID()
+	id := ulid.New()
 	la.insertStatus(&Status{ID: id, URI: r.Base + "/s/bad", AccountID: alice.ID, Visibility: "public", Content: "<p>spam</p>", CreatedAt: parseTime("2026-01-01T00:00:00Z")})
 	if _, err := la.FileReport(bob, alice, []string{id}, "this is spam", true); err != nil {
 		t.Fatal(err)

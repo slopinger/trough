@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 func TestC2S(t *testing.T) {
@@ -71,7 +73,7 @@ func TestC2S(t *testing.T) {
 	eventually(t, "DM delivered", func() bool { return len(r.receivedOf("Create")) == 2 })
 
 	// replies, likes, boosts and their undos on a remote post
-	theirs := &Status{ID: newID(), URI: r.Base + "/users/alice/statuses/9", AccountID: alice.ID, Visibility: "public", Content: "<p>remote</p>", CreatedAt: time.Now()}
+	theirs := &Status{ID: ulid.New(), URI: r.Base + "/users/alice/statuses/9", AccountID: alice.ID, Visibility: "public", Content: "<p>remote</p>", CreatedAt: time.Now()}
 	la.insertStatus(theirs)
 	loc = ok(obj{"type": "Note", "content": "a reply", "inReplyTo": theirs.URI, "to": []any{asPublic}})
 	reply, _ := la.StatusByURI(strings.TrimSuffix(loc, "/activity"))

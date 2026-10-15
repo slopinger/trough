@@ -20,6 +20,7 @@ import (
 
 	xhtml "golang.org/x/net/html"
 
+	"git.freifick.net/slop/trough/internal/ulid"
 	"git.freifick.net/slop/trough/web"
 )
 
@@ -226,7 +227,7 @@ func (app *App) templateFuncs() template.FuncMap {
 			if len(sts) > 0 {
 				return sts[0].ID
 			}
-			return newID()
+			return ulid.New()
 		},
 		"setting": app.getSetting,
 		"actions": func(v ...string) [][]string {

@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 // Endpoints found missing by comparing with the open-source iOS clients
@@ -20,7 +22,7 @@ import (
 func TestAPIReport(t *testing.T) {
 	la, r, bob, alice := featureFixture(t)
 	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}
-	id := newID()
+	id := ulid.New()
 	la.insertStatus(&Status{ID: id, URI: r.Base + "/s/bad", AccountID: alice.ID, Visibility: "public", Content: "<p>spam</p>", CreatedAt: parseTime("2026-01-01T00:00:00Z")})
 	rep := c.ok("POST", "/api/v1/reports", url.Values{"account_id": {alice.ID}, "status_ids[]": {id, "nope"}, "comment": {"spam"},
 		"forward": {"true"}, "category": {"spam"}}).(map[string]any)
@@ -83,7 +85,7 @@ func TestAPIStatusQuotes(t *testing.T) {
 	q1, _ := la.PostStatus(ctx, eve, PostInput{Text: "public quote", Visibility: "public", QuoteOf: orig.ID})
 	la.PostStatus(ctx, eve, PostInput{Text: "private quote", Visibility: "private", QuoteOf: orig.ID})
 	la.PostStatus(ctx, eve, PostInput{Text: "not a quote", Visibility: "public"})
-	la.insertStatus(&Status{ID: newID(), URI: alice.URI + "/s/q", AccountID: alice.ID, Visibility: "public", Content: "<p>remote quote</p>",
+	la.insertStatus(&Status{ID: ulid.New(), URI: alice.URI + "/s/q", AccountID: alice.ID, Visibility: "public", Content: "<p>remote quote</p>",
 		QuoteURI: orig.URI, CreatedAt: parseTime("2026-01-01T00:00:00Z")})
 	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read")}
 	got := c.ok("GET", "/api/v1/statuses/"+orig.ID+"/quotes", nil).([]any)
@@ -106,7 +108,7 @@ func TestAPILinkTimeline(t *testing.T) {
 	la, _, bob, alice := featureFixture(t)
 	link := "https://news.example/story"
 	for i, vis := range []string{"public", "public", "private"} {
-		la.insertStatus(&Status{ID: newID(), URI: alice.URI + "/s/" + string(rune('a'+i)), AccountID: alice.ID, Visibility: vis,
+		la.insertStatus(&Status{ID: ulid.New(), URI: alice.URI + "/s/" + string(rune('a'+i)), AccountID: alice.ID, Visibility: vis,
 			Content: "<p>read this</p>", CardURL: link, CreatedAt: parseTime("2026-01-01T00:00:00Z")})
 	}
 	la.PostStatus(context.Background(), bob, PostInput{Text: "unrelated", Visibility: "public"})
@@ -206,7 +208,7 @@ func TestAPIFilters(t *testing.T) {
 	ctx := context.Background()
 	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}
 	post := func(text string) *Status {
-		st := &Status{ID: newID(), URI: alice.URI + "/s/" + newID(), AccountID: alice.ID, Visibility: "public", Content: "<p>" + text + "</p>", CreatedAt: parseTime("2026-01-01T00:00:00Z")}
+		st := &Status{ID: ulid.New(), URI: alice.URI + "/s/" + ulid.New(), AccountID: alice.ID, Visibility: "public", Content: "<p>" + text + "</p>", CreatedAt: parseTime("2026-01-01T00:00:00Z")}
 		la.insertStatus(st)
 		return st
 	}
@@ -444,7 +446,7 @@ func TestAPIEndorsements(t *testing.T) {
 func TestAPIFilterBlur(t *testing.T) {
 	la, _, bob, alice := featureFixture(t)
 	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}
-	st := &Status{ID: newID(), URI: alice.URI + "/s/blur", AccountID: alice.ID, Visibility: "public", Content: "<p>scary spider pics</p>", CreatedAt: time.Now()}
+	st := &Status{ID: ulid.New(), URI: alice.URI + "/s/blur", AccountID: alice.ID, Visibility: "public", Content: "<p>scary spider pics</p>", CreatedAt: time.Now()}
 	la.insertStatus(st)
 	f := c.ok("POST", "/api/v2/filters", map[string]any{"title": "spiders", "context": []string{"home"}, "filter_action": "blur",
 		"keywords_attributes": []any{map[string]any{"keyword": "spider"}}}).(map[string]any)

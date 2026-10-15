@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 // Things local users do. Each action updates the database and federates.
@@ -75,7 +77,7 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 		}
 		f.HTML += `<p class="quote-inline">RE: ` + linkHTML(link) + `</p>`
 	}
-	id := newID()
+	id := ulid.New()
 	st := &Status{
 		ID:         id,
 		URI:        app.statusURI(me.Username, id),
@@ -234,7 +236,7 @@ func (app *App) Like(me *Account, st *Status) error {
 	if st.IsBoost() {
 		st = st.BoostOf
 	}
-	likeID := newID()
+	likeID := ulid.New()
 	res, err := app.db.Exec(`INSERT OR IGNORE INTO likes (id,uri,account_id,status_id,created_at) VALUES (?,?,?,?,?)`,
 		likeID, me.URI+"#likes/"+likeID, me.ID, st.ID, time.Now().Unix())
 	if err != nil {
@@ -278,7 +280,7 @@ func (app *App) Boost(me *Account, st *Status) error {
 	if app.db.QueryRow(`SELECT 1 FROM statuses WHERE account_id=? AND boost_of_id=?`, me.ID, st.ID).Scan(&x) == nil {
 		return nil
 	}
-	id := newID()
+	id := ulid.New()
 	b := &Status{
 		ID: id, URI: app.statusURI(me.Username, id), URL: app.statusURL(me.Username, id),
 		AccountID: me.ID, Local: true, BoostOfID: st.ID, Visibility: st.Visibility, CreatedAt: time.Now(),
@@ -341,7 +343,7 @@ func (app *App) Follow(me, target *Account) error {
 		}
 		return nil
 	}
-	id := newID()
+	id := ulid.New()
 	uri := me.URI + "#follows/" + id
 	accepted := target.IsLocal() && !target.Locked
 	if _, err := app.db.Exec(`INSERT INTO follows (id,uri,account_id,target_id,accepted,created_at) VALUES (?,?,?,?,?,?)`,
@@ -406,7 +408,7 @@ func (app *App) Block(me, target *Account) error {
 	if me.ID == target.ID {
 		return errors.New("you can't block yourself")
 	}
-	id := newID()
+	id := ulid.New()
 	uri := me.URI + "#blocks/" + id
 	res, err := app.db.Exec(`INSERT OR IGNORE INTO blocks (id,uri,account_id,target_id,created_at) VALUES (?,?,?,?,?)`,
 		id, uri, me.ID, target.ID, time.Now().Unix())

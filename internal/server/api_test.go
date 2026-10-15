@@ -18,6 +18,8 @@ import (
 	"time"
 
 	"golang.org/x/net/websocket"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 type apiClient struct {
@@ -166,7 +168,7 @@ func TestMastodonAPI(t *testing.T) {
 	}
 
 	// a remote post in the home timeline; favourite and reblog it
-	remoteID := newID()
+	remoteID := ulid.New()
 	la.insertStatus(&Status{ID: remoteID, URI: r.Base + "/s/home", AccountID: alice.ID, Visibility: "public", Content: "<p>from alice</p>", CreatedAt: time.Now()})
 	code, home, hdr := c.do("GET", "/api/v1/timelines/home?limit=2", nil)
 	if code != 200 || len(home.([]any)) != 2 || !strings.Contains(hdr.Get("Link"), `rel="next"`) {

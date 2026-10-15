@@ -4,6 +4,8 @@ import (
 	"mime"
 	"path"
 	"strings"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 // ActivityPub representations of local objects.
@@ -213,7 +215,7 @@ func (app *App) createActivity(st *Status) obj {
 func (app *App) updateNoteActivity(st *Status) obj {
 	note := app.noteJSON(st)
 	return withContext(obj{
-		"id":     st.URI + "#updates/" + newID(),
+		"id":     st.URI + "#updates/" + ulid.New(),
 		"type":   "Update",
 		"actor":  st.Account.URI,
 		"to":     note["to"],
@@ -244,7 +246,7 @@ func (app *App) announceActivity(boost *Status) obj {
 func undoActivity(actor *Account, inner obj) obj {
 	delete(inner, "@context")
 	return withContext(obj{
-		"id":     actor.URI + "#undo/" + newID(),
+		"id":     actor.URI + "#undo/" + ulid.New(),
 		"type":   "Undo",
 		"actor":  actor.URI,
 		"object": inner,
@@ -271,7 +273,7 @@ func followActivity(followURI string, actor, target *Account) obj {
 
 func acceptRejectActivity(kind string, me, follower *Account, followURI string) obj {
 	return withContext(obj{
-		"id":    me.URI + "#" + strings.ToLower(kind) + "s/" + newID(),
+		"id":    me.URI + "#" + strings.ToLower(kind) + "s/" + ulid.New(),
 		"type":  kind,
 		"actor": me.URI,
 		"object": obj{
@@ -308,7 +310,7 @@ func (app *App) updateActorActivity(acc *Account) obj {
 	actor := app.actorJSON(acc)
 	delete(actor, "@context")
 	return withContext(obj{
-		"id":     acc.URI + "#updates/" + newID(),
+		"id":     acc.URI + "#updates/" + ulid.New(),
 		"type":   "Update",
 		"actor":  acc.URI,
 		"to":     []any{asPublic},

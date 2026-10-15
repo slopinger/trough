@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 func TestPollsFederate(t *testing.T) {
@@ -108,7 +110,7 @@ func TestReactionsAndQuotes(t *testing.T) {
 	eventually(t, "reaction undone", func() bool { return la.countInt(`SELECT COUNT(*) FROM reactions WHERE status_id=?`, mine.ID) == 1 })
 
 	// bob reacts to alice's post
-	theirs := &Status{ID: newID(), URI: r.Base + "/s/1", AccountID: alice.ID, Visibility: "public", Content: "<p>hi</p>", CreatedAt: time.Now()}
+	theirs := &Status{ID: ulid.New(), URI: r.Base + "/s/1", AccountID: alice.ID, Visibility: "public", Content: "<p>hi</p>", CreatedAt: time.Now()}
 	la.insertStatus(theirs)
 	tf, _ := la.loadStatus(bob, theirs.ID)
 	if err := la.React(bob, tf, "🤓"); err != nil {
@@ -230,7 +232,7 @@ func TestQuoteHandshake(t *testing.T) {
 	}
 
 	// bob quotes a post of alice's server, which takes part in the handshake
-	theirs := &Status{ID: newID(), URI: r.Base + "/s/q1", AccountID: alice.ID, Visibility: "public", Content: "<p>hi</p>", CreatedAt: time.Now(), QuotePolicy: "public"}
+	theirs := &Status{ID: ulid.New(), URI: r.Base + "/s/q1", AccountID: alice.ID, Visibility: "public", Content: "<p>hi</p>", CreatedAt: time.Now(), QuotePolicy: "public"}
 	la.insertStatus(theirs)
 	bq, err := la.PostStatus(ctx, bob, PostInput{Text: "so true", Visibility: "public", QuoteOf: theirs.ID})
 	if err != nil {
@@ -264,7 +266,7 @@ func TestQuoteHandshake(t *testing.T) {
 	eventually(t, "revoked", func() bool { bf, _ := la.loadStatus(bob, bq.ID); return bf.QuoteState == "revoked" })
 
 	// a post nobody may quote
-	closed := &Status{ID: newID(), URI: r.Base + "/s/q2", AccountID: alice.ID, Visibility: "public", Content: "<p>no</p>", CreatedAt: time.Now(), QuotePolicy: "nobody"}
+	closed := &Status{ID: ulid.New(), URI: r.Base + "/s/q2", AccountID: alice.ID, Visibility: "public", Content: "<p>no</p>", CreatedAt: time.Now(), QuotePolicy: "nobody"}
 	la.insertStatus(closed)
 	if _, err := la.PostStatus(ctx, bob, PostInput{Text: "nope", Visibility: "public", QuoteOf: closed.ID}); err == nil {
 		t.Fatal("quoted a post that forbids it")

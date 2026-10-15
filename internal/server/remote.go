@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 func jsonUnmarshal(b []byte, v any) error { return json.Unmarshal(b, v) }
@@ -56,7 +58,7 @@ func (app *App) storeNote(ctx context.Context, author *Account, note obj, depth 
 		published = time.Now()
 	}
 	st := &Status{
-		ID:           newIDAt(published),
+		ID:           ulid.At(published),
 		URI:          uri,
 		URL:          urlOf(note["url"]),
 		AccountID:    author.ID,
@@ -282,7 +284,7 @@ func (app *App) replaceNoteExtras(ctx context.Context, st *Status, note obj) map
 		w, _ := a["width"].(float64)
 		h, _ := a["height"].(float64)
 		app.db.Exec(`INSERT INTO attachments (id,status_id,account_id,url,media_type,description,width,height,position,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)`,
-			newID(), st.ID, st.AccountID, u, mt, truncateRunes(str(a, "name"), 1500), int(w), int(h), i, time.Now().Unix())
+			ulid.New(), st.ID, st.AccountID, u, mt, truncateRunes(str(a, "name"), 1500), int(w), int(h), i, time.Now().Unix())
 	}
 	return local
 }

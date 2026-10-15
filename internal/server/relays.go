@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 // ---- relays ----
@@ -44,7 +46,7 @@ func (app *App) AddRelay(ctx context.Context, raw string) error {
 		return errors.New("enter the relay's inbox or actor URL (https://...)")
 	}
 	inst := app.instanceActor()
-	id := newID()
+	id := ulid.New()
 	followURI := inst.URI + "#relays/" + id
 	var follow obj
 	r := Relay{ID: id, FollowURI: followURI}

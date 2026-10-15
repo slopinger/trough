@@ -14,6 +14,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 var shortcodeRe = regexp.MustCompile(`^[A-Za-z0-9_]{2,32}$`)
@@ -113,7 +115,7 @@ func (app *App) AddCustomEmoji(code string, data []byte) error {
 	default:
 		return errors.New("use a PNG, GIF or WebP image")
 	}
-	name := newID() + ext
+	name := ulid.New() + ext
 	if err := os.WriteFile(filepath.Join(app.mediaDir, name), data, 0o640); err != nil {
 		return err
 	}

@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 // Grouped notifications (Mastodon 4.3, /api/v2/notifications). Likes and
@@ -197,7 +199,7 @@ func (app *App) apiEmptyList(w http.ResponseWriter, r *http.Request, c *apiCtx) 
 // notificationNumber is most_recent_notification_id: a number on Mastodon,
 // and Ice Cubes can't read it otherwise. It also works as max_id/since_id.
 func notificationNumber(id string) any {
-	if n, ok := ulidNumber(id); ok {
+	if n, ok := ulid.Number(id); ok {
 		return n
 	}
 	return id

@@ -12,6 +12,8 @@ import (
 	"unicode/utf8"
 
 	xhtml "golang.org/x/net/html"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 // ---- emoji reactions ----
@@ -75,7 +77,7 @@ func (app *App) React(me *Account, st *Status, emoji string) error {
 	if !validReaction(emoji) {
 		return errors.New("invalid reaction")
 	}
-	id := newID()
+	id := ulid.New()
 	uri := me.URI + "#reactions/" + id
 	res, err := app.db.Exec(`INSERT OR IGNORE INTO reactions (status_id, account_id, emoji, uri, created_at) VALUES (?,?,?,?,?)`,
 		st.ID, me.ID, emoji, uri, time.Now().Unix())

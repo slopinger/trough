@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 // Quote posts with consent (FEP-044f, as Mastodon 4.5+ and GoToSocial do
@@ -125,7 +127,7 @@ func (app *App) authorizeQuote(quoted *Status, quotingURI string, author *Accoun
 	var id string
 	err := app.db.QueryRow(`SELECT id FROM quote_authorizations WHERE status_id=? AND quoting_uri=?`, quoted.ID, quotingURI).Scan(&id)
 	if err != nil {
-		id = newID()
+		id = ulid.New()
 		if _, err := app.db.Exec(`INSERT INTO quote_authorizations (id, status_id, quoting_uri, account_id, created_at) VALUES (?,?,?,?,?)`,
 			id, quoted.ID, quotingURI, author.ID, time.Now().Unix()); err != nil {
 			return "", err
@@ -194,7 +196,7 @@ func (app *App) inQuoteRequest(ctx context.Context, actor *Account, act obj) err
 	answer := obj{"id": reqID, "type": "QuoteRequest", "actor": actor.URI, "object": quoted.URI, "instrument": instURI}
 	if app.quoteApproval(quoted, actor) != "automatic" || app.isBlockedBy(owner.ID, actor.ID) || instURI == "" || !sameHost(instURI, actor.URI) {
 		app.enqueue(owner, []string{actor.DeliveryInbox()}, withContext(obj{
-			"id": owner.URI + "#rejects/quote_requests/" + newID(), "type": "Reject", "actor": owner.URI, "object": answer,
+			"id": owner.URI + "#rejects/quote_requests/" + ulid.New(), "type": "Reject", "actor": owner.URI, "object": answer,
 		}))
 		return nil
 	}
@@ -222,7 +224,7 @@ func (app *App) inQuoteRequest(ctx context.Context, actor *Account, act obj) err
 	}
 	app.notify(owner.ID, "quote", actor.ID, quoting.ID)
 	app.enqueue(owner, []string{actor.DeliveryInbox()}, withContext(obj{
-		"id": owner.URI + "#accepts/quote_requests/" + newID(), "type": "Accept", "actor": owner.URI,
+		"id": owner.URI + "#accepts/quote_requests/" + ulid.New(), "type": "Accept", "actor": owner.URI,
 		"object": answer, "result": stamp,
 	}))
 	return nil

@@ -4,7 +4,6 @@ import (
 	"context"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestGroupedNotifications(t *testing.T) {
@@ -73,30 +72,5 @@ func TestGroupedNotifications(t *testing.T) {
 	}
 	if reqs := c.ok("GET", "/api/v1/notifications/requests", nil).([]any); len(reqs) != 0 {
 		t.Errorf("requests = %v", reqs)
-	}
-}
-
-// most_recent_notification_id is a number (as on Mastodon; Ice Cubes needs
-// that) and can be sent back as max_id/since_id.
-func TestNotificationNumbers(t *testing.T) {
-	for i := 0; i < 200; i++ {
-		id := newIDAt(time.UnixMilli(int64(i) * 987654321))
-		n, ok := ulidNumber(id)
-		if !ok || n < 0 {
-			t.Fatalf("%s -> %d %v", id, n, ok)
-		}
-		lo, hi := ulidBound(n, false), ulidBound(n, true)
-		if !(lo <= id && id <= hi) {
-			t.Fatalf("%s not within [%s, %s]", id, lo, hi)
-		}
-		if m, _ := ulidNumber(lo); m != n {
-			t.Fatalf("bound %s maps to %d, not %d", lo, m, n)
-		}
-		if b, ok := decodeULID(id); !ok || encodeULID(b) != id {
-			t.Fatalf("decode/encode %s", id)
-		}
-	}
-	if _, ok := ulidNumber("not-a-ulid"); ok {
-		t.Fatal("parsed garbage")
 	}
 }

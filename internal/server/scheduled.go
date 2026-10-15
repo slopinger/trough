@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 const minScheduleAhead = 5 * time.Minute
@@ -37,7 +39,7 @@ func (app *App) Schedule(me *Account, in PostInput, at time.Time) (*ScheduledSta
 	if in.MediaIDs == nil {
 		media = []byte("[]")
 	}
-	s := &ScheduledStatus{ID: newID(), Input: in, ScheduledAt: at.UTC().Truncate(time.Second)}
+	s := &ScheduledStatus{ID: ulid.New(), Input: in, ScheduledAt: at.UTC().Truncate(time.Second)}
 	_, err := app.db.Exec(`INSERT INTO scheduled_statuses (id, account_id, params, media_ids, scheduled_at, created_at) VALUES (?,?,?,?,?,?)`,
 		s.ID, me.ID, string(params), string(media), s.ScheduledAt.Unix(), time.Now().Unix())
 	return s, err

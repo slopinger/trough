@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 type inboxJob struct {
@@ -170,7 +172,7 @@ func (app *App) inFollow(actor *Account, act obj) error {
 	}
 	accepted = !target.Locked
 	if _, err := app.db.Exec(`INSERT INTO follows (id,uri,account_id,target_id,accepted,created_at) VALUES (?,?,?,?,?,?)
-		ON CONFLICT(uri) DO NOTHING`, newID(), followURI, actor.ID, target.ID, accepted, time.Now().Unix()); err != nil {
+		ON CONFLICT(uri) DO NOTHING`, ulid.New(), followURI, actor.ID, target.ID, accepted, time.Now().Unix()); err != nil {
 		return err
 	}
 	if accepted {
@@ -289,7 +291,7 @@ func (app *App) inBlock(actor *Account, act obj) error {
 		return err
 	}
 	app.db.Exec(`INSERT OR IGNORE INTO blocks (id,uri,account_id,target_id,created_at) VALUES (?,?,?,?,?)`,
-		newID(), str(act, "id"), actor.ID, target.ID, time.Now().Unix())
+		ulid.New(), str(act, "id"), actor.ID, target.ID, time.Now().Unix())
 	app.db.Exec(`DELETE FROM follows WHERE (account_id=? AND target_id=?) OR (account_id=? AND target_id=?)`, actor.ID, target.ID, target.ID, actor.ID)
 	return nil
 }
@@ -304,7 +306,7 @@ func (app *App) inLike(actor *Account, act obj) error {
 		uri = actor.URI + "#likes/" + st.ID
 	}
 	res, err := app.db.Exec(`INSERT OR IGNORE INTO likes (id,uri,account_id,status_id,created_at) VALUES (?,?,?,?,?)`,
-		newID(), uri, actor.ID, st.ID, time.Now().Unix())
+		ulid.New(), uri, actor.ID, st.ID, time.Now().Unix())
 	if err != nil {
 		return err
 	}
@@ -353,7 +355,7 @@ func (app *App) inAnnounce(ctx context.Context, actor *Account, act obj) error {
 		published = time.Now()
 	}
 	b := &Status{
-		ID: newIDAt(published), URI: uri, URL: uri, AccountID: actor.ID, BoostOfID: orig.ID,
+		ID: ulid.At(published), URI: uri, URL: uri, AccountID: actor.ID, BoostOfID: orig.ID,
 		Visibility: visibilityFrom(act, actor.FollowersURI), CreatedAt: published,
 	}
 	if b.Visibility != "public" && b.Visibility != "unlisted" {
@@ -403,7 +405,7 @@ func (app *App) inAnnouncedActivity(ctx context.Context, group *Account, act, in
 		if _, err := app.StatusByURI(boostURI); err == nil || boostURI == "" {
 			return nil
 		}
-		b := &Status{ID: newIDAt(existing.CreatedAt), URI: boostURI, URL: boostURI, AccountID: group.ID, BoostOfID: existing.ID,
+		b := &Status{ID: ulid.At(existing.CreatedAt), URI: boostURI, URL: boostURI, AccountID: group.ID, BoostOfID: existing.ID,
 			Visibility: "public", CreatedAt: existing.CreatedAt}
 		if !existing.Local && existing.InReplyToURI != "" {
 			return nil // comments show up in threads, not as boosts in timelines

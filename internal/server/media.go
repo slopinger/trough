@@ -24,6 +24,8 @@ import (
 	"time"
 
 	_ "golang.org/x/image/webp"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 const (
@@ -51,7 +53,7 @@ func (app *App) saveUpload(acc *Account, data []byte, description string) (*Atta
 	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width*cfg.Height > maxImagePixels || cfg.Width > 16384 || cfg.Height > 16384 {
 		return nil, errors.New("image dimensions are too large")
 	}
-	id := newID()
+	id := ulid.New()
 	var out []byte
 	var ext, mediaType string
 	w, h := cfg.Width, cfg.Height

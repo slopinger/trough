@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 // ---- lists ----
@@ -54,7 +56,7 @@ func (app *App) CreateList(me *Account, title, policy string, exclusive bool) (*
 	if app.countInt(`SELECT COUNT(*) FROM lists WHERE account_id=?`, me.ID) >= 50 {
 		return nil, errors.New("too many lists")
 	}
-	l := &List{ID: newID(), Title: title, RepliesPolicy: policy, Exclusive: exclusive}
+	l := &List{ID: ulid.New(), Title: title, RepliesPolicy: policy, Exclusive: exclusive}
 	_, err := app.db.Exec(`INSERT INTO lists (id, account_id, title, replies_policy, exclusive, created_at) VALUES (?,?,?,?,?,?)`,
 		l.ID, me.ID, l.Title, l.RepliesPolicy, l.Exclusive, time.Now().Unix())
 	return l, err

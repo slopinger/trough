@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 var errNotFound = errors.New("not found")
@@ -151,7 +153,7 @@ func (app *App) saveAccount(a *Account) error {
 		attr = []byte("[]")
 	}
 	if a.ID == "" {
-		a.ID = newID()
+		a.ID = ulid.New()
 	}
 	if a.CreatedAt.IsZero() {
 		a.CreatedAt = time.Now()
@@ -370,7 +372,7 @@ func (app *App) updateStatusContent(s *Status) error {
 			at = edited
 		}
 		app.db.Exec(`INSERT INTO status_edits (id, status_id, content, spoiler, sensitive, created_at) VALUES (?,?,?,?,?,?)`,
-			newID(), s.ID, oldContent, oldSpoiler, oldSensitive, at)
+			ulid.New(), s.ID, oldContent, oldSpoiler, oldSensitive, at)
 	}
 	emojis, _ := json.Marshal(s.Emojis)
 	if s.Emojis == nil {
@@ -489,7 +491,7 @@ func (app *App) notify(recipientID, typ, fromID, statusID string) {
 		recipientID, typ, fromID, statusID).Scan(&x) == nil {
 		return
 	}
-	id := newID()
+	id := ulid.New()
 	if _, err := app.db.Exec(`INSERT INTO notifications (id,account_id,type,from_account_id,status_id,created_at) VALUES (?,?,?,?,?,?)`,
 		id, recipientID, typ, fromID, statusID, time.Now().Unix()); err == nil {
 		app.publishNotification(recipientID, id)

@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 // ---- editing ----
@@ -99,7 +101,7 @@ func (app *App) Unpin(me *Account, st *Status) error {
 
 func (app *App) collectionActivity(kind string, me *Account, st *Status) obj {
 	return withContext(obj{
-		"id":     me.URI + "#" + strings.ToLower(kind) + "/" + newID(),
+		"id":     me.URI + "#" + strings.ToLower(kind) + "/" + ulid.New(),
 		"type":   kind,
 		"actor":  me.URI,
 		"to":     []any{asPublic},
@@ -420,7 +422,7 @@ func (app *App) SaveFilterGroup(me *Account, g *FilterGroup) error {
 		if app.countInt(`SELECT COUNT(*) FROM filter_groups WHERE account_id=?`, me.ID) >= maxFilterKeywords {
 			return errors.New("too many filters")
 		}
-		g.ID = newID()
+		g.ID = ulid.New()
 		_, err := app.db.Exec(`INSERT INTO filter_groups (id, account_id, title, context, action, expires_at, created_at) VALUES (?,?,?,?,?,?,?)`,
 			g.ID, me.ID, g.Title, strings.Join(ctx, ","), g.Action, g.ExpiresAt, time.Now().Unix())
 		return err
@@ -439,7 +441,7 @@ func (app *App) AddFilterKeyword(me *Account, groupID, phrase string, wholeWord 
 	if app.countInt(`SELECT COUNT(*) FROM filters WHERE account_id=?`, me.ID) >= maxFilterKeywords {
 		return nil, errors.New("too many filters")
 	}
-	f := &Filter{ID: newID(), Phrase: phrase, WholeWord: wholeWord}
+	f := &Filter{ID: ulid.New(), Phrase: phrase, WholeWord: wholeWord}
 	_, err = app.db.Exec(`INSERT INTO filters (id, account_id, phrase, whole_word, created_at, group_id) VALUES (?,?,?,?,?,?)`,
 		f.ID, me.ID, phrase, wholeWord, time.Now().Unix(), groupID)
 	return f, err
@@ -518,7 +520,7 @@ func (app *App) FileReport(me, target *Account, statusIDs []string, comment stri
 		}
 	}
 	ids, _ := jsonMarshal(keep)
-	id := newID()
+	id := ulid.New()
 	comment = truncateRunes(strings.TrimSpace(comment), 1000)
 	forwarded := forward && !target.IsLocal()
 	if _, err := app.db.Exec(`INSERT INTO reports (id,uri,account_id,target_id,status_ids,comment,forwarded,created_at) VALUES (?,?,?,?,?,?,?,?)`,
@@ -558,7 +560,7 @@ func (app *App) notifyAdmins(fromID, typ string) {
 	rows.Close()
 	for _, a := range admins {
 		app.db.Exec(`INSERT INTO notifications (id,account_id,type,from_account_id,status_id,created_at) VALUES (?,?,?,?,'',?)`,
-			newID(), a, typ, fromID, time.Now().Unix())
+			ulid.New(), a, typ, fromID, time.Now().Unix())
 	}
 }
 
@@ -581,7 +583,7 @@ func (app *App) inFlag(actor *Account, act obj) error {
 	}
 	ids, _ := jsonMarshal(statusIDs)
 	_, err := app.db.Exec(`INSERT INTO reports (id,uri,account_id,target_id,status_ids,comment,created_at) VALUES (?,?,?,?,?,?,?)`,
-		newID(), str(act, "id"), actor.ID, target.ID, ids, truncateRunes(plainText(str(act, "content")), 1000), time.Now().Unix())
+		ulid.New(), str(act, "id"), actor.ID, target.ID, ids, truncateRunes(plainText(str(act, "content")), 1000), time.Now().Unix())
 	if err == nil {
 		app.notifyAdmins(actor.ID, "report")
 	}

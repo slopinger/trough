@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"git.freifick.net/slop/trough/internal/httpsig"
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 func testApp(t *testing.T) *App {
@@ -154,11 +155,11 @@ func TestRenderRewritesMentions(t *testing.T) {
 }
 
 func TestULIDOrder(t *testing.T) {
-	a, b := newID(), newID()
+	a, b := ulid.New(), ulid.New()
 	if len(a) != 26 || len(b) != 26 {
 		t.Fatal("bad id length")
 	}
-	old := newIDAt(parseTime("2020-01-01T00:00:00Z"))
+	old := ulid.At(parseTime("2020-01-01T00:00:00Z"))
 	if !(old < a) {
 		t.Fatal("ids do not sort by time")
 	}

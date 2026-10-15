@@ -29,6 +29,8 @@ import (
 	"time"
 
 	"golang.org/x/crypto/hkdf"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 var b64url = base64.RawURLEncoding
@@ -225,7 +227,7 @@ func (app *App) apiPushSubscribe(w http.ResponseWriter, r *http.Request, c *apiC
 	}
 	alerts := readAlerts(p, map[string]bool{})
 	ab, _ := json.Marshal(alerts)
-	id := newID()
+	id := ulid.New()
 	app.db.Exec(`DELETE FROM push_subscriptions WHERE token_id=?`, tokenID)
 	if _, err := app.db.Exec(`INSERT INTO push_subscriptions (id, token_id, account_id, endpoint, p256dh, auth, access_token, alerts, policy, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)`,
 		id, tokenID, c.Me.ID, endpoint, p256dh, auth, rawToken, string(ab), policy, time.Now().Unix()); err != nil {

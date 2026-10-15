@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 // ---- account migration ----
@@ -91,7 +93,7 @@ func (app *App) MoveTo(ctx context.Context, me *Account, handle string) (*Accoun
 	inboxes := app.followerInboxes(me.ID)
 	app.enqueue(me, inboxes, app.updateActorActivity(me))
 	app.enqueue(me, inboxes, withContext(obj{
-		"id": me.URI + "#moves/" + newID(), "type": "Move", "actor": me.URI, "object": me.URI, "target": target.URI,
+		"id": me.URI + "#moves/" + ulid.New(), "type": "Move", "actor": me.URI, "object": me.URI, "target": target.URI,
 	}))
 	app.moveLocalFollowers(me, target)
 	return target, nil

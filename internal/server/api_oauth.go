@@ -16,6 +16,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 const oobRedirect = "urn:ietf:wg:oauth:2.0:oob"
@@ -322,7 +324,7 @@ func (app *App) handleCreateApp(w http.ResponseWriter, r *http.Request, c *apiCt
 			return
 		}
 	}
-	a := &oauthApp{ID: newID(), ClientID: randomToken(20), ClientSecret: randomToken(32), Name: name,
+	a := &oauthApp{ID: ulid.New(), ClientID: randomToken(20), ClientSecret: randomToken(32), Name: name,
 		Website: truncateRunes(p.Get("website"), 300), RedirectURIs: redirects, Scopes: scopes}
 	if _, err := app.db.Exec(`INSERT INTO oauth_apps (id,client_id,client_secret,name,website,redirect_uris,scopes,created_at) VALUES (?,?,?,?,?,?,?,?)`,
 		a.ID, a.ClientID, a.ClientSecret, a.Name, a.Website, strings.Join(redirects, " "), a.Scopes, time.Now().Unix()); err != nil {
@@ -524,7 +526,7 @@ func (app *App) handleToken(w http.ResponseWriter, r *http.Request) {
 	token := randomToken(32)
 	now := time.Now()
 	if _, err := app.db.Exec(`INSERT INTO oauth_tokens (id, token_hash, app_id, account_id, scopes, created_at) VALUES (?,?,?,?,?,?)`,
-		newID(), sha256Hex(token), a.ID, accountID, scopes, now.Unix()); err != nil {
+		ulid.New(), sha256Hex(token), a.ID, accountID, scopes, now.Unix()); err != nil {
 		apiJSON(w, 500, obj{"error": "server_error"})
 		return
 	}

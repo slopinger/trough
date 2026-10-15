@@ -3,6 +3,8 @@ package server
 import (
 	"testing"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ulid"
 )
 
 func threadFixtures(t *testing.T, parents []int) (*App, []*Status) {
@@ -14,7 +16,7 @@ func threadFixtures(t *testing.T, parents []int) (*App, []*Status) {
 	}
 	statuses := make([]*Status, len(parents))
 	for i := range statuses {
-		id := newID()
+		id := ulid.New()
 		statuses[i] = &Status{ID: id, URI: app.statusURI(author.Username, id), URL: app.statusURL(author.Username, id), AccountID: author.ID, Local: true, Visibility: "public", CreatedAt: time.Now()}
 	}
 	for i, parent := range parents {
