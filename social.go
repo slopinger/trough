@@ -388,3 +388,28 @@ func (app *App) cardsFor(sts []*Status) {
 		}
 	}
 }
+
+// ---- featured accounts ("endorsements") ----
+
+// Endorse features target on my profile.
+func (app *App) Endorse(me, target *Account) error {
+	if me.ID == target.ID {
+		return errors.New("you can't feature yourself")
+	}
+	if app.countInt(`SELECT COUNT(*) FROM account_pins WHERE account_id=?`, me.ID) >= 80 {
+		return errors.New("you can feature at most 80 accounts")
+	}
+	_, err := app.db.Exec(`INSERT OR IGNORE INTO account_pins (account_id, target_id, created_at) VALUES (?,?,?)`, me.ID, target.ID, time.Now().UnixNano())
+	return err
+}
+
+func (app *App) Unendorse(me, target *Account) error {
+	_, err := app.db.Exec(`DELETE FROM account_pins WHERE account_id=? AND target_id=?`, me.ID, target.ID)
+	return err
+}
+
+// endorsements are the accounts accountID features, newest first.
+func (app *App) endorsements(accountID string) ([]*Account, error) {
+	return app.accountsQuery(`SELECT `+accountCols+` FROM account_pins p JOIN accounts a ON a.id=p.target_id
+		WHERE p.account_id=? AND a.suspended=0 ORDER BY p.created_at DESC LIMIT 80`, accountID)
+}

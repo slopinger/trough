@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -389,5 +390,46 @@ func TestAPIQuoteApproval(t *testing.T) {
 	}
 	if code, _, _ := ec.do("POST", "/api/v1/statuses/"+open["id"].(string)+"/quotes/"+q.ID+"/revoke", nil); code != 404 {
 		t.Fatalf("got %d, want 404", code)
+	}
+}
+
+// Featured accounts (Mastodon's endorsements): pin/endorse, the
+// relationship flag and both listings.
+func TestAPIEndorsements(t *testing.T) {
+	la, _, bob, alice := featureFixture(t)
+	eve, _ := la.CreateLocalUser("eve", "password123", false)
+	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write follow")}
+	rel := c.ok("POST", "/api/v1/accounts/"+alice.ID+"/endorse", nil).(map[string]any)
+	if rel["endorsed"] != true {
+		t.Fatalf("relationship = %v", rel)
+	}
+	c.ok("POST", "/api/v1/accounts/"+eve.ID+"/pin", nil)
+	ids := func(v any) (out []string) {
+		for _, a := range v.([]any) {
+			out = append(out, a.(map[string]any)["id"].(string))
+		}
+		return
+	}
+	if got := ids(c.ok("GET", "/api/v1/endorsements", nil)); len(got) != 2 || got[0] != eve.ID || got[1] != alice.ID {
+		t.Fatalf("endorsements = %v", got)
+	}
+	if got := ids((&apiClient{t: t, base: la.base}).ok("GET", "/api/v1/accounts/"+bob.ID+"/endorsements", nil)); len(got) != 2 {
+		t.Fatalf("public endorsements = %v", got)
+	}
+	if code, _, _ := c.do("POST", "/api/v1/accounts/"+bob.ID+"/endorse", nil); code != 422 {
+		t.Fatalf("self-endorse: %d", code)
+	}
+	c.ok("POST", "/api/v1/accounts/"+alice.ID+"/unendorse", nil)
+	if rels := c.ok("GET", "/api/v1/accounts/relationships?id[]="+alice.ID+"&id[]="+eve.ID, nil).([]any); rels[0].(map[string]any)["endorsed"] != false || rels[1].(map[string]any)["endorsed"] != true {
+		t.Fatalf("relationships = %v", rels)
+	}
+	resp, err := http.Get(la.base + "/@bob")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if page := string(body); !strings.Contains(page, `class="featured"`) || !strings.Contains(page, eve.Path()) {
+		t.Fatal("profile doesn't show featured accounts")
 	}
 }

@@ -443,6 +443,13 @@ CREATE TABLE quote_authorizations (
 	created_at INTEGER NOT NULL,
 	UNIQUE (status_id, quoting_uri)
 );
+`, `
+CREATE TABLE account_pins (
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	target_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	created_at INTEGER NOT NULL,
+	PRIMARY KEY (account_id, target_id)
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

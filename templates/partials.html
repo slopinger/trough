@@ -212,6 +212,7 @@
           {{if .Lists}}<details class="menu"><summary class="btn" title="Add to a list">{{template "icon" "list"}}</summary><div class="menu-list">
             {{range .Lists}}<form method="post" action="/lists/{{.ID}}/add"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="account" value="{{$a.ID}}"><button>Add to “{{.Title}}”</button></form>{{end}}
           </div></details>{{end}}
+          <form method="post" action="/accounts/{{$a.ID}}/{{if .Rel.Endorsed}}unendorse{{else}}endorse{{end}}"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn" title="{{if .Rel.Endorsed}}Remove from the accounts featured on your profile{{else}}Recommend them on your profile{{end}}">{{if .Rel.Endorsed}}Unfeature{{else}}Feature{{end}}</button></form>
           <form method="post" action="/accounts/{{$a.ID}}/{{if .Rel.Muting}}unmute{{else}}mute{{end}}"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn" title="{{if .Rel.Muting}}Show their posts again{{else}}Hide their posts from your timelines and notifications{{end}}">{{if .Rel.Muting}}Unmute{{else}}Mute{{end}}</button></form>
           <form method="post" action="/accounts/{{$a.ID}}/block" class="confirm" data-confirm="Block {{handle $a}}? They won't be able to follow you or see your posts here."><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn danger-outline" title="Block">Block</button></form>
         {{end}}
@@ -242,6 +243,7 @@
     <a href="{{$a.URL}}" target="_blank" rel="noopener noreferrer">{{template "icon" "external"}} full profile on {{hostOf $a.URI}}</a>
     {{end}}
   </div>
+  {{if .Featured}}<div class="featured"><span class="muted">Featured</span>{{range .Featured}}<a href="{{.Path}}" title="{{name .}} {{handle .}}"><img src="{{template "avatarsrc" .}}" alt="{{name .}}" width="32" height="32" loading="lazy"></a>{{end}}</div>{{end}}
 </section>{{end}}
 
 {{define "statuslist"}}{{$p := .}}

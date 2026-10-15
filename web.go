@@ -61,6 +61,7 @@ type Page struct {
 	Empty         string
 	Deliveries    []DeliveryInfo
 	Pinned        []*Status
+	Featured      []*Account // accounts the profile owner features
 	Blocked       []*Account
 	Filters       []*Filter
 	Reports       []*Report
@@ -748,6 +749,9 @@ func (app *App) profileCommon(p *Page, acc *Account) {
 	} else {
 		p.Counts.Posts = app.countInt(`SELECT COUNT(*) FROM statuses WHERE account_id=? AND boost_of_id='' AND visibility IN ('public','unlisted')`, acc.ID)
 	}
+	if acc.IsLocal() {
+		p.Featured, _ = app.endorsements(acc.ID)
+	}
 	p.Counts.Following = app.countInt(`SELECT COUNT(*) FROM follows WHERE account_id=? AND accepted=1`, acc.ID)
 	p.Counts.Followers = app.countInt(`SELECT COUNT(*) FROM follows WHERE target_id=? AND accepted=1`, acc.ID)
 }
@@ -837,6 +841,10 @@ func (app *App) handleAccountAction(w http.ResponseWriter, r *http.Request, p *P
 		err = app.Unmute(p.Me, target)
 	case "note":
 		err = app.SetAccountNote(p.Me, target, r.FormValue("comment"))
+	case "endorse":
+		err = app.Endorse(p.Me, target)
+	case "unendorse":
+		err = app.Unendorse(p.Me, target)
 	case "accept":
 		err = app.AcceptFollow(p.Me, target)
 	case "reject", "remove_follower":

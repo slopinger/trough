@@ -416,6 +416,7 @@ func inClause(q string, ids []string) (string, []any) {
 
 type Relationship struct {
 	Following, Requested, FollowedBy, RequestedBy, Blocking, BlockedBy, Muting bool
+	Endorsed                                                                   bool // featured on my profile
 }
 
 func (app *App) relationship(me, other string) Relationship {
@@ -433,6 +434,7 @@ func (app *App) relationship(me, other string) Relationship {
 	r.Blocking = app.db.QueryRow(`SELECT 1 FROM blocks WHERE account_id=? AND target_id=?`, me, other).Scan(&x) == nil
 	r.BlockedBy = app.db.QueryRow(`SELECT 1 FROM blocks WHERE account_id=? AND target_id=?`, other, me).Scan(&x) == nil
 	r.Muting = app.isMuting(me, other)
+	r.Endorsed = app.db.QueryRow(`SELECT 1 FROM account_pins WHERE account_id=? AND target_id=?`, me, other).Scan(&x) == nil
 	return r
 }
 

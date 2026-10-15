@@ -330,6 +330,22 @@ func (app *App) apiFollowList(followers bool) apiHandler {
 	}
 }
 
+// apiEndorsements lists the accounts someone features on their profile
+// (GET /api/v1/accounts/:id/endorsements, Mastodon 4.4).
+func (app *App) apiEndorsements(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	a, ok := app.apiAccountByID(w, r)
+	if !ok {
+		return
+	}
+	list, _ := app.endorsements(a.ID)
+	app.writeAccounts(w, list)
+}
+
+func (app *App) apiMyEndorsements(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	list, _ := app.endorsements(c.Me.ID)
+	app.writeAccounts(w, list)
+}
+
 func (app *App) apiAccountAction(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 	target, ok := app.apiAccountByID(w, r)
 	if !ok {
@@ -356,7 +372,10 @@ func (app *App) apiAccountAction(w http.ResponseWriter, r *http.Request, c *apiC
 		}
 	case "note":
 		err = app.SetAccountNote(c.Me, target, readParams(r).Get("comment"))
-	case "pin", "unpin", "endorse", "unendorse":
+	case "pin", "endorse":
+		err = app.Endorse(c.Me, target)
+	case "unpin", "unendorse":
+		err = app.Unendorse(c.Me, target)
 	default:
 		apiError(w, 404, "Record not found")
 		return
