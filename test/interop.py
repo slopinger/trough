@@ -108,6 +108,7 @@ def main():
     else:
         g = API(gbase, gts_token(gbase, sys.argv[5], sys.argv[6]))
     remote = g.get("/api/v1/instance")
+    api_version = (g.call("GET", "/api/v2/instance", ok=(200, 404)).get("api_versions") or {}).get("mastodon", 0)
     bob, gal = t.get("/api/v1/accounts/verify_credentials"), g.get("/api/v1/accounts/verify_credentials")
     bob_acct = f"{bob['username']}@{urllib.parse.urlparse(tbase).netloc}"
     gal_acct = f"{gal['username']}@{urllib.parse.urlparse(gbase).netloc}"
@@ -178,6 +179,20 @@ def main():
     tp = wait("poll on trough", lambda: next((s for s in t.get("/api/v1/timelines/home") if s["uri"] == gpoll["uri"]), None))
     t.post(f"/api/v1/polls/{tp['poll']['id']}/votes", {"choices[]": ["1"]})
     wait("vote counted on remote", lambda: g.get(f"/api/v1/polls/{gpoll['poll']['id']}")["options"][1]["votes_count"] == 1)
+
+    if api_version >= 7:  # Mastodon 4.5+ quote posts (FEP-044f)
+        print("7b. quotes in both directions, with approval (FEP-044f)")
+        quote_of = lambda api, sid: (api.get(f"/api/v1/statuses/{sid}").get("quote") or {})
+        gq = g.post("/api/v1/statuses", {"status": f"quoting trough {stamp}", "quoted_status_id": gm["id"], "visibility": "public"})
+        tq = wait("remote quote on trough", lambda: resolve_status(t, gq["uri"]))
+        wait("remote quote approved by trough", lambda: quote_of(g, gq["id"]).get("state") == "accepted")
+        wait("remote quote shown on trough", lambda: (quote_of(t, tq["id"]).get("quoted_status") or {}).get("id") == tmention["id"])
+        tq2 = t.post("/api/v1/statuses", {"status": f"quoting remote {stamp}", "quoted_status_id": tpost["id"], "visibility": "public"})
+        gq2 = wait("trough quote on remote", lambda: resolve_status(g, tq2["uri"]))
+        wait("trough quote approved by remote", lambda: quote_of(t, tq2["id"]).get("state") == "accepted")
+        wait("trough quote shown on remote", lambda: (quote_of(g, gq2["id"]).get("quoted_status") or {}).get("uri") == gpost["uri"])
+        t.post(f"/api/v1/statuses/{tmention['id']}/quotes/{tq['id']}/revoke")
+        wait("revoke reached remote", lambda: quote_of(g, gq["id"]).get("state") == "revoked")
 
     print("8. followers-only and direct posts")
     tpriv = t.post("/api/v1/statuses", {"status": f"followers only {stamp}", "visibility": "private"})
