@@ -361,3 +361,49 @@ func TestRemoteQuotePolicy(t *testing.T) {
 		}
 	}
 }
+
+// Edits notify those who boosted ("update") or quoted ("quoted_update")
+// the post, as on Mastodon 4.5.
+func TestEditNotifications(t *testing.T) {
+	la, r, bob, alice := featureFixture(t)
+	ctx := context.Background()
+	key := r.Base + "/users/alice#main-key"
+	nid := r.Base + "/notes/edited"
+	note := obj{"id": nid, "type": "Note", "attributedTo": alice.URI, "content": "<p>first</p>", "to": []any{asPublic}, "published": apTime(time.Now())}
+	r.send(obj{"@context": asContext, "id": nid + "/activity", "type": "Create", "actor": alice.URI, "to": []any{asPublic}, "object": note}, key, sigCavage)
+	var theirs *Status
+	eventually(t, "note stored", func() bool { theirs, _ = la.StatusByURI(nid); return theirs != nil })
+	full, _ := la.loadStatus(bob, theirs.ID)
+	if err := la.Boost(bob, full); err != nil {
+		t.Fatal(err)
+	}
+	q, err := la.PostStatus(ctx, bob, PostInput{Text: "quoting", Visibility: "public", QuoteOf: theirs.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	count := func(typ, statusID string) int {
+		return la.countInt(`SELECT COUNT(*) FROM notifications WHERE account_id=? AND type=? AND status_id=?`, bob.ID, typ, statusID)
+	}
+	note["content"] = "<p>second</p>"
+	r.send(obj{"@context": asContext, "id": nid + "#u1", "type": "Update", "actor": alice.URI, "object": note}, key, sigCavage)
+	eventually(t, "edit notifications", func() bool { return count("update", theirs.ID) == 1 && count("quoted_update", q.ID) == 1 })
+	la.db.Exec(`DELETE FROM notifications`)
+	r.send(obj{"@context": asContext, "id": nid + "#u2", "type": "Update", "actor": alice.URI, "object": note}, key, sigCavage)
+	time.Sleep(300 * time.Millisecond)
+	if n := la.countInt(`SELECT COUNT(*) FROM notifications`); n != 0 {
+		t.Fatalf("unchanged Update notified %d times", n)
+	}
+
+	// local edits notify local boosters
+	eve, _ := la.CreateLocalUser("eve", "password123", false)
+	mine, _ := la.PostStatus(ctx, bob, PostInput{Text: "draft", Visibility: "public"})
+	mf, _ := la.loadStatus(eve, mine.ID)
+	la.Boost(eve, mf)
+	mf, _ = la.loadStatus(bob, mine.ID)
+	if _, err := la.EditStatus(ctx, bob, mf, "final", "", false); err != nil {
+		t.Fatal(err)
+	}
+	if n := la.countInt(`SELECT COUNT(*) FROM notifications WHERE account_id=? AND type='update'`, eve.ID); n != 1 {
+		t.Fatalf("local update notifications = %d", n)
+	}
+}

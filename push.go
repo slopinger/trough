@@ -157,7 +157,7 @@ func encryptPush(payload []byte, p256dh, auth string) ([]byte, error) {
 
 // ---- subscriptions ----
 
-var pushAlertTypes = []string{"mention", "status", "reblog", "follow", "follow_request", "favourite", "poll", "update", "quote", "admin.sign_up", "admin.report"}
+var pushAlertTypes = []string{"mention", "status", "reblog", "follow", "follow_request", "favourite", "poll", "update", "quote", "quoted_update", "admin.sign_up", "admin.report"}
 
 type pushSub struct {
 	ID, TokenID, Endpoint, P256dh, Auth, Policy string
@@ -364,6 +364,10 @@ func pushText(n *Notification) (string, string) {
 		return "A poll has ended", body
 	case "quote":
 		return who + " quoted your post", body
+	case "update":
+		return who + " edited a post you boosted", body
+	case "quoted_update":
+		return who + " edited a post you quoted", body
 	case "reaction":
 		return who + " reacted to your post", body
 	}

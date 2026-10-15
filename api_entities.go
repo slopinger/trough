@@ -283,6 +283,7 @@ func (app *App) apiStatuses(v *Account, sts []*Status) []any {
 var notificationTypes = map[string]string{
 	"favourite": "favourite", "reblog": "reblog", "mention": "mention", "follow": "follow", "follow_request": "follow_request",
 	"poll": "poll", "quote": "quote", "reaction": "pleroma:emoji_reaction", "signup": "admin.sign_up", "move": "move",
+	"update": "update", "quoted_update": "quoted_update",
 }
 
 func (app *App) apiNotification(v *Account, n *Notification) obj {

@@ -565,6 +565,7 @@ func (app *App) inUpdate(ctx context.Context, actor *Account, act obj) error {
 		if _, listed := attributedTo(o, actor.URI); st.AccountID != actor.ID || !listed {
 			return errors.New("update of someone else's post")
 		}
+		before := [3]string{st.Content, st.Spoiler, pollText(st.Poll)}
 		app.applyNote(st, o)
 		st.QuotePolicy = remoteQuotePolicy(o, actor)
 		if state := app.localQuoteState(st, o); state != "pending" || st.QuoteState != "revoked" {
@@ -575,6 +576,9 @@ func (app *App) inUpdate(ctx context.Context, actor *Account, act obj) error {
 		}
 		app.replaceNoteExtras(ctx, st, o)
 		app.publishStatus(st.ID, true)
+		if before != [3]string{st.Content, st.Spoiler, pollText(st.Poll)} {
+			app.notifyEdited(st) // not for vote counts or quote stamps
+		}
 	}
 	return nil
 }
@@ -596,4 +600,16 @@ func (app *App) inDelete(actor *Account, act obj) error {
 		return errors.New("delete of someone else's post")
 	}
 	return app.purgeStatus(st.ID)
+}
+
+// pollText is what an edit of a poll can change: its options.
+func pollText(p *Poll) string {
+	if p == nil {
+		return ""
+	}
+	var b strings.Builder
+	for _, o := range p.Options {
+		b.WriteString(o.Name + "\n")
+	}
+	return b.String()
 }

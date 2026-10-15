@@ -62,6 +62,7 @@ func (app *App) EditStatus(ctx context.Context, me *Account, st *Status, text, s
 	// everyone who saw the old version, plus anyone newly mentioned
 	app.enqueue(me, append(oldInboxes, app.statusInboxes(full)...), app.updateNoteActivity(full))
 	app.publishStatus(full.ID, true)
+	app.notifyEdited(full)
 	return full, nil
 }
 

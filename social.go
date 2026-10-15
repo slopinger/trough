@@ -389,6 +389,31 @@ func (app *App) cardsFor(sts []*Status) {
 	}
 }
 
+// notifyEdited tells local users that st, which they boosted or quoted,
+// was edited (Mastodon's "update" and "quoted_update" notifications).
+// For quotes the notification carries their quoting post.
+func (app *App) notifyEdited(st *Status) {
+	type note struct{ to, typ, status string }
+	var list []note
+	rows, err := app.db.Query(`SELECT s.account_id, 'update', ? FROM statuses s JOIN users u ON u.account_id=s.account_id WHERE s.boost_of_id=?
+		UNION SELECT s.account_id, 'quoted_update', s.id FROM statuses s JOIN users u ON u.account_id=s.account_id
+		WHERE s.quote_uri=? AND s.quote_state='' AND s.boost_of_id=''`, st.ID, st.ID, st.URI)
+	if err != nil {
+		return
+	}
+	for rows.Next() {
+		var n note
+		rows.Scan(&n.to, &n.typ, &n.status)
+		list = append(list, n)
+	}
+	rows.Close()
+	for _, n := range list {
+		// a later edit notifies again
+		app.db.Exec(`DELETE FROM notifications WHERE account_id=? AND type=? AND from_account_id=? AND status_id=?`, n.to, n.typ, st.AccountID, n.status)
+		app.notify(n.to, n.typ, st.AccountID, n.status)
+	}
+}
+
 // ---- featured accounts ("endorsements") ----
 
 // Endorse features target on my profile.
