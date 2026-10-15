@@ -16,55 +16,31 @@ import contextlib
 import os
 from pathlib import Path
 import secrets
-import ssl
 import subprocess
 import sys
 import tempfile
-import time
-import urllib.error
-import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from interop_env import REPO, Env, build, free_port, wait_for  # noqa: E402
+from interop_env import REPO, Env, build, free_port, in_private_netns, pull, require_signed_fetches, wait_for  # noqa: E402
 
 MASTODON = os.environ.get("MASTODON_IMAGE", "ghcr.io/mastodon/mastodon:v4.7.3")
 POSTGRES = "postgres:16-alpine"
 REDIS = "redis:7-alpine"
 
 
-def docker(*args):
-    r = subprocess.run(["sudo", "docker", *args], text=True, capture_output=True)
-    if r.returncode:
-        raise RuntimeError(f"docker {' '.join(args[-4:])} failed:\n{r.stdout[-2000:]}{r.stderr[-3000:]}")
-    return r
-
-
 def main():
-    """Outside: create the namespace and run inside() in it."""
+    """Outside: build trough, then run inside() in a private network namespace."""
     tag = "trough-interop-" + secrets.token_hex(4)
     with tempfile.TemporaryDirectory(prefix="trough-mastodon-") as temp:
         binary = Path(temp) / "trough"
         build(binary)  # here, where the module proxy is reachable
-        for image in (MASTODON, POSTGRES, REDIS):
-            if subprocess.run(["sudo", "docker", "image", "inspect", image], capture_output=True).returncode:
-                docker("pull", image)
-        docker("run", "-d", "--rm", "--network", "none", "--name", f"{tag}-net", POSTGRES, "sleep", "infinity")
-        try:
-            pid = docker("inspect", "-f", "{{.State.Pid}}", f"{tag}-net").stdout.strip()
-            return subprocess.run([
-                "sudo", "-E", "nsenter", f"--net=/proc/{pid}/ns/net",
-                "setpriv", f"--reuid={os.getuid()}", f"--regid={os.getgid()}", "--init-groups",
-                "env", f"PATH={os.environ['PATH']}",
-                sys.executable, "-I", __file__, "--inside", tag, str(binary),
-            ]).returncode
-        finally:
-            docker("rm", "-f", f"{tag}-net")
+        pull(MASTODON, POSTGRES, REDIS)
+        return in_private_netns(tag, POSTGRES, __file__, str(binary))
 
 
 def inside(tag, binary):
-    containers = []
     with tempfile.TemporaryDirectory(prefix="trough-mastodon-") as temp, contextlib.ExitStack() as stack:
-        env = Env(temp, stack, {k: v for k, v in os.environ.items() if not k.startswith("TROUGH_")})
+        env = Env(temp, stack, {k: v for k, v in os.environ.items() if not k.startswith("TROUGH_")}, tag)
         root = env.root
         pg, rd, web, tp = (free_port() for _ in range(4))
         mhost, thost = "localhost", "127.0.0.1"
@@ -74,19 +50,12 @@ def inside(tag, binary):
             os.chmod(root, 0o755)
             menv = root / "mastodon.env"
 
-            def run(name, image, *cmd, detach=False, extra=()):
-                args = ["run", "--rm", "--network", f"container:{tag}-net", *extra]
-                if detach:
-                    args += ["-d", "--name", f"{tag}-{name}"]
-                    containers.append(f"{tag}-{name}")
-                if image == MASTODON:
-                    args += ["--env-file", str(menv), "-v", f"{bundle}:/ca.pem:ro"]
-                return docker(*args, image, *cmd)
+            def run(name, *cmd, detach=False):
+                return env.container(name, MASTODON, *cmd, detach=detach,
+                                     args=("--env-file", str(menv), "-v", f"{bundle}:/ca.pem:ro"))
 
-            # trust auth is fine: nothing outside this namespace can reach postgres
-            run("pg", POSTGRES, "-c", "listen_addresses=127.0.0.1", "-p", str(pg), detach=True,
-                extra=("-e", "POSTGRES_HOST_AUTH_METHOD=trust", "-e", "POSTGRES_USER=mastodon"))
-            run("redis", REDIS, "redis-server", "--bind", "127.0.0.1", "--port", str(rd), "--save", "", "--appendonly", "no", detach=True)
+            env.postgres(POSTGRES, pg, "mastodon")
+            env.container("redis", REDIS, "redis-server", "--bind", "127.0.0.1", "--port", str(rd), "--save", "", "--appendonly", "no", detach=True)
             hexkey = lambda: secrets.token_hex(64)
             menv.write_text("\n".join([
                 f"LOCAL_DOMAIN={mhost}", "RAILS_ENV=production", "NODE_ENV=production",
@@ -101,14 +70,7 @@ def inside(tag, binary):
                 "SAFETY_ASSURED=1", "DISABLE_DATABASE_ENVIRONMENT_CHECK=1", "SIDEKIQ_CONCURRENCY=5",
                 f"AUTHORIZED_FETCH={os.environ.get('AUTHORIZED_FETCH', 'false')}",
             ]) + "\n")
-            for _ in range(60):
-                if subprocess.run(["sudo", "docker", "exec", f"{tag}-pg", "pg_isready", "-h", "127.0.0.1", "-p", str(pg)],
-                                  capture_output=True).returncode == 0:
-                    break
-                time.sleep(1)
-            else:
-                raise RuntimeError("postgres did not start")
-            run("setup", MASTODON, "bundle", "exec", "rails", "db:setup")
+            run("setup", "bundle", "exec", "rails", "db:setup")
             # create the user directly: tootctl insists on a reachable mail domain,
             # and Mastodon resets `approved` on create
             ruby = ("u = User.new(email: 'mal@localhost', password: SecureRandom.hex(16), agreement: true,"
@@ -117,34 +79,22 @@ def inside(tag, binary):
                     "a = Doorkeeper::Application.create!(name: 'interop', redirect_uri: 'urn:ietf:wg:oauth:2.0:oob', scopes: 'read write follow push');"
                     "t = Doorkeeper::AccessToken.create!(application_id: a.id, resource_owner_id: u.id, scopes: 'read write follow push');"
                     "puts 'TOKEN=' + t.token")
-            token = run("user", MASTODON, "bin/rails", "runner", ruby).stdout.split("TOKEN=", 1)[1].split()[0]
-            run("web", MASTODON, "bundle", "exec", "puma", "-C", "config/puma.rb", detach=True)
-            run("sidekiq", MASTODON, "bundle", "exec", "sidekiq", detach=True)
+            token = run("user", "bin/rails", "runner", ruby).stdout.split("TOKEN=", 1)[1].split()[0]
+            run("web", "bundle", "exec", "puma", "-C", "config/puma.rb", detach=True)
+            run("sidekiq", "bundle", "exec", "sidekiq", detach=True)
 
             tproc, bob_pw = env.trough(thost, tp, binary)
             wait_for(f"https://{thost}/nodeinfo/2.0", bundle, tproc)
             wait_for(f"https://{mhost}/api/v1/instance", bundle, timeout=240, want=b'"uri"')
-            if os.environ.get("AUTHORIZED_FETCH") == "true":  # make sure secure mode is really on
-                req = urllib.request.Request(f"https://{mhost}/users/mal", headers={"Accept": "application/activity+json"})
-                try:
-                    urllib.request.urlopen(req, context=ssl.create_default_context(cafile=str(bundle)))
-                    raise RuntimeError("AUTHORIZED_FETCH is set but Mastodon served an unsigned fetch")
-                except urllib.error.HTTPError as e:
-                    assert e.code == 401, e.code
-                print("Mastodon requires signed fetches (AUTHORIZED_FETCH)")
+            if os.environ.get("AUTHORIZED_FETCH") == "true":
+                require_signed_fetches(f"https://{mhost}/users/mal", bundle)
 
             result = subprocess.run([sys.executable, "-I", str(REPO / "test/interop.py"),
                                      f"https://{thost}", "bob", bob_pw, f"https://{mhost}", "--token", token], env=env.env)
             if result.returncode:
                 env.dump_logs()
-                for c in containers:
-                    if c.endswith(("web", "sidekiq")):
-                        print(f"--- {c} (tail) ---", flush=True)
-                        subprocess.run(["sudo", "docker", "logs", "--tail", "40", c])
             return result.returncode
         finally:
-            for c in containers:
-                subprocess.run(["sudo", "docker", "rm", "-f", c], capture_output=True)
             env.close()
 
 
