@@ -247,6 +247,24 @@ func (app *App) apiUpdateCredentials(w http.ResponseWriter, r *http.Request, c *
 	apiJSON(w, 200, app.apiCredentialAccount(me))
 }
 
+// apiDeleteProfileImage removes the avatar or header
+// (DELETE /api/v1/profile/avatar, /api/v1/profile/header).
+func (app *App) apiDeleteProfileImage(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	me := c.Me
+	if r.PathValue("image") == "avatar" {
+		app.replaceRemove(me.Avatar)
+		me.Avatar = ""
+	} else {
+		app.replaceRemove(me.Header)
+		me.Header = ""
+	}
+	if err := app.UpdateProfile(me); err != nil {
+		apiError(w, 500, err.Error())
+		return
+	}
+	apiJSON(w, 200, app.apiCredentialAccount(me))
+}
+
 func (app *App) apiAccountByID(w http.ResponseWriter, r *http.Request) (*Account, bool) {
 	a, err := app.AccountByID(r.PathValue("id"))
 	if err != nil || a.Suspended || (a.ActorType == "Application" && a.IsLocal()) {

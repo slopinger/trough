@@ -217,6 +217,13 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 
 	h("GET /api/v1/accounts/verify_credentials", read(app.apiVerifyCredentials))
 	h("PATCH /api/v1/accounts/update_credentials", write(app.apiUpdateCredentials))
+	h("DELETE /api/v1/profile/{image}", write(func(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+		if img := r.PathValue("image"); img != "avatar" && img != "header" {
+			apiError(w, 404, "Record not found")
+			return
+		}
+		app.apiDeleteProfileImage(w, r, c)
+	}))
 	h("GET /api/v1/accounts/relationships", read(app.apiRelationships))
 	h("GET /api/v1/accounts/familiar_followers", read(emptyList))
 	h("GET /api/v1/accounts/lookup", pub(app.apiLookup))
