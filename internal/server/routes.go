@@ -76,6 +76,8 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("POST /notifications/clear", auth(app.handleClearNotifications))
 	mux.HandleFunc("POST /announcements/{id}/dismiss", auth(app.handleDismissAnnouncement))
 	mux.HandleFunc("POST /settings/domain_blocks", auth(app.handleDomainBlock))
+	mux.HandleFunc("GET /settings/export/{file}", auth(app.handleExport))
+	mux.HandleFunc("POST /settings/import", auth(app.handleImport))
 	mux.HandleFunc("GET /follow_requests", auth(app.handleFollowRequests))
 	mux.HandleFunc("GET /search", auth(app.handleSearch))
 	mux.HandleFunc("GET /authorize_interaction", auth(app.handleAuthorizeInteraction))

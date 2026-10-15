@@ -76,6 +76,32 @@
   {{range .BlockedDomains}}<form method="post" action="/settings/domain_blocks" class="inline-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="unblock" value="{{.}}"><code>{{.}}</code><button class="btn small">Unblock</button></form>{{end}}
   <form method="post" action="/settings/domain_blocks" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><input name="domain" placeholder="example.social" required><button class="btn">Block server</button></form>
 </section>
+<section class="card" id="import">
+  <h3>Import and export</h3>
+  <p class="muted small">CSV files in Mastodon's format, to move between servers.</p>
+  <p class="export-links">Download:
+    <a href="/settings/export/following_accounts.csv">follows</a> ·
+    <a href="/settings/export/lists.csv">lists</a> ·
+    <a href="/settings/export/blocked_accounts.csv">blocks</a> ·
+    <a href="/settings/export/muted_accounts.csv">mutes</a> ·
+    <a href="/settings/export/blocked_domains.csv">blocked servers</a> ·
+    <a href="/settings/export/bookmarks.csv">bookmarks</a></p>
+  {{with .Import}}<p class="flash" role="status">{{if .Running}}Importing {{.Kind}}: {{.Done}} of {{.Total}} done{{if .Fail}}, {{.Fail}} failed{{end}}. Reload to update.{{else}}Last import ({{.Kind}}): {{.Total}} entries{{if .Fail}}, {{.Fail}} could not be imported (account or post not found){{end}}.{{end}}</p>{{end}}
+  <form method="post" action="/settings/import" enctype="multipart/form-data" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <select name="type">
+      <option value="following">Follows</option>
+      <option value="lists">Lists</option>
+      <option value="blocks">Blocks</option>
+      <option value="mutes">Mutes</option>
+      <option value="domain_blocks">Blocked servers</option>
+      <option value="bookmarks">Bookmarks</option>
+    </select>
+    <input type="file" name="file" accept=".csv,text/csv" required>
+    <button class="btn">Import</button>
+  </form>
+  <p class="muted small">Imports add to what you have here. Importing lists also follows the people on them.</p>
+</section>
 <section class="card" id="account">
   <h3>Moving accounts</h3>
   {{if .MovedTo}}<p class="flash">This account is marked as moved to <a href="{{.MovedTo.Path}}">{{handle .MovedTo}}</a>.</p>

@@ -99,6 +99,8 @@
   the list of servers the instance blocks is public (`/api/v1/instance/domain_blocks`)
 - Mutes, keyword filters (collapse, hide media or hide; through the API also grouped, per context and expiring), blocks; reports with optional anonymous forwarding (`Flag`)
   and incoming reports for admins
+- Import and export (Settings) of follows, lists, blocks, mutes, blocked servers and bookmarks as CSV files in
+  Mastodon's formats; imports merge and run in the background with progress shown in Settings
 - Account migration: aliases (`alsoKnownAs`), moving followers to a new account (`Move`), and following
   accounts that moved here
 - Sign-ups: closed, invite links or open (admin setting); live "new posts" banner and notification badge

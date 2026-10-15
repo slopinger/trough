@@ -75,7 +75,7 @@ func (app *App) UpdateList(me *Account, l *List, title, policy string, exclusive
 }
 
 func (app *App) AddToList(me *Account, l *List, acc *Account) error {
-	if !app.relationship(me.ID, acc.ID).Following {
+	if r := app.relationship(me.ID, acc.ID); !r.Following && !r.Requested { // as on Mastodon, follow requests count
 		return errors.New("you can only add accounts you follow")
 	}
 	_, err := app.db.Exec(`INSERT OR IGNORE INTO list_accounts (list_id, account_id) VALUES (?,?)`, l.ID, acc.ID)

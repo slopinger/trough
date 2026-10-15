@@ -80,6 +80,7 @@ type Page struct {
 	TagFollowed    bool
 	FollowedTags   []string
 	BlockedDomains []string
+	Import         *importState // settings: the running or last CSV import
 	Versions       []StatusVersion
 	CustomEmojis   []CustomEmoji
 	Scheduled      []*ScheduledStatus
