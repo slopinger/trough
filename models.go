@@ -35,7 +35,8 @@ type Account struct {
 	Suspended                          bool
 	FeaturedURI                        string
 	AlsoKnownAs                        []string
-	MovedTo                            string // actor IRI the account moved to
+	MovedTo                            string   // actor IRI the account moved to
+	AttributionDomains                 []string // websites that may credit the account as author
 }
 
 func (a *Account) IsLocal() bool { return a.Domain == "" }
@@ -68,17 +69,18 @@ func (a *Account) DeliveryInbox() string {
 
 const accountCols = `a.id,a.username,a.domain,a.uri,a.url,a.display_name,a.note,a.note_source,a.avatar,a.header,
 a.inbox,a.shared_inbox,a.outbox,a.followers_uri,a.following_uri,a.public_key_id,a.public_key,a.private_key,
-a.actor_type,a.locked,a.fields,a.emojis,a.created_at,a.fetched_at,a.suspended,a.featured_uri,a.also_known_as,a.moved_to`
+a.actor_type,a.locked,a.fields,a.emojis,a.created_at,a.fetched_at,a.suspended,a.featured_uri,a.also_known_as,a.moved_to,
+a.attribution_domains`
 
 type scanner interface{ Scan(...any) error }
 
 func scanAccount(r scanner) (*Account, error) {
 	a := &Account{}
-	var fields, emojis, aka string
+	var fields, emojis, aka, attr string
 	var created, fetched int64
 	err := r.Scan(&a.ID, &a.Username, &a.Domain, &a.URI, &a.URL, &a.DisplayName, &a.Note, &a.NoteSource, &a.Avatar, &a.Header,
 		&a.Inbox, &a.SharedInbox, &a.Outbox, &a.FollowersURI, &a.FollowingURI, &a.PublicKeyID, &a.PublicKey, &a.PrivateKey,
-		&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo)
+		&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errNotFound
 	}
@@ -88,6 +90,7 @@ func scanAccount(r scanner) (*Account, error) {
 	json.Unmarshal([]byte(fields), &a.Fields)
 	json.Unmarshal([]byte(emojis), &a.Emojis)
 	json.Unmarshal([]byte(aka), &a.AlsoKnownAs)
+	json.Unmarshal([]byte(attr), &a.AttributionDomains)
 	a.CreatedAt = time.Unix(created, 0)
 	a.FetchedAt = time.Unix(fetched, 0)
 	return a, nil
@@ -143,6 +146,10 @@ func (app *App) saveAccount(a *Account) error {
 	if a.AlsoKnownAs == nil {
 		aka = []byte("[]")
 	}
+	attr, _ := json.Marshal(a.AttributionDomains)
+	if a.AttributionDomains == nil {
+		attr = []byte("[]")
+	}
 	if a.ID == "" {
 		a.ID = newID()
 	}
@@ -150,19 +157,19 @@ func (app *App) saveAccount(a *Account) error {
 		a.CreatedAt = time.Now()
 	}
 	_, err := app.db.Exec(`INSERT INTO accounts (id,username,domain,uri,url,display_name,note,note_source,avatar,header,
-		inbox,shared_inbox,outbox,followers_uri,following_uri,public_key_id,public_key,private_key,actor_type,locked,fields,emojis,created_at,fetched_at,suspended,featured_uri,also_known_as,moved_to)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+		inbox,shared_inbox,outbox,followers_uri,following_uri,public_key_id,public_key,private_key,actor_type,locked,fields,emojis,created_at,fetched_at,suspended,featured_uri,also_known_as,moved_to,attribution_domains)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 		ON CONFLICT(id) DO UPDATE SET username=excluded.username, url=excluded.url, display_name=excluded.display_name,
 		note=excluded.note, note_source=excluded.note_source, avatar=excluded.avatar, header=excluded.header, inbox=excluded.inbox,
 		shared_inbox=excluded.shared_inbox, outbox=excluded.outbox, followers_uri=excluded.followers_uri,
 		following_uri=excluded.following_uri, public_key_id=excluded.public_key_id, public_key=excluded.public_key,
 		actor_type=excluded.actor_type, locked=excluded.locked, fields=excluded.fields, emojis=excluded.emojis,
 		fetched_at=excluded.fetched_at, suspended=excluded.suspended, featured_uri=excluded.featured_uri,
-		also_known_as=excluded.also_known_as, moved_to=excluded.moved_to`,
+		also_known_as=excluded.also_known_as, moved_to=excluded.moved_to, attribution_domains=excluded.attribution_domains`,
 		a.ID, a.Username, a.Domain, a.URI, a.URL, a.DisplayName, a.Note, a.NoteSource, a.Avatar, a.Header,
 		a.Inbox, a.SharedInbox, a.Outbox, a.FollowersURI, a.FollowingURI, a.PublicKeyID, a.PublicKey, a.PrivateKey,
 		a.ActorType, a.Locked, string(fields), string(emojis), a.CreatedAt.Unix(), a.FetchedAt.Unix(), a.Suspended,
-		a.FeaturedURI, string(aka), a.MovedTo)
+		a.FeaturedURI, string(aka), a.MovedTo, string(attr))
 	return err
 }
 
@@ -182,11 +189,11 @@ func (app *App) ListUsers() ([]*User, error) {
 	for rows.Next() {
 		a := &Account{}
 		u := &User{Account: a}
-		var fields, emojis, aka string
+		var fields, emojis, aka, attr string
 		var created, fetched, seen int64
 		if err := rows.Scan(&a.ID, &a.Username, &a.Domain, &a.URI, &a.URL, &a.DisplayName, &a.Note, &a.NoteSource, &a.Avatar, &a.Header,
 			&a.Inbox, &a.SharedInbox, &a.Outbox, &a.FollowersURI, &a.FollowingURI, &a.PublicKeyID, &a.PublicKey, &a.PrivateKey,
-			&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &u.Admin, &seen); err != nil {
+			&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &u.Admin, &seen); err != nil {
 			return nil, err
 		}
 		a.CreatedAt = time.Unix(created, 0)

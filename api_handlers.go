@@ -218,6 +218,14 @@ func (app *App) apiUpdateCredentials(w http.ResponseWriter, r *http.Request, c *
 	if seenFields {
 		me.Fields = fields
 	}
+	if p.Has("attribution_domains") || p.Has("attribution_domains[]") {
+		domains, err := attributionDomains(p.List("attribution_domains"))
+		if err != nil {
+			apiError(w, 422, "Validation failed: "+err.Error())
+			return
+		}
+		me.AttributionDomains = domains
+	}
 	for _, f := range []string{"avatar", "header"} {
 		if r.MultipartForm == nil || len(r.MultipartForm.File[f]) == 0 {
 			continue

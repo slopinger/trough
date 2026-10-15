@@ -113,7 +113,8 @@ func (app *App) apiCredentialAccount(a *Account) obj {
 	}
 	priv := "public"
 	m["source"] = obj{"privacy": priv, "sensitive": false, "language": "", "note": a.NoteSource, "fields": fields,
-		"follow_requests_count": app.followRequestCount(a.ID), "quote_policy": "public"}
+		"follow_requests_count": app.followRequestCount(a.ID), "quote_policy": "public",
+		"attribution_domains": nonNil(a.AttributionDomains)}
 	m["role"] = obj{"id": "0", "name": map[bool]string{true: "Admin", false: ""}[app.isAdmin(a.ID)], "permissions": "0", "color": "", "highlighted": false}
 	return m
 }

@@ -133,6 +133,7 @@ func (app *App) templateFuncs() template.FuncMap {
 		"fulltime": func(t time.Time) string { return t.UTC().Format("Mon, 2 Jan 2006 15:04 UTC") },
 		"date":     func(t time.Time) string { return t.UTC().Format("January 2006") },
 		"canQuote": func(st *Status, me *Account) bool { return app.quoteApproval(st, me) != "denied" },
+		"join":     strings.Join,
 		"handle": func(a *Account) string {
 			return "@" + a.Username + "@" + app.accountHost(a)
 		},

@@ -186,6 +186,7 @@ var apContext = []any{
 		"Hashtag":                   "as:Hashtag",
 		"toot":                      "http://joinmastodon.org/ns#",
 		"discoverable":              "toot:discoverable",
+		"attributionDomains":        obj{"@id": "toot:attributionDomains", "@type": "@id"},
 		"indexable":                 "toot:indexable",
 		"Emoji":                     "toot:Emoji",
 		"schema":                    "http://schema.org#",

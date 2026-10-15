@@ -1022,6 +1022,11 @@ func (app *App) handleSettingsProfile(w http.ResponseWriter, r *http.Request, p 
 		}
 	}
 	var errs []string
+	if domains, err := attributionDomains(strings.Fields(r.FormValue("attribution_domains"))); err == nil {
+		me.AttributionDomains = domains
+	} else {
+		errs = append(errs, err.Error())
+	}
 	if data, ok := app.readImageField(r, "avatar"); ok {
 		if u, err := app.replaceImage(me, me.Avatar, data); err == nil {
 			me.Avatar = u

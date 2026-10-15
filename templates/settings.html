@@ -22,6 +22,8 @@
       <div class="fieldrow"><input name="field_name{{$i}}" maxlength="100" placeholder="Label" value="{{$f.Name}}"><input name="field_value{{$i}}" maxlength="500" placeholder="Content (a URL becomes a link)" value="{{plain $f.Value}}"></div>
       {{end}}
     </fieldset>
+    <label>Websites that may credit you as author <span class="muted small">(one domain per line; their pages can name you with <code>&lt;meta name="fediverse:creator" content="{{handle $a}}"&gt;</code>)</span>
+      <textarea name="attribution_domains" rows="2" placeholder="blog.example">{{join $a.AttributionDomains "\n"}}</textarea></label>
     <label class="check"><input type="checkbox" name="locked"{{if $a.Locked}} checked{{end}}> Approve followers manually</label>
     <label class="check"><input type="checkbox" name="bot"{{if $a.IsBot}} checked{{end}}> This is a bot account</label>
     <button class="btn primary">Save profile</button>

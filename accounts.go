@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -271,4 +273,46 @@ func (app *App) handleSignup(w http.ResponseWriter, r *http.Request, p *Page) {
 	app.startSession(w, r, acc)
 	setFlash(w, "Welcome to "+app.instanceTitle()+"! Set up your profile, then find people to follow.")
 	http.Redirect(w, r, "/settings", http.StatusSeeOther)
+}
+
+var domainRE = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$`)
+
+// normalizeDomain turns "https://Blog.Example/" into "blog.example".
+// Internationalized names have to be given in punycode (xn--...).
+func normalizeDomain(s string) (string, bool) {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = strings.TrimPrefix(strings.TrimPrefix(s, "https://"), "http://")
+	if i := strings.IndexAny(s, "/?#"); i >= 0 {
+		s = s[:i]
+	}
+	return s, len(s) <= 253 && domainRE.MatchString(s)
+}
+
+// attributionDomains checks the websites that may credit an account as
+// the author of their pages (fediverse:creator, Mastodon 4.4).
+func attributionDomains(list []string) ([]string, error) {
+	var out []string
+	for _, d := range list {
+		if strings.TrimSpace(d) == "" {
+			continue
+		}
+		n, ok := normalizeDomain(d)
+		if !ok {
+			return nil, fmt.Errorf("%q is not a domain", d)
+		}
+		if !contains(out, n) {
+			out = append(out, n)
+		}
+	}
+	if len(out) > 10 {
+		return nil, errors.New("at most 10 attribution domains")
+	}
+	return out, nil
+}
+
+func nonNil(list []string) []string {
+	if list == nil {
+		return []string{}
+	}
+	return list
 }

@@ -450,6 +450,8 @@ CREATE TABLE account_pins (
 	created_at INTEGER NOT NULL,
 	PRIMARY KEY (account_id, target_id)
 );
+`, `
+ALTER TABLE accounts ADD COLUMN attribution_domains TEXT NOT NULL DEFAULT '[]';
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

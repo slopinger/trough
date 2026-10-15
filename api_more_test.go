@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -508,5 +509,27 @@ func TestAPIDeleteMedia(t *testing.T) {
 	c.ok("DELETE", "/api/v1/media/"+m2, nil)
 	if code, _, _ := c.do("GET", "/api/v1/media/"+m2, nil); code != 404 {
 		t.Fatalf("deleted media still there: %d", code)
+	}
+}
+
+// attribution_domains (Mastodon 4.4): set through the API, shown in
+// source and published on the actor; remote ones are read.
+func TestAttributionDomains(t *testing.T) {
+	la, _, bob, _ := featureFixture(t)
+	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}
+	me := c.ok("PATCH", "/api/v1/accounts/update_credentials", url.Values{"attribution_domains[]": {"https://Blog.Example/", "news.example", "blog.example"}}).(map[string]any)
+	got := me["source"].(map[string]any)["attribution_domains"].([]any)
+	if len(got) != 2 || got[0] != "blog.example" || got[1] != "news.example" {
+		t.Fatalf("attribution_domains = %v", got)
+	}
+	if code, _, _ := c.do("PATCH", "/api/v1/accounts/update_credentials", url.Values{"attribution_domains[]": {"not a domain"}}); code != 422 {
+		t.Fatalf("invalid domain accepted: %d", code)
+	}
+	acc, _ := la.AccountByID(bob.ID)
+	if d := la.actorJSON(acc)["attributionDomains"]; !reflect.DeepEqual(d, []string{"blog.example", "news.example"}) {
+		t.Fatalf("actor attributionDomains = %v", d)
+	}
+	if list, err := attributionDomains([]string{"xn--bcher-kva.example", "a.example/path?x"}); err != nil || list[1] != "a.example" {
+		t.Fatalf("%v %v", list, err)
 	}
 }

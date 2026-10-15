@@ -327,6 +327,12 @@ func (app *App) upsertActor(m obj) (*Account, error) {
 	acc.Emojis = emojisOf(m)
 	acc.FeaturedURI = idOf(m["featured"])
 	acc.AlsoKnownAs = idsOf(m["alsoKnownAs"])
+	acc.AttributionDomains = nil
+	for _, d := range idsOf(m["attributionDomains"]) {
+		if d, ok := normalizeDomain(d); ok && len(acc.AttributionDomains) < 10 {
+			acc.AttributionDomains = append(acc.AttributionDomains, d)
+		}
+	}
 	acc.MovedTo = idOf(m["movedTo"])
 	acc.FetchedAt = time.Now()
 	if err := app.saveAccount(acc); err != nil {
