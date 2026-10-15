@@ -140,6 +140,14 @@ boosts, replies, visibility, DMs, profile updates, deletes and blocks. The runne
 loopback ports and temporary databases, stops both processes, and removes its data on exit. It does
 not use the live instance or its credentials.
 
+`python3 test/run-gotosocial.py` federates a disposable trough with a disposable **real GoToSocial**
+(from `GOTOSOCIAL=/path/to/binary`, or built with Nix) behind a throwaway Caddy with its own local CA,
+then runs `test/gotosocial.py` over both servers' client APIs: follow requests and accepts, posts,
+mentions, likes and unlikes, boosts, replies, edits, polls and votes, followers-only posts, DMs, deletes,
+profile updates and unfollows, in both directions. It takes about a minute and needs `caddy` on PATH.
+Known GoToSocial 0.22.1 issue: deleting a remote post that already has replies fails on its side
+(`NOT NULL constraint failed: statuses.thread_id` while stubbing), so that one check only warns.
+
 To test two instances you started yourself, use `python3 test/federation.py <alice-pw> <bob-pw>`.
 It defaults to ports 8801/8802; `TROUGH_TEST_A` and `TROUGH_TEST_B` override the base URLs.
 The passwords can instead come from `TROUGH_TEST_ALICE_PASSWORD` and `TROUGH_TEST_BOB_PASSWORD`.

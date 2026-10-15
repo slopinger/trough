@@ -7,6 +7,8 @@ Keep these notes and README up to date whenever code behavior, commands or opera
 - `go test ./...` and `go vet ./...` are baseline checks. Use `go test -race ./...` for concurrency changes.
 - `python3 test/run-federation.py` builds two disposable loopback instances and exercises signed
   federation via the real web UI; it removes processes/data on exit. It never uses live credentials.
+- `python3 test/run-gotosocial.py` federates with a disposable real GoToSocial (Nix) behind a throwaway
+  local-CA Caddy (trough runs `-insecure -scheme https`); needs `caddy`, takes ~1 minute.
 - `compat_*_test.go` is the ActivityPub compatibility suite: a live instance against a fake remote that
   speaks like Mastodon, GoToSocial, Misskey, Pleroma, Pixelfed, Friendica, WordPress, Fedify (RFC 9421),
   Lemmy and PeerTube, cross-checking signatures with go-fed/httpsig. Add a flavor/fixture when fixing an
