@@ -544,3 +544,12 @@ details.listedit[open] > summary { margin-bottom: 10px; }
 
 /* Delete account */
 .danger-zone { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
+
+/* Notification filters */
+.filtered-banner { display: flex; align-items: center; gap: 8px; padding: 10px 14px; margin-bottom: 12px; color: var(--text);
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); font-weight: 600; }
+.filtered-banner:hover { border-color: var(--accent); text-decoration: none; }
+.notif-request { margin-bottom: 18px; }
+.notif-request .row-actions { display: flex; gap: 8px; margin-top: 6px; }
+.policy-form { display: grid; gap: 10px; }
+.policy-form label { display: flex; justify-content: space-between; align-items: center; gap: 12px; }

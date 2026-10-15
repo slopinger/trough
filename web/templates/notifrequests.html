@@ -1,0 +1,13 @@
+{{define "content"}}{{$p := .}}
+<div class="pagehead"><h2 class="pagetitle">Filtered notifications</h2><a class="btn small" href="/settings#notification-filters">Filters</a></div>
+<p class="muted small">Notifications from accounts your <a href="/settings#notification-filters">notification filters</a> hold back. Accept to see them (and future ones), or dismiss them.</p>
+{{range .Requests2}}<div class="notif-request">
+  {{template "accountrow" (dict "A" .Account "P" $p)}}
+  <p class="muted small">{{.Count}} {{if eq .Count 1}}notification{{else}}notifications{{end}}, latest {{ago .Updated}}</p>
+  {{with .LastStatus}}{{template "status" (dict "S" . "P" $p)}}{{end}}
+  <div class="row-actions">
+    <form method="post" action="/notifications/requests"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><input type="hidden" name="account" value="{{.Account.ID}}"><input type="hidden" name="action" value="accept"><button class="btn primary small">Accept</button></form>
+    <form method="post" action="/notifications/requests"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><input type="hidden" name="account" value="{{.Account.ID}}"><input type="hidden" name="action" value="dismiss"><button class="btn small">Dismiss</button></form>
+  </div>
+</div>{{else}}<p class="empty">Nothing filtered right now.</p>{{end}}
+{{end}}

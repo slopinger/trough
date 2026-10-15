@@ -33,65 +33,68 @@ type Page struct {
 	Host     string
 	Path     string
 
-	Statuses       []*Status
-	Status         *Status
-	Ancestors      []*Status
-	Descendants    []*Status
-	Account        *Account
-	Rel            Relationship
-	AccountNote    string // the viewer's private note on a profile
-	Accounts       []*Account
-	Notifications  []*Notification
-	NextURL        string
-	Query          string
-	Tab            string
-	Compose        *Compose
-	Users          []*User
-	DomainBlocks   []DomainBlock
-	Stats          map[string]int
-	Counts         struct{ Posts, Following, Followers int }
-	Description    string
-	Admins         []*Account
-	Heading        string
-	Empty          string
-	Deliveries     []DeliveryInfo
-	Pinned         []*Status
-	Featured       []*Account // accounts the profile owner features
-	QuotePolicy    string     // settings: who may quote my new posts
-	Blocked        []*Account
-	Filters        []*Filter
-	Reports        []*Report
-	Invites        []Invite
-	Registrations  string
-	Aliases        []*Account
-	MovedTo        *Account
-	Timeline       string // home/local/federated: enables live "new posts"
-	OAuth          *authorizeReq
-	Lists          []List
-	List           *List
-	Relays         []Relay
-	Tag            string
-	Rules          []Rule
-	Announcements  []*Announcement // unread banner; all of them on /admin
-	TrendTags      []TrendTag
-	TrendLinks     []TrendLink
-	Suggestions    []Suggestion
-	Familiar       []*Account // people the viewer follows who follow this profile
-	TagFollowed    bool
-	TagFeatured    bool
-	Codes          []string // two-factor recovery codes, shown once
-	TwoFactor      bool     // settings: two-factor authentication is on
-	FeaturedTags   []FeaturedTag
-	FollowedTags   []string
-	BlockedDomains []string
-	Import         *importState // settings: the running or last CSV import
-	Versions       []StatusVersion
-	CustomEmojis   []CustomEmoji
-	Scheduled      []*ScheduledStatus
-	Apps           []ConnectedApp
-	AI             bool   // AI writing available
-	AIKeySource    string // admin: where the key comes from
-	AIModel        string
+	Statuses        []*Status
+	Status          *Status
+	Ancestors       []*Status
+	Descendants     []*Status
+	Account         *Account
+	Rel             Relationship
+	AccountNote     string // the viewer's private note on a profile
+	Accounts        []*Account
+	Notifications   []*Notification
+	NextURL         string
+	Query           string
+	Tab             string
+	Compose         *Compose
+	Users           []*User
+	DomainBlocks    []DomainBlock
+	Stats           map[string]int
+	Counts          struct{ Posts, Following, Followers int }
+	Description     string
+	Admins          []*Account
+	Heading         string
+	Empty           string
+	Deliveries      []DeliveryInfo
+	Pinned          []*Status
+	Featured        []*Account // accounts the profile owner features
+	QuotePolicy     string     // settings: who may quote my new posts
+	Blocked         []*Account
+	Filters         []*Filter
+	Reports         []*Report
+	Invites         []Invite
+	Registrations   string
+	Aliases         []*Account
+	MovedTo         *Account
+	Timeline        string // home/local/federated: enables live "new posts"
+	OAuth           *authorizeReq
+	Lists           []List
+	List            *List
+	Relays          []Relay
+	Tag             string
+	Rules           []Rule
+	Announcements   []*Announcement // unread banner; all of them on /admin
+	TrendTags       []TrendTag
+	TrendLinks      []TrendLink
+	Suggestions     []Suggestion
+	Familiar        []*Account // people the viewer follows who follow this profile
+	TagFollowed     bool
+	TagFeatured     bool
+	Codes           []string               // two-factor recovery codes, shown once
+	TwoFactor       bool                   // settings: two-factor authentication is on
+	Requests2       []*NotificationRequest // filtered notification requests
+	PendingRequests int
+	NotifPolicy     NotificationPolicy
+	FeaturedTags    []FeaturedTag
+	FollowedTags    []string
+	BlockedDomains  []string
+	Import          *importState // settings: the running or last CSV import
+	Versions        []StatusVersion
+	CustomEmojis    []CustomEmoji
+	Scheduled       []*ScheduledStatus
+	Apps            []ConnectedApp
+	AI              bool   // AI writing available
+	AIKeySource     string // admin: where the key comes from
+	AIModel         string
 }
 
 type Compose struct {

@@ -269,3 +269,6 @@
   <div class="announcement-body">{{.HTML}}<span class="muted small">{{fulltime .CreatedAt}}{{if not .EndsAt.IsZero}} · until {{fulltime .EndsAt}}{{end}}</span></div>
   <form method="post" action="/announcements/{{.ID}}/dismiss"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button class="btn small" title="Dismiss this announcement">Dismiss</button></form>
 </aside>{{end}}{{end}}
+
+{{define "policyrow"}}<label>{{.Label}}
+  <select name="{{.Name}}"><option value="accept"{{if eq .Value "accept"}} selected{{end}}>Show</option><option value="filter"{{if eq .Value "filter"}} selected{{end}}>Filter</option><option value="drop"{{if eq .Value "drop"}} selected{{end}}>Ignore</option></select></label>{{end}}

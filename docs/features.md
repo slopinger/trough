@@ -117,6 +117,10 @@
   federated timeline; relayed posts are always fetched from their origin
 - Like, boost, reply and delete; likes and boosts update in place with JS, or via plain forms without it
 - Profiles with header, avatar, bio, profile fields, locked accounts and bot flag; follow, unfollow and block
+- Notification filters (Mastodon 4.3 policy: people you don't follow, who don't follow you, new accounts, private
+  mentions from strangers; each show, filter or ignore; stranger DMs are filtered by default): filtered
+  notifications wait as per-account requests to accept (which lets that account through) or dismiss, on the web
+  and through `/api/v1/notifications/requests` and `/api/v2/notifications/policy`
 - Notifications (mentions, replies, likes, boosts, follows, follow requests), follow request management
 - Search by `@user@server`, by profile/post URL, by `#tag`, or full text over known posts
 - Admin page: create users, reset passwords, instance title/description, domain blocks (including

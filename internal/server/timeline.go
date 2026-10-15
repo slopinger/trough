@@ -406,7 +406,7 @@ type Notification struct {
 }
 
 func (app *App) notifications(v *Account, maxID string) ([]*Notification, error) {
-	where := `n.account_id=? AND a.suspended=0
+	where := `n.account_id=? AND a.suspended=0 AND n.filtered=0
 		AND NOT EXISTS(SELECT 1 FROM mutes mu WHERE mu.account_id=n.account_id AND mu.target_id=n.from_account_id) AND ` + notifDomainBlockSQL
 	args := []any{v.ID}
 	if maxID != "" {
@@ -477,7 +477,7 @@ func (app *App) notificationsWhere(v *Account, where string, args []any, order s
 }
 
 func (app *App) unreadNotifications(accountID string) int {
-	return app.countInt(`SELECT COUNT(*) FROM notifications WHERE account_id=? AND read=0`, accountID)
+	return app.countInt(`SELECT COUNT(*) FROM notifications WHERE account_id=? AND read=0 AND filtered=0`, accountID)
 }
 
 func (app *App) followRequestCount(accountID string) int {

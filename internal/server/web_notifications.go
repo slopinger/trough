@@ -23,6 +23,7 @@ func (app *App) handleNotifications(w http.ResponseWriter, r *http.Request, p *P
 	}
 	p.Title, p.Section = "Notifications", "notifications"
 	p.Notifications = ns
+	p.PendingRequests, _ = app.pendingNotificationCounts(p.Me)
 	if len(ns) == pageSize*2 {
 		p.NextURL = "/notifications?max_id=" + ns[len(ns)-1].ID
 	}

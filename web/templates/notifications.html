@@ -1,6 +1,7 @@
 {{define "content"}}{{$p := .}}
 <div class="pagehead"><h2 class="pagetitle">Notifications</h2>
 {{if .Notifications}}<form method="post" action="/notifications/clear" class="confirm" data-confirm="Delete all notifications?"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn small">Clear all</button></form>{{end}}</div>
+{{if .PendingRequests}}<a class="filtered-banner" href="/notifications/requests">{{template "icon" "shield"}} <span>Filtered notifications from {{.PendingRequests}} {{if eq .PendingRequests 1}}account{{else}}accounts{{end}} you might not know</span></a>{{end}}
 {{range .Notifications}}
 <div class="notif{{if not .Read}} unread{{end}}">
   <div class="ntop">

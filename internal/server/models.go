@@ -493,9 +493,18 @@ func (app *App) notify(recipientID, typ, fromID, statusID string) {
 		recipientID, typ, fromID, statusID).Scan(&x) == nil {
 		return
 	}
+	from, err := app.AccountByID(fromID)
+	if err != nil {
+		return
+	}
+	decision := app.notificationDecision(recipientID, typ, from, statusID)
+	if decision == "drop" {
+		return
+	}
 	id := ulid.New()
-	if _, err := app.db.Exec(`INSERT INTO notifications (id,account_id,type,from_account_id,status_id,created_at) VALUES (?,?,?,?,?,?)`,
-		id, recipientID, typ, fromID, statusID, time.Now().Unix()); err == nil {
+	filtered := decision == "filter"
+	if _, err := app.db.Exec(`INSERT INTO notifications (id,account_id,type,from_account_id,status_id,created_at,filtered) VALUES (?,?,?,?,?,?,?)`,
+		id, recipientID, typ, fromID, statusID, time.Now().Unix(), filtered); err == nil && !filtered {
 		app.publishNotification(recipientID, id)
 		app.pushNotification(recipientID, id)
 	}

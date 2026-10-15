@@ -172,27 +172,6 @@ func (app *App) apiDismissNotificationGroup(w http.ResponseWriter, r *http.Reque
 	apiJSON(w, 200, obj{})
 }
 
-// We don't filter notifications from strangers, so the policy is "accept"
-// everywhere and there are never pending requests.
-func (app *App) apiNotificationPolicy(w http.ResponseWriter, r *http.Request, c *apiCtx) {
-	apiJSON(w, 200, obj{
-		"for_not_following": "accept", "for_not_followers": "accept", "for_new_accounts": "accept",
-		"for_private_mentions": "accept", "for_limited_accounts": "accept",
-		// v1 names
-		"filter_not_following": false, "filter_not_followers": false, "filter_new_accounts": false, "filter_private_mentions": false,
-		"summary": obj{"pending_requests_count": 0, "pending_notifications_count": 0},
-	})
-}
-
-// apiNoRequests accepts or dismisses requests in bulk: there are none.
-func (app *App) apiNoRequests(w http.ResponseWriter, r *http.Request, c *apiCtx) {
-	apiJSON(w, 200, obj{})
-}
-
-func (app *App) apiNoSuchRequest(w http.ResponseWriter, r *http.Request, c *apiCtx) {
-	apiError(w, 404, "Record not found")
-}
-
 func (app *App) apiEmptyList(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 	apiJSON(w, 200, []any{})
 }
@@ -212,6 +191,9 @@ func (app *App) notificationFilter(r *http.Request, c *apiCtx, pq pageQ) (where 
 	q := r.URL.Query()
 	where = `n.account_id=? AND a.suspended=0 AND NOT EXISTS(SELECT 1 FROM mutes mu WHERE mu.account_id=n.account_id AND mu.target_id=n.from_account_id) AND ` + notifDomainBlockSQL
 	args = []any{c.Me.ID}
+	if q.Get("include_filtered") != "true" {
+		where += ` AND n.filtered=0`
+	}
 	reverse := map[string]string{}
 	for k, v := range notificationTypes {
 		reverse[v] = k

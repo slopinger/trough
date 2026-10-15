@@ -511,6 +511,15 @@ UPDATE accounts SET discoverable=1 WHERE domain='' AND actor_type != 'Applicatio
 ALTER TABLE users ADD COLUMN totp_secret TEXT NOT NULL DEFAULT '';
 ALTER TABLE users ADD COLUMN totp_pending TEXT NOT NULL DEFAULT '';
 ALTER TABLE users ADD COLUMN recovery_codes TEXT NOT NULL DEFAULT '[]';
+`, `
+ALTER TABLE notifications ADD COLUMN filtered INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN notification_policy TEXT NOT NULL DEFAULT '';
+CREATE TABLE notification_accepts (
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	from_account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	created_at INTEGER NOT NULL,
+	PRIMARY KEY (account_id, from_account_id)
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

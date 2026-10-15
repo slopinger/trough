@@ -77,6 +77,18 @@
   {{range .BlockedDomains}}<form method="post" action="/settings/domain_blocks" class="inline-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="unblock" value="{{.}}"><code>{{.}}</code><button class="btn small">Unblock</button></form>{{end}}
   <form method="post" action="/settings/domain_blocks" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><input name="domain" placeholder="example.social" required><button class="btn">Block server</button></form>
 </section>
+<section class="card" id="notification-filters">
+  <h3>Notification filters</h3>
+  <p class="muted small">Filtered notifications wait under Notifications → Filtered until you accept or dismiss them. Accepting someone lets them through from then on.</p>
+  <form method="post" action="/settings/notification_policy" class="policy-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    {{template "policyrow" (dict "Name" "not_following" "Label" "People you don't follow" "Value" .NotifPolicy.NotFollowing)}}
+    {{template "policyrow" (dict "Name" "not_followers" "Label" "People who don't follow you (or only for less than 3 days)" "Value" .NotifPolicy.NotFollowers)}}
+    {{template "policyrow" (dict "Name" "new_accounts" "Label" "Accounts younger than 30 days" "Value" .NotifPolicy.NewAccounts)}}
+    {{template "policyrow" (dict "Name" "private_mentions" "Label" "Private mentions from people you don't follow" "Value" .NotifPolicy.PrivateMentions)}}
+    <button class="btn">Save</button>
+  </form>
+</section>
 <section class="card" id="2fa">
   <h3>Two-factor authentication</h3>
   {{if .TwoFactor}}<p>On. Logging in asks for a code from your authenticator app after your password.</p>

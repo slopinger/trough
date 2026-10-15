@@ -43,6 +43,7 @@ Files are grouped by prefix:
 | `twofactor.go` | two-factor authentication (TOTP, recovery codes) |
 | `accountdelete.go` | deleting your own account |
 | `archive.go` | archive download (zip) |
+| `notifpolicy.go` | notification filters and requests |
 | `ai.go`, `translate.go` | AI drafting and translation |
 | `fed_server.go` | federation endpoints: WebFinger, NodeInfo, actors, collections, objects |
 | `fed_inbox.go`, `fed_remote.go` | incoming activities, storing remote posts, backfill, URL resolution |
