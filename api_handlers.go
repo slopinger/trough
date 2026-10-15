@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -719,7 +722,11 @@ func (app *App) apiDeleteStatus(w http.ResponseWriter, r *http.Request, c *apiCt
 	}
 	out := app.apiStatus(c.Me, st)
 	out["text"] = st.Source
-	if err := app.DeleteStatus(c.Me, st); err != nil {
+	del := app.DeleteStatusKeepMedia // for "delete and redraft"
+	if readParams(r).Bool("delete_media") {
+		del = app.DeleteStatus
+	}
+	if err := del(c.Me, st); err != nil {
 		apiError(w, 422, err.Error())
 		return
 	}
@@ -972,6 +979,21 @@ func (app *App) apiMediaByID(w http.ResponseWriter, r *http.Request, c *apiCtx) 
 		r.PathValue("id"), c.Me.ID).Scan(&at.ID, &at.AccountID, &at.URL, &at.MediaType, &at.Description, &at.File, &at.Width, &at.Height)
 	if err != nil {
 		apiError(w, 404, "Record not found")
+		return
+	}
+	if r.Method == http.MethodDelete {
+		// only uploads that aren't part of a post (Mastodon 4.4)
+		var statusID sql.NullString
+		app.db.QueryRow(`SELECT status_id FROM attachments WHERE id=?`, at.ID).Scan(&statusID)
+		if statusID.Valid {
+			apiError(w, 422, "Media attachment is currently used by a status")
+			return
+		}
+		if at.File != "" {
+			os.Remove(filepath.Join(app.mediaDir, filepath.Base(at.File)))
+		}
+		app.db.Exec(`DELETE FROM attachments WHERE id=?`, at.ID)
+		apiJSON(w, 200, obj{})
 		return
 	}
 	if r.Method == http.MethodPut {

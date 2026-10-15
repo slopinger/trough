@@ -289,6 +289,7 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	h("POST /api/v2/media", write(app.apiUploadMedia))
 	h("GET /api/v1/media/{id}", write(app.apiMediaByID))
 	h("PUT /api/v1/media/{id}", write(app.apiMediaByID))
+	h("DELETE /api/v1/media/{id}", write(app.apiMediaByID))
 
 	h("GET /api/v1/timelines/home", read(app.apiHome))
 	h("GET /api/v1/timelines/public", pub(app.apiPublic))

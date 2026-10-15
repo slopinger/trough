@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -463,5 +464,49 @@ func TestAPIFilterBlur(t *testing.T) {
 		if s.ID == st.ID && (!s.Blurred || s.FilteredBy != "") {
 			t.Fatalf("web: blurred=%v filteredBy=%q", s.Blurred, s.FilteredBy)
 		}
+	}
+}
+
+// Deleting a post keeps its uploads for "delete and redraft" unless
+// delete_media is set; unattached uploads can be deleted (Mastodon 4.4).
+func TestAPIDeleteMedia(t *testing.T) {
+	la, _, _, _ := featureFixture(t)
+	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}
+	upload := func() string {
+		var buf bytes.Buffer
+		mw := multipart.NewWriter(&buf)
+		fw, _ := mw.CreateFormFile("file", "x.png")
+		fw.Write(pngBytes())
+		mw.Close()
+		req, _ := http.NewRequest("POST", la.base+"/api/v2/media", &buf)
+		req.Header.Set("Content-Type", mw.FormDataContentType())
+		req.Header.Set("Authorization", "Bearer "+c.token)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		var m map[string]any
+		json.NewDecoder(resp.Body).Decode(&m)
+		return m["id"].(string)
+	}
+	m1 := upload()
+	st := c.ok("POST", "/api/v1/statuses", url.Values{"status": {"pic"}, "media_ids[]": {m1}}).(map[string]any)
+	if code, _, _ := c.do("DELETE", "/api/v1/media/"+m1, nil); code != 422 {
+		t.Fatalf("deleted attached media: %d", code)
+	}
+	c.ok("DELETE", "/api/v1/statuses/"+st["id"].(string), nil)
+	redraft := c.ok("POST", "/api/v1/statuses", url.Values{"status": {"pic again"}, "media_ids[]": {m1}}).(map[string]any)
+	if len(redraft["media_attachments"].([]any)) != 1 {
+		t.Fatal("redraft lost its media")
+	}
+	c.ok("DELETE", "/api/v1/statuses/"+redraft["id"].(string)+"?delete_media=true", nil)
+	if n := la.countInt(`SELECT COUNT(*) FROM attachments WHERE id=?`, m1); n != 0 {
+		t.Fatal("delete_media kept the upload")
+	}
+	m2 := upload()
+	c.ok("DELETE", "/api/v1/media/"+m2, nil)
+	if code, _, _ := c.do("GET", "/api/v1/media/"+m2, nil); code != 404 {
+		t.Fatalf("deleted media still there: %d", code)
 	}
 }

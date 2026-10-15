@@ -159,6 +159,16 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 }
 
 func (app *App) DeleteStatus(me *Account, st *Status) error {
+	return app.deleteStatus(me, st, false)
+}
+
+// DeleteStatusKeepMedia deletes a post but keeps its uploads unattached
+// for a day, so clients can "delete and redraft" with the same media.
+func (app *App) DeleteStatusKeepMedia(me *Account, st *Status) error {
+	return app.deleteStatus(me, st, true)
+}
+
+func (app *App) deleteStatus(me *Account, st *Status, keepMedia bool) error {
 	if st.AccountID != me.ID {
 		return errors.New("not your post")
 	}
@@ -169,6 +179,9 @@ func (app *App) DeleteStatus(me *Account, st *Status) error {
 	// also tell everyone who boosted it / servers that know it via boosts
 	inboxes = append(inboxes, app.followerInboxesOfBoosters(st.ID)...)
 	act := app.deleteActivity(st)
+	if keepMedia {
+		app.db.Exec(`UPDATE attachments SET status_id=NULL, created_at=? WHERE status_id=? AND account_id=?`, time.Now().Unix(), st.ID, me.ID)
+	}
 	if err := app.purgeStatus(st.ID); err != nil {
 		return err
 	}
