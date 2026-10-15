@@ -83,6 +83,9 @@
   emoji reactions (Misskey reactions, `EmojiReact`) shown as chips, and you can react yourself
 - Scheduled posts (compose box "Schedule", a Scheduled page, and `scheduled_at` / `/api/v1/scheduled_statuses`)
 - Link previews (OpenGraph cards), fetched in the background
+- Who to follow (Explore → People, `/api/v2/suggestions` with dismissing): accounts followed by people you
+  follow, then popular ones here; profiles show which people you follow follow them
+  (`/api/v1/accounts/familiar_followers`)
 - Explore page and Mastodon trends API (`/api/v1/trends/{tags,statuses,links}`): posts with the most
   likes, boosts and replies from the last three days, and hashtags and links used by at least two people
   this week, with per-day history (also in every hashtag entity)

@@ -521,3 +521,11 @@ details.listedit[open] > summary { margin-bottom: 10px; }
   background: var(--accent-soft); border: 1px solid var(--accent); border-radius: var(--radius); }
 .announcement-body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .announcement-body p { margin: 0 0 6px; }
+
+/* Who to follow and familiar followers */
+.suggestion { margin-bottom: 8px; }
+.suggestion > .small { display: block; margin: 0 4px 2px; }
+.familiar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 8px 16px 0; }
+.familiar-avatars { display: inline-flex; }
+.familiar-avatars img { border-radius: 50%; border: 2px solid var(--panel); margin-left: -6px; }
+.familiar-avatars img:first-child { margin-left: 0; }

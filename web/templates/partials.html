@@ -230,6 +230,7 @@
   <div class="acct big">{{handle $a}}{{if .Rel.FollowedBy}} <span class="tag">follows you</span>{{end}}{{if .Rel.BlockedBy}} <span class="tag">has blocked you</span>{{end}}</div>
   {{if and (not .Me) $a.IsLocal}}<p class="follow-hint" id="follow-hint">To follow from Mastodon or any other fediverse server, search for <code>{{handle $a}}</code> there.</p>{{end}}
   {{if $a.Note}}<div class="bio content">{{bio $a}}</div>{{end}}
+  {{if .Familiar}}<p class="familiar muted small"><span class="familiar-avatars">{{range .Familiar}}<img src="{{template "avatarsrc" .}}" alt="" width="20" height="20">{{end}}</span>Followed by {{range $i, $f := .Familiar}}{{if $i}}, {{end}}<a href="{{$f.Path}}">{{name $f}}</a>{{end}}</p>{{end}}
   {{if $a.Fields}}<dl class="fields">{{range $a.Fields}}<div><dt>{{.Name}}</dt><dd>{{field $a .Value}}</dd></div>{{end}}</dl>{{end}}
   {{if and .Me (ne .Me.ID $a.ID)}}<details class="pnote"{{if .AccountNote}} open{{end}}><summary>{{if .AccountNote}}Your private note{{else}}Add a private note{{end}}</summary>
     <form method="post" action="/accounts/{{$a.ID}}/note"><input type="hidden" name="csrf" value="{{.CSRF}}"><textarea name="comment" rows="2" maxlength="2000" placeholder="Only you can see this">{{.AccountNote}}</textarea><button class="btn">Save note</button></form>

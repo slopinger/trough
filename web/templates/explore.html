@@ -4,6 +4,7 @@
   <a href="/explore" class="{{if eq .Tab "posts"}}active{{end}}">Posts</a>
   <a href="/explore?tab=tags" class="{{if eq .Tab "tags"}}active{{end}}">Hashtags</a>
   <a href="/explore?tab=links" class="{{if eq .Tab "links"}}active{{end}}">News</a>
+  {{if .Me}}<a href="/explore?tab=people" class="{{if eq .Tab "people"}}active{{end}}">People</a>{{end}}
 </nav>
 {{if eq .Tab "tags"}}
 {{range .TrendTags}}
@@ -12,6 +13,10 @@
   <svg class="spark" viewBox="0 0 60 24" aria-hidden="true"><polyline points="{{sparkline .History}}"/></svg>
 </a>
 {{else}}<p class="empty">No hashtags are trending. A hashtag trends once several people use it.</p>{{end}}
+{{else if eq .Tab "people"}}{{$p := .}}
+{{range .Suggestions}}<div class="suggestion">{{if eq .Source "friends_of_friends"}}<span class="muted small">Followed by people you follow</span>{{else}}<span class="muted small">Popular here</span>{{end}}
+{{template "accountrow" (dict "A" .Account "P" $p "Actions" (actions "follow" "Follow" "primary small" "dismiss_suggestion" "Hide" "small"))}}</div>
+{{else}}<p class="empty">No suggestions yet. Follow a few people and their follows show up here.</p>{{end}}
 {{else if eq .Tab "links"}}
 {{range .TrendLinks}}
 <a class="trend" href="{{.Card.URL}}" target="_blank" rel="noopener noreferrer nofollow">

@@ -75,6 +75,8 @@ type Page struct {
 	Announcements  []*Announcement // unread banner; all of them on /admin
 	TrendTags      []TrendTag
 	TrendLinks     []TrendLink
+	Suggestions    []Suggestion
+	Familiar       []*Account // people the viewer follows who follow this profile
 	TagFollowed    bool
 	FollowedTags   []string
 	BlockedDomains []string

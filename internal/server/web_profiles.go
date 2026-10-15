@@ -66,6 +66,9 @@ func (app *App) profileCommon(p *Page, acc *Account) {
 	if p.Me != nil {
 		p.Rel = app.relationship(p.Me.ID, acc.ID)
 		p.Rel.DomainBlocking = app.blocksDomain(p.Me.ID, acc.Domain)
+		if acc.ID != p.Me.ID {
+			p.Familiar = app.familiarFollowers(p.Me, acc, 3)
+		}
 		p.AccountNote = app.accountNote(p.Me, acc)
 	}
 	if acc.IsLocal() {
@@ -169,6 +172,8 @@ func (app *App) handleAccountAction(w http.ResponseWriter, r *http.Request, p *P
 		err = app.Endorse(p.Me, target)
 	case "unendorse":
 		err = app.Unendorse(p.Me, target)
+	case "dismiss_suggestion":
+		app.dismissSuggestion(p.Me, target.ID)
 	case "accept":
 		err = app.AcceptFollow(p.Me, target)
 	case "reject", "remove_follower":

@@ -232,6 +232,12 @@ func (app *App) handleExplore(w http.ResponseWriter, r *http.Request, p *Page) {
 		p.TrendTags = app.trendingTags(20, 0)
 	case "links":
 		p.TrendLinks = app.trendingLinks(20, 0)
+	case "people":
+		if p.Me == nil {
+			http.Redirect(w, r, "/login?next=/explore%3Ftab%3Dpeople", http.StatusFound)
+			return
+		}
+		p.Suggestions = app.suggestions(p.Me, 20)
 	default:
 		p.Tab = "posts"
 		p.Statuses = app.applyFilters(p.Me, app.trendingStatuses(p.Me, 20, 0), "public")
