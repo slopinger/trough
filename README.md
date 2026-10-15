@@ -180,6 +180,8 @@ every fetch must be signed. It needs docker and sudo and takes about two minutes
 runs in a container that mounts `/nix/store` read-only, because its HTTP client only trusts the OS
 certificate store. There trough is `trough.localhost`: Erlang's TLS client rejects the test CA's
 certificates for bare IP addresses. `AUTHORIZED_FETCH=true` turns on Akkoma's `authorized_fetch_mode`.
+`AKKOMA=$(nix build --no-link --print-out-paths nixpkgs#pleroma)` runs it against vanilla **Pleroma**
+2.10.2 instead (its Hackney client gets the test CA through `ssl_options`); that passes in both modes too.
 Both runners check that secure mode really refuses unsigned fetches before running the scenario.
 
 `python3 test/run-misskey.py` federates with a real **Misskey** 2026.10.0 (`MISSKEY_IMAGE` picks another

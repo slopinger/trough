@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Federate a disposable trough with a disposable real Akkoma and run test/interop.py.
+"""Federate a disposable trough with a disposable real Akkoma or Pleroma and run test/interop.py.
 
 Akkoma (the Pleroma fork, built with Nix: nixpkgs#akkoma, or AKKOMA=/path to
-a release) and PostgreSQL run in a private loopback-only network namespace,
+a release, which can also be Pleroma's) and PostgreSQL run in a private loopback-only network namespace,
 like test/run-mastodon.py. Akkoma runs in a container that mounts /nix/store
 read-only, because its HTTP client only trusts the OS certificate store and
 the container lets the test CA stand in for it. Needs docker and sudo, caddy,
@@ -10,6 +10,7 @@ go and nix. Containers and temp files are removed.
 
     python3 test/run-akkoma.py
     AUTHORIZED_FETCH=true python3 test/run-akkoma.py
+    AKKOMA=$(nix build --no-link --print-out-paths nixpkgs#pleroma) python3 test/run-akkoma.py
 """
 import contextlib
 import os
@@ -60,6 +61,12 @@ def inside(tag, binary, release):
                 (data / d).mkdir(parents=True)
             (data / "hosts").write_text(f"127.0.0.1 localhost {thost}\n::1 localhost {thost}\n")
             authorized = os.environ.get("AUTHORIZED_FETCH") == "true"
+            # Pleroma's Hackney trusts certifi's bundle, not the OS store, unless told otherwise
+            hackney = ""
+            if any(b"Tesla.Adapter.Hackney" in f.read_bytes() for f in Path(release).glob("releases/*/sys.config")):
+                hackney = ("config :pleroma, :http, adapter: [ssl_options: [verify: :verify_peer, "
+                           "cacertfile: \"/etc/ssl/certs/ca-certificates.crt\", "
+                           "customize_hostname_check: [match_fun: :public_key.pkix_verify_hostname_match_fun(:https)]]]\n")
             (data / "config.exs").write_text(f"""import Config
 
 config :pleroma, Pleroma.Web.Endpoint,
@@ -84,7 +91,7 @@ config :pleroma, configurable_from_database: false
 config :pleroma, Pleroma.Upload, uploader: Pleroma.Uploaders.Local, filters: [], base_url: "https://{ahost}/media/"
 config :pleroma, Pleroma.Uploaders.Local, uploads: "{data}/uploads"
 config :tzdata, :autoupdate, :disabled
-config :joken, default_signer: "{secrets.token_urlsafe(48)}"
+{hackney}config :joken, default_signer: "{secrets.token_urlsafe(48)}"
 """)
             (data / "config.exs").chmod(0o600)  # Akkoma refuses a world-readable config
 

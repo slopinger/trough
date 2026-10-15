@@ -11,7 +11,7 @@ Keep these notes and README up to date whenever code behavior, commands or opera
   local-CA Caddy (trough runs `-insecure -scheme https`); needs `caddy`, takes ~1 minute.
   `python3 test/run-mastodon.py` (optionally `AUTHORIZED_FETCH=true`) does the same with a real Mastodon
   in Docker, inside a private loopback-only network namespace so Caddy can use port 443;
-  `python3 test/run-akkoma.py` likewise with a real Akkoma (Nix). These drive `test/interop.py`;
+  `python3 test/run-akkoma.py` likewise with a real Akkoma (Nix; `AKKOMA=<nixpkgs#pleroma path>` for Pleroma). These drive `test/interop.py`;
   `python3 test/run-misskey.py` drives a real Misskey through `test/interop_misskey.py` (its own API;
   `MISSKEY_IMAGE=registry.activitypub.software/transfem-org/sharkey:latest` runs it against Sharkey).
   Shared setup (netns, containers, DNS, Caddy, trough) is in `test/interop_env.py`;
