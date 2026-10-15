@@ -77,6 +77,14 @@
   {{range .BlockedDomains}}<form method="post" action="/settings/domain_blocks" class="inline-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="unblock" value="{{.}}"><code>{{.}}</code><button class="btn small">Unblock</button></form>{{end}}
   <form method="post" action="/settings/domain_blocks" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><input name="domain" placeholder="example.social" required><button class="btn">Block server</button></form>
 </section>
+<section class="card" id="2fa">
+  <h3>Two-factor authentication</h3>
+  {{if .TwoFactor}}<p>On. Logging in asks for a code from your authenticator app after your password.</p>
+  <form method="post" action="/settings/2fa/disable" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input type="password" name="password" placeholder="Your password" autocomplete="current-password" required><button class="btn danger-outline">Turn off</button></form>
+  {{else}}<p class="muted small">Protect your account with codes from an authenticator app (Aegis, 2FAS, Google Authenticator, your password manager, ...).</p>
+  <a class="btn" href="/settings/2fa">Set up</a>{{end}}
+</section>
 <section class="card" id="import">
   <h3>Import and export</h3>
   <p class="muted small">CSV files in Mastodon's format, to move between servers.</p>

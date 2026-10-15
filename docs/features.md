@@ -126,6 +126,8 @@
   IP addresses and the page can use a strict CSP (`img-src 'self'`). Cache entries with missing data
   or invalid metadata are refetched; per-URL locks coordinate fetches and expiry cleanup.
 - Light and dark theme, responsive layout with a bottom navigation bar on phones
+- Two-factor authentication (Settings): TOTP codes from any authenticator app (QR code or key), ten one-time
+  recovery codes; the web login (also used by apps through OAuth) asks for a code, the password grant is refused
 - Security: bcrypt passwords, login rate limiting, HttpOnly/SameSite session cookies, per-session CSRF
   tokens, Origin checks, strict Content-Security-Policy (no inline scripts or styles)
 

@@ -507,6 +507,10 @@ CREATE TABLE featured_tags (
 `, `
 ALTER TABLE accounts ADD COLUMN discoverable INTEGER NOT NULL DEFAULT 0;
 UPDATE accounts SET discoverable=1 WHERE domain='' AND actor_type != 'Application';
+`, `
+ALTER TABLE users ADD COLUMN totp_secret TEXT NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN totp_pending TEXT NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN recovery_codes TEXT NOT NULL DEFAULT '[]';
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

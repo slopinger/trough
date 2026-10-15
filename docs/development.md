@@ -40,6 +40,7 @@ Files are grouped by prefix:
 | `csvio.go` | CSV export and import (Mastodon formats) |
 | `featuredtags.go` | featured hashtags |
 | `directory.go` | profile directory |
+| `twofactor.go` | two-factor authentication (TOTP, recovery codes) |
 | `ai.go`, `translate.go` | AI drafting and translation |
 | `fed_server.go` | federation endpoints: WebFinger, NodeInfo, actors, collections, objects |
 | `fed_inbox.go`, `fed_remote.go` | incoming activities, storing remote posts, backfill, URL resolution |

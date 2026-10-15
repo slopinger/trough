@@ -1,0 +1,20 @@
+{{define "content"}}
+<section class="card narrow">
+  <h2>Two-factor authentication</h2>
+  {{if .Codes}}
+  <p>Your recovery codes. Each one logs you in once if you lose your authenticator app:</p>
+  <ul class="codes">{{range .Codes}}<li><code>{{.}}</code></li>{{end}}</ul>
+  <a class="btn primary" href="/settings#2fa">Done</a>
+  {{else}}
+  <ol class="steps">
+    <li>Scan this code with your authenticator app:<br><img class="qr" src="/settings/2fa/qr.png" alt="QR code for your authenticator app" width="200" height="200">
+      <br><span class="muted small">Or enter this key: <code>{{.Query}}</code></span></li>
+    <li>Enter the six-digit code it shows:
+      <form method="post" action="/settings/2fa" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}">
+        <input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required autofocus>
+        <button class="btn primary">Turn on</button></form></li>
+  </ol>
+  <p class="muted small"><a href="/settings#2fa">Cancel</a></p>
+  {{end}}
+</section>
+{{end}}

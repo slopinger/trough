@@ -11,7 +11,7 @@
         version = "0.1.0";
         src = self;
         subPackages = [ "cmd/trough" ];
-        vendorHash = "sha256-DeaWjQtYLjAkrq1MJz7TBzUDza4emoS502RsS42AXGE=";
+        vendorHash = "sha256-WyCjug+fh0ECJBE7EWW0dScMw93fEX3r7ZyfiYmt2mk=";
         env.CGO_ENABLED = 0;
         ldflags = [ "-s" "-w" ];
         meta = {

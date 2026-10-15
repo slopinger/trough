@@ -33,13 +33,18 @@ func (app *App) handleLogin(w http.ResponseWriter, r *http.Request, p *Page) {
 		app.renderStatus(w, http.StatusUnauthorized, "login", p)
 		return
 	}
-	if err := app.startSession(w, r, acc); err != nil {
-		http.Error(w, "could not create session", 500)
-		return
-	}
 	next := r.FormValue("next")
 	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.HasPrefix(next, "/\\") {
 		next = "/"
+	}
+	if app.twoFactorEnabled(acc.ID) {
+		startPendingLogin(w, !app.cfg.Insecure, acc.ID, next)
+		app.render(w, "login_code", p)
+		return
+	}
+	if err := app.startSession(w, r, acc); err != nil {
+		http.Error(w, "could not create session", 500)
+		return
 	}
 	http.Redirect(w, r, next, http.StatusSeeOther)
 }

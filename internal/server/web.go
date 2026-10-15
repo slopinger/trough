@@ -79,6 +79,8 @@ type Page struct {
 	Familiar       []*Account // people the viewer follows who follow this profile
 	TagFollowed    bool
 	TagFeatured    bool
+	Codes          []string // two-factor recovery codes, shown once
+	TwoFactor      bool     // settings: two-factor authentication is on
 	FeaturedTags   []FeaturedTag
 	FollowedTags   []string
 	BlockedDomains []string

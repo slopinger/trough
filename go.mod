@@ -5,6 +5,7 @@ go 1.27.2
 require (
 	github.com/go-fed/httpsig v1.1.0
 	github.com/microcosm-cc/bluemonday v1.0.27
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	golang.org/x/crypto v0.58.0
 	golang.org/x/image v0.47.0
 	golang.org/x/net v0.61.0
