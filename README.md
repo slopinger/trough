@@ -1,7 +1,7 @@
 # trough
 
 A small, single-binary **fediverse (ActivityPub) server** with a built-in web interface.
-Pigs eat slop from a trough; this one feeds you posts from the fediverse.
+A trough is where the slop goes; this one feeds you posts from the fediverse.
 
 It is modelled on [GoToSocial](https://gotosocial.org/): one Go binary, SQLite, low resource use,
 federating with Mastodon, GoToSocial, Misskey, Pleroma/Akkoma and friends. Like GoToSocial it speaks the

@@ -19,7 +19,7 @@ import (
 // Reactions come as Misskey-style Likes with content, or as EmojiReact
 // (Pleroma, Akkoma, Misskey forks). We send EmojiReact.
 
-var reactionChoices = []string{"👍", "❤️", "😂", "😮", "😢", "🎉", "🔥", "🐷"}
+var reactionChoices = []string{"👍", "❤️", "😂", "😮", "😢", "🎉", "🔥", "🤓"}
 
 func validReaction(e string) bool {
 	return e != "" && utf8.RuneCountInString(e) <= 8 && !strings.ContainsAny(e, "<>\"' \t\n")

@@ -110,11 +110,11 @@ func TestReactionsAndQuotes(t *testing.T) {
 	theirs := &Status{ID: newID(), URI: r.Base + "/s/1", AccountID: alice.ID, Visibility: "public", Content: "<p>hi</p>", CreatedAt: time.Now()}
 	la.insertStatus(theirs)
 	tf, _ := la.loadStatus(bob, theirs.ID)
-	if err := la.React(bob, tf, "🐷"); err != nil {
+	if err := la.React(bob, tf, "🤓"); err != nil {
 		t.Fatal(err)
 	}
 	eventually(t, "EmojiReact delivered", func() bool { return len(r.receivedOf("EmojiReact")) == 1 })
-	if er := r.receivedOf("EmojiReact")[0].Activity; str(er, "content") != "🐷" || idOf(er["object"]) != theirs.URI {
+	if er := r.receivedOf("EmojiReact")[0].Activity; str(er, "content") != "🤓" || idOf(er["object"]) != theirs.URI {
 		t.Fatalf("EmojiReact = %v", er)
 	}
 
