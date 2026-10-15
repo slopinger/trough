@@ -1052,6 +1052,39 @@ func (app *App) apiFiltersV1(w http.ResponseWriter, r *http.Request, c *apiCtx) 
 	apiJSON(w, 200, out)
 }
 
+// apiReport files a report the way the web form does (POST /api/v1/reports).
+func (app *App) apiReport(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	p := readParams(r)
+	target, err := app.AccountByID(p.Get("account_id"))
+	if err != nil {
+		apiError(w, 404, "Record not found")
+		return
+	}
+	statusIDs := p.List("status_ids")
+	forward := p.Bool("forward")
+	id, err := app.FileReport(c.Me, target, statusIDs, p.Get("comment"), forward)
+	if err != nil {
+		apiError(w, 422, err.Error())
+		return
+	}
+	var kept string
+	app.db.QueryRow(`SELECT status_ids FROM reports WHERE id=?`, id).Scan(&kept)
+	var ids []string
+	jsonUnmarshal([]byte(kept), &ids)
+	if ids == nil {
+		ids = []string{}
+	}
+	category := p.Get("category")
+	if category == "" {
+		category = "other"
+	}
+	apiJSON(w, 200, obj{
+		"id": id, "action_taken": false, "action_taken_at": nil, "category": category,
+		"comment": truncateRunes(strings.TrimSpace(p.Get("comment")), 1000), "forwarded": forward && !target.IsLocal(),
+		"created_at": apiTime(time.Now()), "status_ids": ids, "rule_ids": []string{}, "target_account": app.apiAccount(target),
+	})
+}
+
 // ---- conversations (direct messages) ----
 
 func (app *App) apiConversations(w http.ResponseWriter, r *http.Request, c *apiCtx) {

@@ -334,9 +334,11 @@ type Report struct {
 // FileReport stores a report by a local user and optionally forwards it to
 // the target's server as a Flag from the instance actor (like Mastodon, so
 // the reporter stays anonymous to the other server).
-func (app *App) FileReport(me, target *Account, statusIDs []string, comment string, forward bool) error {
+// FileReport stores a report for the admins and, if asked, forwards it to
+// the target's server as a Flag. It returns the report's id.
+func (app *App) FileReport(me, target *Account, statusIDs []string, comment string, forward bool) (string, error) {
 	if me.ID == target.ID {
-		return errors.New("you can't report yourself")
+		return "", errors.New("you can't report yourself")
 	}
 	var uris []string
 	var keep []string
@@ -352,7 +354,7 @@ func (app *App) FileReport(me, target *Account, statusIDs []string, comment stri
 	forwarded := forward && !target.IsLocal()
 	if _, err := app.db.Exec(`INSERT INTO reports (id,uri,account_id,target_id,status_ids,comment,forwarded,created_at) VALUES (?,?,?,?,?,?,?,?)`,
 		id, app.cfg.BaseURL()+"/reports/"+id, me.ID, target.ID, ids, comment, forwarded, time.Now().Unix()); err != nil {
-		return err
+		return "", err
 	}
 	app.notifyAdmins(me.ID, "report")
 	if forwarded {
@@ -362,7 +364,7 @@ func (app *App) FileReport(me, target *Account, statusIDs []string, comment stri
 			"id": app.cfg.BaseURL() + "/reports/" + id, "type": "Flag", "actor": inst.URI, "content": comment, "object": objects,
 		}))
 	}
-	return nil
+	return id, nil
 }
 
 func toAny(ss []string) []any {

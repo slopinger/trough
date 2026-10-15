@@ -208,6 +208,7 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	h("GET /api/v1/featured_tags/suggestions", read(emptyList))
 	h("GET /api/v1/domain_blocks", read(emptyList))
 	h("GET /api/v1/endorsements", read(emptyList))
+	h("POST /api/v1/reports", write(app.apiReport))
 	h("GET /api/v1/filters", read(app.apiFiltersV1))
 	h("GET /api/v2/filters", read(app.apiFiltersV2))
 	h("GET /api/v1/conversations", read(app.apiConversations))

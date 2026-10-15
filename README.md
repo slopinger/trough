@@ -54,7 +54,8 @@ Running instance: **https://fedi.freifick.net**
   reblogs, bookmarks, pins, reactions (Pleroma-style), polls, media upload (v1/v2), home/public/hashtag
   timelines, notifications (with type filters, plus Mastodon 4.3 grouped notifications at
   `/api/v2/notifications`: likes/boosts per post and follows per day collapse into groups), relationships, follow/block/mute, follow requests, search v2
-  with remote resolving, markers, filters, conversations, instance v1/v2, CORS for browser clients
+  with remote resolving, markers, filters, conversations, reports (with forwarding), instance v1/v2, CORS
+  for browser clients
 - Mastodon-style pagination (`max_id`/`since_id`/`min_id`, `Link` headers) and Idempotency-Key
 - Streaming API over WebSocket (`/api/v1/streaming`) and server-sent events (`/api/v1/streaming/user`, ...)
 - Web Push (`/api/v1/push/subscription`, VAPID, RFC 8291 encryption) so mobile and browser apps get

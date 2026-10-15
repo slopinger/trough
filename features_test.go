@@ -150,7 +150,7 @@ func TestReportsFederate(t *testing.T) {
 	admin, _ := la.CreateLocalUser("root2", "password123", true)
 	id := newID()
 	la.insertStatus(&Status{ID: id, URI: r.Base + "/s/bad", AccountID: alice.ID, Visibility: "public", Content: "<p>spam</p>", CreatedAt: parseTime("2026-01-01T00:00:00Z")})
-	if err := la.FileReport(bob, alice, []string{id}, "this is spam", true); err != nil {
+	if _, err := la.FileReport(bob, alice, []string{id}, "this is spam", true); err != nil {
 		t.Fatal(err)
 	}
 	eventually(t, "Flag delivered", func() bool { return len(r.receivedOf("Flag")) == 1 })

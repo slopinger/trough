@@ -1148,7 +1148,7 @@ func (app *App) handleReport(w http.ResponseWriter, r *http.Request, p *Page) {
 		http.Error(w, "account not found", http.StatusNotFound)
 		return
 	}
-	if err := app.FileReport(p.Me, acc, r.Form["status"], r.FormValue("comment"), r.FormValue("forward") != ""); err != nil {
+	if _, err := app.FileReport(p.Me, acc, r.Form["status"], r.FormValue("comment"), r.FormValue("forward") != ""); err != nil {
 		setFlash(w, err.Error())
 	} else {
 		setFlash(w, "Thanks, the report was sent to the admins"+map[bool]string{true: " of this server and " + acc.Domain, false: ""}[r.FormValue("forward") != "" && !acc.IsLocal()]+".")
