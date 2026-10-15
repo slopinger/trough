@@ -23,9 +23,10 @@ Running instance: **https://fedi.freifick.net**
 - Actors with RSA keys; HTTP Signatures (draft-cavage, `rsa-sha256`/`hs2019`) on every outgoing request,
   verified on every incoming inbox POST (digest, date window, key ownership, re-fetch on key rotation).
   RFC 9421 HTTP Message Signatures (Fedify-based servers such as Hollo and Ghost) are verified too, and
-  deliveries to a host that has sent us a valid RFC 9421 signature are signed with RFC 9421
-  (`@method @target-uri @authority date content-type content-digest`). If that host answers 401/403 we
-  retry with draft-cavage and stick to it for 30 days (double-knocking, as Fedify does).
+  deliveries and signed fetches to a host that has sent us a valid RFC 9421 signature are signed with
+  RFC 9421 (`@method @target-uri @authority date`, plus `content-type content-digest` on POSTs). If that
+  host answers 401/403 we retry with draft-cavage and stick to it for 30 days (double-knocking, as
+  Fedify does).
 - A signed instance actor (`/actor`) for fetches, so servers in "authorized fetch" mode work
 - Inbox (shared and per-user) handling `Follow`, `Accept`, `Reject`, `Undo`, `Create`, `Update`, `Delete`,
   `Like`, `Announce`, `Block`
@@ -219,7 +220,7 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 
 ## Not (yet) implemented
 
-Signed GETs (fetches) still use draft-cavage only. C2S media uploads (`uploadMedia`), and C2S activities
+C2S media uploads (`uploadMedia`), and C2S activities
 other than the ones listed above.
 
 ## License

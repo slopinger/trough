@@ -152,17 +152,17 @@ func (r *remote) serve(w http.ResponseWriter, req *http.Request) {
 	r.mu.Lock()
 	r.gets = append(r.gets, req)
 	r.mu.Unlock()
+	if r.RejectRFC9421 && req.Header.Get("Signature-Input") != "" {
+		r.mu.Lock()
+		r.nRejected++
+		r.mu.Unlock()
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 	if req.Method == http.MethodPost {
 		body, _ := io.ReadAll(req.Body)
 		var act obj
 		json.Unmarshal(body, &act)
-		if r.RejectRFC9421 && req.Header.Get("Signature-Input") != "" {
-			r.mu.Lock()
-			r.nRejected++
-			r.mu.Unlock()
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
 		rec := received{Path: req.URL.Path, Activity: act, Header: req.Header.Clone(), SigErr: r.verifyIncoming(req, body)}
 		r.mu.Lock()
 		r.inbox = append(r.inbox, rec)
@@ -249,7 +249,10 @@ func (r *remote) verifyIncomingRFC9421(req *http.Request, body []byte) error {
 	if c, _ := strconv.ParseInt(created[1], 10, 64); time.Since(time.Unix(c, 0)).Abs() > time.Minute {
 		return fmt.Errorf("created %s is not now", created[1])
 	}
-	want := map[string]bool{`"@method"`: true, `"@target-uri"`: true, `"content-digest"`: true}
+	want := map[string]bool{`"@method"`: true, `"@target-uri"`: true}
+	if req.Method == http.MethodPost {
+		want[`"content-digest"`] = true
+	}
 	var lines []string
 	for _, c := range covered {
 		delete(want, c)
@@ -275,7 +278,7 @@ func (r *remote) verifyIncomingRFC9421(req *http.Request, body []byte) error {
 	}
 	lines = append(lines, `"@signature-params": `+sigParams)
 	h := sha256.Sum256(body)
-	if req.Header.Get("Content-Digest") != "sha-256=:"+base64.StdEncoding.EncodeToString(h[:])+":" {
+	if req.Method == http.MethodPost && req.Header.Get("Content-Digest") != "sha-256=:"+base64.StdEncoding.EncodeToString(h[:])+":" {
 		return fmt.Errorf("content-digest mismatch")
 	}
 	sm := regexp.MustCompile(`^sig1=:([A-Za-z0-9+/=]+):$`).FindStringSubmatch(req.Header.Get("Signature"))

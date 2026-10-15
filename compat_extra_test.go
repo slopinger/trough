@@ -349,3 +349,50 @@ func TestCompatRFC9421Fallback(t *testing.T) {
 		t.Errorf("retried RFC 9421 against a host that rejected it: %d rejections", n)
 	}
 }
+
+// Signed fetches follow the same per-host choice as deliveries.
+func TestCompatRFC9421Fetch(t *testing.T) {
+	la := startLiveApp(t)
+	bob, _ := la.CreateLocalUser("bob", "password123", false)
+	r := newRemote(t, la)
+	r.put("/@alice", fedifyActor)
+	r.put("/notes/1", `{"id": "{{R}}/notes/1", "type": "Note", "attributedTo": "{{R}}/@alice", "content": "hi", "to": ["https://www.w3.org/ns/activitystreams#Public"]}`)
+	if code := r.send(obj{"@context": asContext, "id": r.Base + "/follows/1", "type": "Follow", "actor": r.Base + "/@alice", "object": bob.URI}, r.Base+"/@alice#main-key", sigRFC9421); code != 202 {
+		t.Fatalf("follow: %d", code)
+	}
+	if _, err := la.fetchAP(context.Background(), r.Base+"/notes/1"); err != nil {
+		t.Fatal(err)
+	}
+	lastGet := func(r *remote, path string) *http.Request {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		for i := len(r.gets) - 1; i >= 0; i-- {
+			if r.gets[i].Method == "GET" && r.gets[i].URL.Path == path {
+				return r.gets[i]
+			}
+		}
+		return nil
+	}
+	get := lastGet(r, "/notes/1")
+	if get == nil || get.Header.Get("Signature-Input") == "" {
+		t.Fatalf("fetch not signed with RFC 9421: %v", get)
+	}
+	if err := r.verifyIncomingRFC9421(get, nil); err != nil {
+		t.Fatalf("our RFC 9421 GET signature: %v", err)
+	}
+
+	// a host that refuses it gets draft-cavage on the retry
+	r2 := newRemote(t, la)
+	r2.RejectRFC9421 = true
+	r2.put("/notes/2", `{"id": "{{R}}/notes/2", "type": "Note", "attributedTo": "{{R}}/@alice", "content": "hi"}`)
+	la.sawRFC9421(r2.Host)
+	if _, err := la.fetchAP(context.Background(), r2.Base+"/notes/2"); err != nil {
+		t.Fatalf("fallback fetch: %v", err)
+	}
+	if r2.rejected() != 1 || la.sigStyle(r2.Host) != sigStyleCavage {
+		t.Fatalf("rejected %d, style %s", r2.rejected(), la.sigStyle(r2.Host))
+	}
+	if get := lastGet(r2, "/notes/2"); get == nil || get.Header.Get("Signature") == "" || get.Header.Get("Signature-Input") != "" {
+		t.Fatalf("retry not draft-cavage: %v", get)
+	}
+}

@@ -135,35 +135,50 @@ func (app *App) fetchJSON(ctx context.Context, raw string, accept string) (obj, 
 	}
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-	if err != nil {
-		return nil, "", err
-	}
-	req.Header.Set("Accept", accept)
-	req.Header.Set("User-Agent", app.userAgent())
-	// A signature covers the request path and host. Redirects need a fresh
-	// signature rather than the headers net/http copies from the first GET.
-	client := *app.client
-	if inst := app.instanceActor(); inst != nil {
-		if key, err := parsePrivateKey(inst.PrivateKey); err == nil {
-			if err := signRequest(req, nil, inst.PublicKeyID, key); err != nil {
-				return nil, "", err
-			}
-			checkRedirect := client.CheckRedirect
-			client.CheckRedirect = func(next *http.Request, via []*http.Request) error {
-				if checkRedirect != nil {
-					if err := checkRedirect(next, via); err != nil {
-						return err
-					}
-				} else if len(via) >= 10 {
-					return errors.New("too many redirects")
+	get := func(style string) (*http.Response, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Accept", accept)
+		req.Header.Set("User-Agent", app.userAgent())
+		// A signature covers the request path and host. Redirects need a fresh
+		// signature rather than the headers net/http copies from the first GET.
+		client := *app.client
+		if inst := app.instanceActor(); inst != nil {
+			if key, err := parsePrivateKey(inst.PrivateKey); err == nil {
+				sign := signRequest
+				if style == sigStyleRFC9421 {
+					sign = signRFC9421
 				}
-				next.Host = next.URL.Host
-				return signRequest(next, nil, inst.PublicKeyID, key)
+				if err := sign(req, nil, inst.PublicKeyID, key); err != nil {
+					return nil, err
+				}
+				checkRedirect := client.CheckRedirect
+				client.CheckRedirect = func(next *http.Request, via []*http.Request) error {
+					if checkRedirect != nil {
+						if err := checkRedirect(next, via); err != nil {
+							return err
+						}
+					} else if len(via) >= 10 {
+						return errors.New("too many redirects")
+					}
+					next.Host = next.URL.Host
+					next.Header.Del("Signature-Input")
+					return sign(next, nil, inst.PublicKeyID, key)
+				}
 			}
 		}
+		return client.Do(req)
 	}
-	resp, err := client.Do(req)
+	style := app.sigStyle(u.Host)
+	resp, err := get(style)
+	if err == nil && style == sigStyleRFC9421 && (resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden) {
+		// double-knock, as for deliveries
+		resp.Body.Close()
+		app.rejectedRFC9421(u.Host)
+		resp, err = get(sigStyleCavage)
+	}
 	if err != nil {
 		return nil, "", err
 	}
