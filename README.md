@@ -54,7 +54,8 @@ Running instance: **https://fedi.freifick.net**
   reblogs, bookmarks, pins, reactions (Pleroma-style), polls, media upload (v1/v2), home/public/hashtag
   timelines, notifications (with type filters, plus Mastodon 4.3 grouped notifications at
   `/api/v2/notifications`: likes/boosts per post and follows per day collapse into groups), relationships, follow/block/mute, follow requests, search v2
-  with remote resolving, markers, filters, conversations, reports (with forwarding), instance v1/v2, CORS
+  with remote resolving, markers, filters, conversations (direct-message threads with unread state, mark
+  read, hide), reports (with forwarding), instance v1/v2, CORS
   for browser clients
 - Mastodon-style pagination (`max_id`/`since_id`/`min_id`, `Link` headers) and Idempotency-Key
 - Streaming API over WebSocket (`/api/v1/streaming`) and server-sent events (`/api/v1/streaming/user`, ...)
@@ -245,6 +246,7 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 | `fedserver.go` | federation HTTP endpoints |
 | `c2s.go` | ActivityPub client-to-server (outbox POST, inbox GET) |
 | `api_notifs.go` | grouped notifications (`/api/v2/notifications`) |
+| `conversations.go` | direct-message threads for `/api/v1/conversations` (read and hidden state) |
 | `web.go`, `admin.go`, `render.go`, `routes.go` | web interface |
 | `text.go` | post formatting and HTML sanitizing |
 | `media.go` | uploads, EXIF stripping, media proxy |

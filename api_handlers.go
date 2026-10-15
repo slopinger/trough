@@ -1132,30 +1132,3 @@ func (app *App) apiReport(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 		"created_at": apiTime(time.Now()), "status_ids": ids, "rule_ids": []string{}, "target_account": app.apiAccount(target),
 	})
 }
-
-// ---- conversations (direct messages) ----
-
-func (app *App) apiConversations(w http.ResponseWriter, r *http.Request, c *apiCtx) {
-	pq := pageParams(r, 20, 40)
-	sts, _ := app.pageStatuses(c.Me, `s.visibility='direct' AND (s.account_id=? OR EXISTS(SELECT 1 FROM mentions m WHERE m.status_id=s.id AND m.account_id=?))`,
-		[]any{c.Me.ID, c.Me.ID}, pq)
-	out := []any{}
-	for _, s := range sts {
-		var accs []any
-		seen := map[string]bool{c.Me.ID: true}
-		for _, a := range append([]*Account{s.Account}, s.Mentions...) {
-			if !seen[a.ID] {
-				seen[a.ID] = true
-				accs = append(accs, app.apiAccount(a))
-			}
-		}
-		if accs == nil {
-			accs = []any{}
-		}
-		out = append(out, obj{"id": s.ID, "unread": false, "accounts": accs, "last_status": app.apiStatus(c.Me, s)})
-	}
-	if len(sts) > 0 {
-		app.setLink(w, r, sts[0].ID, sts[len(sts)-1].ID, len(sts) == pq.Limit)
-	}
-	apiJSON(w, 200, out)
-}

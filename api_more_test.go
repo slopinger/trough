@@ -128,3 +128,68 @@ func TestAPINotificationRequests(t *testing.T) {
 		}
 	}
 }
+
+func TestAPIConversations(t *testing.T) {
+	la, _, bob, alice := featureFixture(t)
+	ctx := context.Background()
+	eve, _ := la.CreateLocalUser("eve", "password123", false)
+	dm := func(from *Account, text, replyTo string) *Status {
+		t.Helper()
+		st, err := la.PostStatus(ctx, from, PostInput{Text: text, Visibility: "direct", InReplyTo: replyTo})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return st
+	}
+	first := dm(bob, "@eve hi", "")
+	dm(eve, "@bob hey you", first.ID)
+	other := dm(bob, "@"+alice.Acct()+" psst", "")
+	la.PostStatus(ctx, bob, PostInput{Text: "public", Visibility: "public"})
+	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}
+	list := func() []map[string]any {
+		var out []map[string]any
+		for _, v := range c.ok("GET", "/api/v1/conversations", nil).([]any) {
+			out = append(out, v.(map[string]any))
+		}
+		return out
+	}
+	cs := list()
+	if len(cs) != 2 || cs[0]["id"] != other.ID || cs[1]["id"] != first.ID {
+		t.Fatalf("conversations = %v", cs)
+	}
+	thread := cs[1]
+	if accs := thread["accounts"].([]any); len(accs) != 1 || accs[0].(map[string]any)["id"] != eve.ID {
+		t.Errorf("participants = %v", accs)
+	}
+	if thread["unread"] != true || cs[0]["unread"] != false {
+		t.Errorf("unread = %v / %v", thread["unread"], cs[0]["unread"])
+	}
+	if got := c.ok("POST", "/api/v1/conversations/"+first.ID+"/read", nil).(map[string]any); got["unread"] != false {
+		t.Errorf("read = %v", got["unread"])
+	}
+	if list()[1]["unread"] != false {
+		t.Error("still unread")
+	}
+	// paging by last status
+	code, page, hdr := c.do("GET", "/api/v1/conversations?limit=1", nil)
+	if code != 200 || len(page.([]any)) != 1 || !strings.Contains(hdr.Get("Link"), "max_id="+other.ID) {
+		t.Errorf("page: %d %v %q", code, page, hdr.Get("Link"))
+	}
+	// hiding lasts until a new message
+	c.ok("DELETE", "/api/v1/conversations/"+first.ID, nil)
+	if cs := list(); len(cs) != 1 {
+		t.Fatalf("after delete: %v", cs)
+	}
+	dm(eve, "@bob still there?", first.ID)
+	if cs := list(); len(cs) != 2 || cs[0]["id"] != first.ID || cs[0]["unread"] != true {
+		t.Errorf("after new message: %v", cs)
+	}
+	if code, _, _ := c.do("POST", "/api/v1/conversations/nope/read", nil); code != 404 {
+		t.Errorf("unknown conversation: %d", code)
+	}
+	// eve sees the same thread from her side
+	ce := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "eve", "password123", "read")}
+	if cs := ce.ok("GET", "/api/v1/conversations", nil).([]any); len(cs) != 1 || cs[0].(map[string]any)["id"] != first.ID {
+		t.Errorf("eve's conversations = %v", cs)
+	}
+}

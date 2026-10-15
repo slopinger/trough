@@ -407,6 +407,14 @@ CREATE TABLE account_notes (
 	comment TEXT NOT NULL,
 	PRIMARY KEY (account_id, target_id)
 );
+`, `
+CREATE TABLE conversation_marks (
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	root_id TEXT NOT NULL,
+	read_id TEXT NOT NULL DEFAULT '',
+	hidden_id TEXT NOT NULL DEFAULT '',
+	PRIMARY KEY (account_id, root_id)
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {
