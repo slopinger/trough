@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"strings"
 	"testing"
@@ -131,5 +134,43 @@ func TestFollowedTagsAndLists(t *testing.T) {
 	c.ok("DELETE", "/api/v1/lists/"+id, nil)
 	if !homeIDs()[alicePost.ID] {
 		t.Error("post not back in home after deleting the list")
+	}
+}
+
+// LitePub/fedi.buzz-style relays are added by their actor URL through the
+// admin page; the Follow goes to the actor and the page lists the actor.
+func TestLitePubRelayViaAdmin(t *testing.T) {
+	la := startLiveApp(t)
+	la.CreateLocalUser("boss", "password123", true)
+	r := newRemote(t, la)
+	r.put("/tag/cats", strings.NewReplacer(`"{{R}}/actor"`, `"{{R}}/tag/cats"`, `"{{R}}/actor#main-key"`, `"{{R}}/tag/cats#main-key"`, `"type": "Application"`, `"type": "Service"`,
+		`"inbox": "{{R}}/inbox"`, `"inbox": "{{R}}/tag/cats", "endpoints": {"sharedInbox": "{{R}}/instance/relay"}`).Replace(relayActor))
+	jar, _ := cookiejar.New(nil)
+	c := &http.Client{Jar: jar}
+	post := func(path string, form url.Values) string {
+		req, _ := http.NewRequest("POST", la.base+path, strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Origin", la.base)
+		resp, err := c.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return string(b)
+	}
+	post("/login", url.Values{"username": {"boss"}, "password": {"password123"}})
+	resp, _ := c.Get(la.base + "/admin")
+	page, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	csrf := strings.SplitN(strings.SplitN(string(page), `name="csrf" value="`, 2)[1], `"`, 2)[0]
+	page2 := post("/admin/relays", url.Values{"csrf": {csrf}, "url": {r.Base + "/tag/cats"}})
+	eventually(t, "Follow delivered", func() bool { return len(r.receivedOf("Follow")) == 1 })
+	f := r.receivedOf("Follow")[0]
+	if f.SigErr != nil || idOf(f.Activity["object"]) != r.Base+"/tag/cats" || f.Path != "/instance/relay" {
+		t.Fatalf("follow to %s = %v (%v)", f.Path, f.Activity, f.SigErr)
+	}
+	if !strings.Contains(page2, r.Base+"/tag/cats</td>") {
+		t.Error("admin page doesn't list the relay actor")
 	}
 }
