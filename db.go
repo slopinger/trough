@@ -430,6 +430,19 @@ ALTER TABLE filters ADD COLUMN group_id TEXT NOT NULL DEFAULT '';
 INSERT INTO filter_groups (id, account_id, title, action, created_at) SELECT id, account_id, phrase, action, created_at FROM filters;
 UPDATE filters SET group_id=id;
 CREATE INDEX filters_group ON filters(group_id);
+`, `
+ALTER TABLE statuses ADD COLUMN quote_state TEXT NOT NULL DEFAULT '';
+ALTER TABLE statuses ADD COLUMN quote_auth TEXT NOT NULL DEFAULT '';
+ALTER TABLE statuses ADD COLUMN quote_policy TEXT NOT NULL DEFAULT '';
+CREATE INDEX statuses_quote_uri ON statuses(quote_uri) WHERE quote_uri != '';
+CREATE TABLE quote_authorizations (
+	id TEXT PRIMARY KEY,
+	status_id TEXT NOT NULL REFERENCES statuses(id) ON DELETE CASCADE,
+	quoting_uri TEXT NOT NULL,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	created_at INTEGER NOT NULL,
+	UNIQUE (status_id, quoting_uri)
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

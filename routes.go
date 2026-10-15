@@ -35,6 +35,7 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("GET /users/{name}/statuses/{id}", app.handleAPStatus)
 	mux.HandleFunc("GET /users/{name}/statuses/{id}/activity", app.handleAPStatusActivity)
 	mux.HandleFunc("GET /users/{name}/statuses/{id}/replies", app.handleAPReplies)
+	mux.HandleFunc("GET /users/{name}/quote_authorizations/{id}", app.handleQuoteAuthorization)
 
 	// files
 	mux.HandleFunc("GET /media/{file}", app.handleMedia)
@@ -275,6 +276,8 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	h("GET /api/v1/statuses/{id}/favourited_by", pub(app.apiStatusAccounts(true)))
 	h("GET /api/v1/statuses/{id}/reblogged_by", pub(app.apiStatusAccounts(false)))
 	h("GET /api/v1/statuses/{id}/quotes", pub(app.apiStatusQuotes))
+	h("POST /api/v1/statuses/{id}/quotes/{quoting}/revoke", write(app.apiRevokeQuote))
+	h("PUT /api/v1/statuses/{id}/interaction_policy", write(app.apiInteractionPolicy))
 	h("POST /api/v1/statuses/{id}/{action}", write(app.apiStatusAction))
 	h("PUT /api/v1/pleroma/statuses/{id}/reactions/{emoji}", write(app.apiReaction))
 	h("DELETE /api/v1/pleroma/statuses/{id}/reactions/{emoji}", write(app.apiReaction))

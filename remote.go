@@ -68,6 +68,7 @@ func (app *App) storeNote(ctx context.Context, author *Account, note obj, depth 
 		st.URL = uri
 	}
 	app.applyNote(st, note)
+	st.QuotePolicy = remoteQuotePolicy(note, author)
 	if st.InReplyToURI != "" {
 		parent, err := app.StatusByURI(st.InReplyToURI)
 		if err != nil && depth < 5 {
@@ -77,6 +78,7 @@ func (app *App) storeNote(ctx context.Context, author *Account, note obj, depth 
 			st.InReplyToID, st.InReplyToAccountID = parent.ID, parent.AccountID
 		}
 	}
+	st.QuoteState = app.localQuoteState(st, note)
 	if err := app.insertStatus(st); err != nil {
 		if existing, err2 := app.StatusByURI(uri); err2 == nil {
 			return existing, nil
@@ -89,7 +91,7 @@ func (app *App) storeNote(ctx context.Context, author *Account, note obj, depth 
 		if _, err := app.StatusByURI(st.QuoteURI); err != nil {
 			app.resolveStatusDepth(ctx, st.QuoteURI, depth+1)
 		}
-		if q, err := app.StatusByURI(st.QuoteURI); err == nil && q.Local {
+		if q, err := app.StatusByURI(st.QuoteURI); err == nil && q.Local && st.QuoteState == "" {
 			app.notify(q.AccountID, "quote", author.ID, st.ID)
 		}
 	}

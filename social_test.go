@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -118,8 +119,8 @@ func TestReactionsAndQuotes(t *testing.T) {
 		t.Fatalf("EmojiReact = %v", er)
 	}
 
-	// they quote bob (Misskey and FEP-044f styles)
-	for i, field := range []string{"_misskey_quote", "quote"} {
+	// they quote bob (Misskey style, without approval; FEP-044f quotes are in TestQuoteHandshake)
+	for i, field := range []string{"_misskey_quote"} {
 		nid := r.Base + "/notes/q" + itoa(i)
 		note := obj{"id": nid, "type": "Note", "attributedTo": alice.URI, "content": "<p>look at this<span class=\"quote-inline\"><br>RE: " + mine.URL + "</span></p>",
 			"to": []any{asPublic}, "published": apTime(time.Now()), field: mine.URI}
@@ -131,7 +132,7 @@ func TestReactionsAndQuotes(t *testing.T) {
 			t.Fatalf("%s: quote not hydrated: %+v", field, qf)
 		}
 	}
-	if n := la.countInt(`SELECT COUNT(*) FROM notifications WHERE account_id=? AND type='quote'`, bob.ID); n != 2 {
+	if n := la.countInt(`SELECT COUNT(*) FROM notifications WHERE account_id=? AND type='quote'`, bob.ID); n != 1 {
 		t.Errorf("quote notifications = %d", n)
 	}
 	// bob quotes alice
@@ -147,6 +148,127 @@ func TestReactionsAndQuotes(t *testing.T) {
 		}
 		return false
 	})
+}
+
+// TestQuoteHandshake covers FEP-044f quote approval in both directions, the
+// way Mastodon 4.5+ does it.
+func TestQuoteHandshake(t *testing.T) {
+	la, r, bob, alice := featureFixture(t)
+	ctx := context.Background()
+	key := r.Base + "/users/alice#main-key"
+	mine, _ := la.PostStatus(ctx, bob, PostInput{Text: "quote me", Visibility: "public"})
+	if cq := objOf(objOf(la.noteJSON(mine)["interactionPolicy"])["canQuote"]); !reflect.DeepEqual(cq["automaticApproval"], []any{asPublic}) {
+		t.Fatalf("canQuote = %v", cq)
+	}
+
+	// alice quotes bob: pending until her server asks and bob's approves
+	nid := r.Base + "/notes/fq"
+	note := obj{"id": nid, "type": "Note", "attributedTo": alice.URI, "content": "<p>look</p>", "to": []any{asPublic},
+		"published": apTime(time.Now()), "quote": mine.URI}
+	r.send(obj{"@context": asContext, "id": nid + "/activity", "type": "Create", "actor": alice.URI, "to": []any{asPublic}, "object": note}, key, sigCavage)
+	var q *Status
+	eventually(t, "quote stored", func() bool { q, _ = la.StatusByURI(nid); return q != nil })
+	if qf, _ := la.loadStatus(bob, q.ID); qf.QuoteState != "pending" || qf.Quote != nil || la.apiStatus(bob, qf)["quote"].(obj)["state"] != "pending" {
+		t.Fatalf("unapproved quote: state=%q quote=%v", qf.QuoteState, qf.Quote)
+	}
+	if n := la.countInt(`SELECT COUNT(*) FROM notifications WHERE type='quote'`); n != 0 {
+		t.Fatalf("notified about a pending quote")
+	}
+	r.send(obj{"@context": asContext, "id": r.Base + "/quote_requests/1", "type": "QuoteRequest", "actor": alice.URI,
+		"object": mine.URI, "instrument": note}, key, sigCavage)
+	eventually(t, "Accept with a stamp", func() bool { return len(r.receivedOf("Accept")) == 1 })
+	acc := r.receivedOf("Accept")[0].Activity
+	stamp := idOf(acc["result"])
+	if idOf(objOf(acc["object"])["id"]) != r.Base+"/quote_requests/1" || !strings.HasPrefix(stamp, bob.URI+"/quote_authorizations/") {
+		t.Fatalf("Accept = %v", acc)
+	}
+	qf, _ := la.loadStatus(bob, q.ID)
+	if qf.QuoteState != "" || qf.Quote == nil || qf.Quote.ID != mine.ID || qf.QuoteAuth != stamp {
+		t.Fatalf("approved quote: state=%q auth=%q", qf.QuoteState, qf.QuoteAuth)
+	}
+	if n := la.countInt(`SELECT COUNT(*) FROM notifications WHERE account_id=? AND type='quote'`, bob.ID); n != 1 {
+		t.Fatalf("quote notifications = %d", n)
+	}
+	code, auth := r.signedGet(stamp, "")
+	if code != 200 || typeOf(auth) != "QuoteAuthorization" || str(auth, "attributedTo") != bob.URI ||
+		idOf(auth["interactingObject"]) != nid || idOf(auth["interactionTarget"]) != mine.URI {
+		t.Fatalf("stamp = %d %v", code, auth)
+	}
+	// her server then updates the note with the stamp; it stays approved
+	note["quoteAuthorization"], note["content"] = stamp, "<p>look again</p>"
+	r.send(obj{"@context": asContext, "id": nid + "#update", "type": "Update", "actor": alice.URI, "object": note}, key, sigCavage)
+	eventually(t, "update applied", func() bool { qf, _ = la.loadStatus(bob, q.ID); return strings.Contains(qf.Content, "again") })
+	if qf.QuoteState != "" || qf.Quote == nil {
+		t.Fatalf("after update: state=%q", qf.QuoteState)
+	}
+	// bob revokes it
+	if err := la.RevokeQuote(bob, mine, qf); err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, "stamp deleted", func() bool {
+		for _, d := range r.receivedOf("Delete") {
+			if idOf(d.Activity["object"]) == stamp {
+				return true
+			}
+		}
+		return false
+	})
+	if qf, _ = la.loadStatus(bob, q.ID); qf.QuoteState != "revoked" || qf.Quote != nil {
+		t.Fatalf("after revoke: state=%q", qf.QuoteState)
+	}
+	if code, _ := r.signedGet(stamp, ""); code != 404 {
+		t.Fatalf("revoked stamp served: %d", code)
+	}
+
+	// followers-only posts can't be quoted by others
+	priv, _ := la.PostStatus(ctx, bob, PostInput{Text: "just friends", Visibility: "private"})
+	r.send(obj{"@context": asContext, "id": r.Base + "/quote_requests/2", "type": "QuoteRequest", "actor": alice.URI,
+		"object": priv.URI, "instrument": r.Base + "/notes/fq2"}, key, sigCavage)
+	eventually(t, "Reject", func() bool { return len(r.receivedOf("Reject")) == 1 })
+	if rej := r.receivedOf("Reject")[0].Activity; idOf(objOf(rej["object"])["id"]) != r.Base+"/quote_requests/2" {
+		t.Fatalf("Reject = %v", rej)
+	}
+
+	// bob quotes a post of alice's server, which takes part in the handshake
+	theirs := &Status{ID: newID(), URI: r.Base + "/s/q1", AccountID: alice.ID, Visibility: "public", Content: "<p>hi</p>", CreatedAt: time.Now(), QuotePolicy: "public"}
+	la.insertStatus(theirs)
+	bq, err := la.PostStatus(ctx, bob, PostInput{Text: "so true", Visibility: "public", QuoteOf: theirs.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bq.QuoteState != "pending" {
+		t.Fatalf("own quote state = %q", bq.QuoteState)
+	}
+	eventually(t, "QuoteRequest sent", func() bool { return len(r.receivedOf("QuoteRequest")) == 1 })
+	qr := r.receivedOf("QuoteRequest")[0].Activity
+	if idOf(qr["object"]) != theirs.URI || str(objOf(qr["instrument"]), "id") != bq.URI || str(objOf(qr["instrument"]), "quote") != theirs.URI {
+		t.Fatalf("QuoteRequest = %v", qr)
+	}
+	r.send(obj{"@context": asContext, "id": r.Base + "/accepts/1", "type": "Accept", "actor": alice.URI,
+		"object": obj{"id": str(qr, "id"), "type": "QuoteRequest", "actor": bob.URI, "object": theirs.URI, "instrument": bq.URI},
+		"result": r.Base + "/users/alice/stamps/1"}, key, sigCavage)
+	eventually(t, "Update with the stamp", func() bool {
+		for _, u := range r.receivedOf("Update") {
+			if o := objOf(u.Activity["object"]); str(o, "id") == bq.URI {
+				return idOf(o["quoteAuthorization"]) == r.Base+"/users/alice/stamps/1"
+			}
+		}
+		return false
+	})
+	if bf, _ := la.loadStatus(bob, bq.ID); bf.QuoteState != "" || bf.Quote == nil {
+		t.Fatalf("accepted own quote: state=%q", bf.QuoteState)
+	}
+	// and alice later revokes it
+	r.send(obj{"@context": asContext, "id": r.Base + "/stamps/1#delete", "type": "Delete", "actor": alice.URI,
+		"object": r.Base + "/users/alice/stamps/1"}, key, sigCavage)
+	eventually(t, "revoked", func() bool { bf, _ := la.loadStatus(bob, bq.ID); return bf.QuoteState == "revoked" })
+
+	// a post nobody may quote
+	closed := &Status{ID: newID(), URI: r.Base + "/s/q2", AccountID: alice.ID, Visibility: "public", Content: "<p>no</p>", CreatedAt: time.Now(), QuotePolicy: "nobody"}
+	la.insertStatus(closed)
+	if _, err := la.PostStatus(ctx, bob, PostInput{Text: "nope", Visibility: "public", QuoteOf: closed.ID}); err == nil {
+		t.Fatal("quoted a post that forbids it")
+	}
 }
 
 func TestLinkCards(t *testing.T) {
@@ -215,5 +337,27 @@ func TestCustomEmoji(t *testing.T) {
 	c := &apiClient{t: t, base: la.base}
 	if list := c.ok("GET", "/api/v1/custom_emojis", nil).([]any); len(list) != 1 || list[0].(map[string]any)["shortcode"] != "blob_pig" {
 		t.Errorf("custom_emojis = %v", list)
+	}
+}
+
+func TestRemoteQuotePolicy(t *testing.T) {
+	a := &Account{URI: "https://m.test/users/a", FollowersURI: "https://m.test/users/a/followers"}
+	policy := func(auto, manual []any) obj {
+		return obj{"interactionPolicy": obj{"canQuote": obj{"automaticApproval": auto, "manualApproval": manual}}}
+	}
+	for _, c := range []struct {
+		note obj
+		want string
+	}{
+		{obj{}, ""},
+		{policy([]any{asPublic}, nil), "public"},
+		{policy(nil, []any{"as:Public"}), "public"},
+		{policy([]any{a.FollowersURI}, nil), "followers"},
+		{policy([]any{a.URI}, nil), "nobody"},
+		{obj{"interactionPolicy": obj{"canQuote": obj{"automaticApproval": a.URI}}}, "nobody"},
+	} {
+		if got := remoteQuotePolicy(c.note, a); got != c.want {
+			t.Errorf("%v: got %q, want %q", c.note, got, c.want)
+		}
 	}
 }

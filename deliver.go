@@ -20,13 +20,18 @@ import (
 var retryDelays = []time.Duration{time.Minute, 5 * time.Minute, 30 * time.Minute, 2 * time.Hour, 6 * time.Hour, 12 * time.Hour, 24 * time.Hour, 24 * time.Hour}
 
 func (app *App) enqueue(signer *Account, inboxes []string, activity obj) {
+	app.enqueueAt(signer, inboxes, activity, time.Now())
+}
+
+// enqueueAt queues a delivery that is sent no earlier than at.
+func (app *App) enqueueAt(signer *Account, inboxes []string, activity obj, at time.Time) {
 	body, err := json.Marshal(activity)
 	if err != nil {
 		log.Printf("deliver: marshal: %v", err)
 		return
 	}
 	seen := map[string]bool{}
-	now := time.Now().Unix()
+	now, due := time.Now().Unix(), at.Unix()
 	n := 0
 	for _, inbox := range inboxes {
 		if inbox == "" || seen[inbox] || strings.HasPrefix(inbox, app.cfg.BaseURL()+"/") {
@@ -37,16 +42,18 @@ func (app *App) enqueue(signer *Account, inboxes []string, activity obj) {
 			continue
 		}
 		if _, err := app.db.Exec(`INSERT INTO deliveries (account_id,inbox,payload,next_try,created_at) VALUES (?,?,?,?,?)`,
-			signer.ID, inbox, string(body), now, now); err != nil {
+			signer.ID, inbox, string(body), due, now); err != nil {
 			log.Printf("deliver: queue: %v", err)
 		}
 		n++
 	}
 	if n > 0 {
-		select {
-		case app.deliverKick <- struct{}{}:
-		default:
-		}
+		time.AfterFunc(time.Until(at), func() {
+			select {
+			case app.deliverKick <- struct{}{}:
+			default:
+			}
+		})
 	}
 }
 

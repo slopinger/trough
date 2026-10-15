@@ -164,6 +164,9 @@ func (app *App) quoteFields(st *Status, m obj) {
 		return
 	}
 	m["quote"], m["quoteUri"], m["quoteUrl"], m["_misskey_quote"] = st.QuoteURI, st.QuoteURI, st.QuoteURI, st.QuoteURI
+	if st.QuoteAuth != "" {
+		m["quoteAuthorization"] = st.QuoteAuth
+	}
 	tags, _ := m["tag"].([]any)
 	m["tag"] = append(tags, obj{"type": "Link", "mediaType": ldMimeType, "href": st.QuoteURI, "name": "RE: " + st.QuoteURI})
 }
@@ -194,7 +197,7 @@ func (app *App) hydrateQuotes(v *Account, sts []*Status) {
 	}
 	for _, s := range sts {
 		for _, x := range []*Status{s, s.BoostOf} {
-			if x != nil && x.QuoteURI != "" {
+			if x != nil && x.QuoteURI != "" && x.QuoteState == "" {
 				x.Quote = byURI[x.QuoteURI]
 			}
 		}

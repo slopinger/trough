@@ -113,7 +113,7 @@ func (app *App) apiCredentialAccount(a *Account) obj {
 	}
 	priv := "public"
 	m["source"] = obj{"privacy": priv, "sensitive": false, "language": "", "note": a.NoteSource, "fields": fields,
-		"follow_requests_count": app.followRequestCount(a.ID)}
+		"follow_requests_count": app.followRequestCount(a.ID), "quote_policy": "public"}
 	m["role"] = obj{"id": "0", "name": map[bool]string{true: "Admin", false: ""}[app.isAdmin(a.ID)], "permissions": "0", "color": "", "highlighted": false}
 	return m
 }
@@ -255,11 +255,19 @@ func (app *App) apiStatusBase(v *Account, s *Status) obj {
 	if v != nil && s.AccountID == v.ID {
 		m["pinned"] = !s.PinnedAt.IsZero()
 	}
-	if s.Quote != nil {
+	switch {
+	case s.QuoteURI != "" && s.QuoteState != "":
+		m["quote"] = obj{"state": s.QuoteState, "quoted_status": nil}
+	case s.Quote != nil:
 		m["quote"] = obj{"state": "accepted", "quoted_status": app.apiStatusBase(v, s.Quote)}
-	} else if s.QuoteURI != "" {
+	case s.QuoteURI != "":
 		m["quote"] = obj{"state": "deleted", "quoted_status": nil}
 	}
+	auto := []any{}
+	if p := quotePolicy(s); p == "public" || p == "followers" {
+		auto = append(auto, p)
+	}
+	m["quote_approval"] = obj{"automatic": auto, "manual": []any{}, "current_user": app.quoteApproval(s, v)}
 	return m
 }
 

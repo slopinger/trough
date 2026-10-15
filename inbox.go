@@ -102,7 +102,12 @@ func (app *App) processActivity(ctx context.Context, actor *Account, act obj) er
 	case "Follow":
 		return app.inFollow(actor, act)
 	case "Accept", "Reject":
+		if app.quoteAnswer(actor, act) {
+			return nil
+		}
 		return app.inAcceptReject(ctx, actor, act)
+	case "QuoteRequest":
+		return app.inQuoteRequest(ctx, actor, act)
 	case "Undo":
 		return app.inUndo(actor, act)
 	case "Create":
@@ -561,6 +566,10 @@ func (app *App) inUpdate(ctx context.Context, actor *Account, act obj) error {
 			return errors.New("update of someone else's post")
 		}
 		app.applyNote(st, o)
+		st.QuotePolicy = remoteQuotePolicy(o, actor)
+		if state := app.localQuoteState(st, o); state != "pending" || st.QuoteState != "revoked" {
+			st.QuoteState = state
+		}
 		if err := app.updateStatusContent(st); err != nil {
 			return err
 		}
@@ -580,6 +589,7 @@ func (app *App) inDelete(actor *Account, act obj) error {
 	}
 	st, err := app.StatusByURI(iri)
 	if err != nil {
+		app.quoteRevoked(actor, iri)
 		return nil
 	}
 	if st.AccountID != actor.ID {

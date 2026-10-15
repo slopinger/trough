@@ -23,6 +23,7 @@ type PostInput struct {
 	Poll                      *Poll
 	Language                  string    // ISO 639 code chosen by the client, may be empty
 	QuoteOf                   string    // local status id of a quoted post
+	QuotePolicy               string    // who may quote this post: public, followers, nobody ("" = public)
 	PollStart                 time.Time // when the poll's duration was chosen (scheduled posts)
 }
 
@@ -54,10 +55,16 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 	var quoted *Status
 	if in.QuoteOf != "" {
 		q, err := app.loadStatus(me, in.QuoteOf)
-		if err != nil || (q.Visibility != "public" && q.Visibility != "unlisted") || q.IsBoost() {
+		if err != nil || app.quoteApproval(q, me) == "denied" {
 			return nil, errors.New("that post can't be quoted")
 		}
+		if q.Visibility == "private" && visibilityRank[in.Visibility] < visibilityRank["private"] {
+			in.Visibility = "private" // quoting my own followers-only post
+		}
 		quoted = q
+	}
+	if !quotePolicies[in.QuotePolicy] {
+		in.QuotePolicy = ""
 	}
 	f := app.formatPost(ctx, text)
 	if quoted != nil {
@@ -85,8 +92,23 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 		Poll:       in.Poll,
 		Emojis:     app.emojisIn(text, in.Spoiler),
 	}
+	st.QuotePolicy = in.QuotePolicy
+	askQuote := false
 	if quoted != nil {
 		st.QuoteURI = quoted.URI
+		if quoted.AccountID != me.ID {
+			if quoted.Local {
+				// approved on the spot; remote servers check the stamp
+				stamp, err := app.authorizeQuote(quoted, st.URI, me)
+				if err != nil {
+					return nil, err
+				}
+				st.QuoteAuth = stamp
+			} else if quotePolicy(quoted) != "" {
+				// the quoted server knows FEP-044f: wait for its approval
+				st.QuoteState, askQuote = "pending", true
+			}
+		}
 	}
 	if parent != nil {
 		st.InReplyToURI, st.InReplyToID, st.InReplyToAccountID = parent.URI, parent.ID, parent.AccountID
@@ -126,6 +148,11 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 		}
 	}
 	app.enqueue(me, inboxes, app.createActivity(full))
+	if askQuote {
+		// after the Create: Mastodon drops a QuoteRequest that it handles
+		// while it is still storing the quoting post
+		app.enqueueAt(me, []string{quoted.Account.DeliveryInbox()}, app.quoteRequestActivity(full, quoted), time.Now().Add(5*time.Second))
+	}
 	app.queueCard(full)
 	app.publishStatus(full.ID, false)
 	return full, nil

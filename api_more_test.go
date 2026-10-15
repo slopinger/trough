@@ -324,3 +324,70 @@ func TestAPIFilters(t *testing.T) {
 		t.Errorf("web filter = %v", got)
 	}
 }
+
+// Mastodon 4.5 quote settings: quote_approval on statuses, the policy when
+// posting and later, and revoking a quote.
+func TestAPIQuoteApproval(t *testing.T) {
+	la, _, bob, _ := featureFixture(t)
+	ctx := context.Background()
+	eve, _ := la.CreateLocalUser("eve", "password123", false)
+	bc := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}
+	ec := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "eve", "password123", "read write")}
+	approval := func(c *apiClient, id string) map[string]any {
+		return c.ok("GET", "/api/v1/statuses/"+id, nil).(map[string]any)["quote_approval"].(map[string]any)
+	}
+
+	open := bc.ok("POST", "/api/v1/statuses", url.Values{"status": {"quote me"}}).(map[string]any)
+	if a := approval(ec, open["id"].(string)); a["current_user"] != "automatic" || len(a["automatic"].([]any)) != 1 || a["automatic"].([]any)[0] != "public" {
+		t.Fatalf("public post: %v", a)
+	}
+	if a := approval(&apiClient{t: t, base: la.base}, open["id"].(string)); a["current_user"] != "denied" {
+		t.Fatalf("anonymous: %v", a)
+	}
+	closed := bc.ok("POST", "/api/v1/statuses", url.Values{"status": {"mine"}, "quote_approval_policy": {"nobody"}}).(map[string]any)
+	if a := approval(ec, closed["id"].(string)); a["current_user"] != "denied" || len(a["automatic"].([]any)) != 0 {
+		t.Fatalf("nobody: %v", a)
+	}
+	if a := approval(bc, closed["id"].(string)); a["current_user"] != "automatic" {
+		t.Fatalf("author: %v", a)
+	}
+	if code, _, _ := ec.do("POST", "/api/v1/statuses", url.Values{"status": {"nope"}, "quoted_status_id": {closed["id"].(string)}}); code != 422 {
+		t.Fatalf("got %d, want 422", code)
+	}
+	if code, _, _ := bc.do("POST", "/api/v1/statuses", url.Values{"status": {"x"}, "quote_approval_policy": {"everyone"}}); code != 422 {
+		t.Fatalf("got %d, want 422", code)
+	}
+
+	followers := bc.ok("PUT", "/api/v1/statuses/"+closed["id"].(string)+"/interaction_policy", url.Values{"quote_approval_policy": {"followers"}}).(map[string]any)
+	if a := followers["quote_approval"].(map[string]any); a["automatic"].([]any)[0] != "followers" {
+		t.Fatalf("followers: %v", a)
+	}
+	if a := approval(ec, closed["id"].(string)); a["current_user"] != "denied" {
+		t.Fatalf("non-follower: %v", a)
+	}
+	la.db.Exec(`INSERT INTO follows (id,uri,account_id,target_id,accepted,created_at) VALUES ('f3','x',?,?,1,0)`, eve.ID, bob.ID)
+	if a := approval(ec, closed["id"].(string)); a["current_user"] != "automatic" {
+		t.Fatalf("follower: %v", a)
+	}
+	if code, _, _ := ec.do("PUT", "/api/v1/statuses/"+closed["id"].(string)+"/interaction_policy", url.Values{"quote_approval_policy": {"public"}}); code != 404 {
+		t.Fatalf("got %d, want 404", code)
+	}
+
+	q, err := la.PostStatus(ctx, eve, PostInput{Text: "quoting", Visibility: "public", QuoteOf: open["id"].(string)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q.QuoteAuth == "" {
+		t.Fatal("local quote of another user's post has no stamp")
+	}
+	revoked := bc.ok("POST", "/api/v1/statuses/"+open["id"].(string)+"/quotes/"+q.ID+"/revoke", nil).(map[string]any)
+	if revoked["quote"].(map[string]any)["state"] != "revoked" {
+		t.Fatalf("revoked = %v", revoked["quote"])
+	}
+	if got := bc.ok("GET", "/api/v1/statuses/"+open["id"].(string)+"/quotes", nil).([]any); len(got) != 0 {
+		t.Fatalf("revoked quote still listed")
+	}
+	if code, _, _ := ec.do("POST", "/api/v1/statuses/"+open["id"].(string)+"/quotes/"+q.ID+"/revoke", nil); code != 404 {
+		t.Fatalf("got %d, want 404", code)
+	}
+}

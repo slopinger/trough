@@ -248,6 +248,9 @@ type Status struct {
 	CreatedAt, EditedAt       time.Time
 	PinnedAt                  time.Time
 	QuoteURI, CardURL         string
+	QuoteState                string // "" (accepted or no quote), pending, rejected or revoked (FEP-044f)
+	QuoteAuth                 string // QuoteAuthorization IRI approving the quote
+	QuotePolicy               string // who may quote this post: public, followers, nobody, "" unknown
 
 	// hydrated
 	Account          *Account
@@ -286,7 +289,7 @@ func (s *Status) Path() string { return "/s/" + s.ID }
 
 const statusCols = `s.id,s.uri,s.url,s.account_id,s.local,s.in_reply_to_uri,s.in_reply_to_id,s.in_reply_to_account_id,s.boost_of_id,
 s.content,s.source,s.spoiler,s.sensitive,s.visibility,s.language,s.emojis,s.poll,s.created_at,s.edited_at,
-s.pinned_at,s.quote_uri,s.card_url`
+s.pinned_at,s.quote_uri,s.card_url,s.quote_state,s.quote_auth,s.quote_policy`
 
 func scanStatus(r scanner) (*Status, error) {
 	s := &Status{}
@@ -294,7 +297,7 @@ func scanStatus(r scanner) (*Status, error) {
 	var created, edited, pinned int64
 	err := r.Scan(&s.ID, &s.URI, &s.URL, &s.AccountID, &s.Local, &s.InReplyToURI, &s.InReplyToID, &s.InReplyToAccountID, &s.BoostOfID,
 		&s.Content, &s.Source, &s.Spoiler, &s.Sensitive, &s.Visibility, &s.Language, &emojis, &poll, &created, &edited,
-		&pinned, &s.QuoteURI, &s.CardURL)
+		&pinned, &s.QuoteURI, &s.CardURL, &s.QuoteState, &s.QuoteAuth, &s.QuotePolicy)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errNotFound
 	}
@@ -338,10 +341,11 @@ func (app *App) insertStatus(s *Status) error {
 		edited = s.EditedAt.Unix()
 	}
 	_, err := app.db.Exec(`INSERT INTO statuses (id,uri,url,account_id,local,in_reply_to_uri,in_reply_to_id,in_reply_to_account_id,boost_of_id,
-		content,source,spoiler,sensitive,visibility,language,emojis,poll,created_at,edited_at,quote_uri,card_url) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		content,source,spoiler,sensitive,visibility,language,emojis,poll,created_at,edited_at,quote_uri,card_url,
+		quote_state,quote_auth,quote_policy) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		s.ID, s.URI, s.URL, s.AccountID, s.Local, s.InReplyToURI, s.InReplyToID, s.InReplyToAccountID, s.BoostOfID,
 		s.Content, s.Source, s.Spoiler, s.Sensitive, s.Visibility, s.Language, string(emojis), poll, s.CreatedAt.Unix(), edited,
-		s.QuoteURI, s.CardURL)
+		s.QuoteURI, s.CardURL, s.QuoteState, s.QuoteAuth, s.QuotePolicy)
 	return err
 }
 
@@ -369,8 +373,10 @@ func (app *App) updateStatusContent(s *Status) error {
 		b, _ := json.Marshal(s.Poll)
 		poll = string(b)
 	}
-	_, err := app.db.Exec(`UPDATE statuses SET content=?, source=?, spoiler=?, sensitive=?, emojis=?, poll=?, edited_at=?, quote_uri=?, card_url=? WHERE id=?`,
-		s.Content, s.Source, s.Spoiler, s.Sensitive, string(emojis), poll, time.Now().Unix(), s.QuoteURI, s.CardURL, s.ID)
+	_, err := app.db.Exec(`UPDATE statuses SET content=?, source=?, spoiler=?, sensitive=?, emojis=?, poll=?, edited_at=?, quote_uri=?, card_url=?,
+		quote_state=?, quote_auth=?, quote_policy=? WHERE id=?`,
+		s.Content, s.Source, s.Spoiler, s.Sensitive, string(emojis), poll, time.Now().Unix(), s.QuoteURI, s.CardURL,
+		s.QuoteState, s.QuoteAuth, s.QuotePolicy, s.ID)
 	return err
 }
 

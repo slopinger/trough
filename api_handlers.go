@@ -600,7 +600,11 @@ func (app *App) apiPostStatus(w http.ResponseWriter, r *http.Request, c *apiCtx)
 	in := PostInput{
 		Text: p.Get("status"), Spoiler: p.Get("spoiler_text"), Visibility: p.Get("visibility"),
 		Sensitive: p.Bool("sensitive"), InReplyTo: p.Get("in_reply_to_id"), MediaIDs: p.List("media_ids"),
-		QuoteOf: p.Get("quoted_status_id"), Language: p.Get("language"),
+		QuoteOf: p.Get("quoted_status_id"), Language: p.Get("language"), QuotePolicy: p.Get("quote_approval_policy"),
+	}
+	if in.QuotePolicy != "" && !quotePolicies[in.QuotePolicy] {
+		apiError(w, 422, "Validation failed: quote_approval_policy is invalid")
+		return
 	}
 	if in.QuoteOf == "" {
 		in.QuoteOf = p.Get("quote_id")
@@ -669,6 +673,14 @@ func (app *App) apiEditStatus(w http.ResponseWriter, r *http.Request, c *apiCtx)
 		return
 	}
 	p := readParams(r)
+	if qp := p.Get("quote_approval_policy"); qp != "" && st.AccountID == c.Me.ID {
+		if !quotePolicies[qp] {
+			apiError(w, 422, "Validation failed: quote_approval_policy is invalid")
+			return
+		}
+		app.db.Exec(`UPDATE statuses SET quote_policy=? WHERE id=?`, qp, st.ID)
+		st.QuotePolicy = qp
+	}
 	edited, err := app.EditStatus(r.Context(), c.Me, st, p.Get("status"), p.Get("spoiler_text"), p.Bool("sensitive"))
 	if err != nil {
 		apiError(w, 422, err.Error())
@@ -822,8 +834,48 @@ func (app *App) apiStatusQuotes(w http.ResponseWriter, r *http.Request, c *apiCt
 		return
 	}
 	pq := pageParams(r, 20, 40)
-	sts, _ := app.pageStatuses(c.Me, `s.quote_uri=? AND s.boost_of_id=''`, []any{st.URI}, pq)
+	sts, _ := app.pageStatuses(c.Me, `s.quote_uri=? AND s.boost_of_id='' AND s.quote_state=''`, []any{st.URI}, pq)
 	app.writeStatuses(w, r, c.Me, sts, pq)
+}
+
+// apiRevokeQuote withdraws the approval for a post quoting one of mine
+// (POST /api/v1/statuses/:id/quotes/:quoting_status_id/revoke, Mastodon 4.5).
+func (app *App) apiRevokeQuote(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	st, ok := app.apiLoadStatus(w, r, c)
+	if !ok {
+		return
+	}
+	quoting, err := app.loadStatus(c.Me, r.PathValue("quoting"))
+	if err != nil || app.RevokeQuote(c.Me, st, quoting) != nil {
+		apiError(w, 404, "Record not found")
+		return
+	}
+	quoting, _ = app.loadStatus(c.Me, quoting.ID)
+	apiJSON(w, 200, app.apiStatus(c.Me, quoting))
+}
+
+// apiInteractionPolicy changes who may quote one of my posts
+// (PUT /api/v1/statuses/:id/interaction_policy, Mastodon 4.5).
+func (app *App) apiInteractionPolicy(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	st, ok := app.apiLoadStatus(w, r, c)
+	if !ok {
+		return
+	}
+	qp := readParams(r).Get("quote_approval_policy")
+	if st.AccountID != c.Me.ID {
+		apiError(w, 404, "Record not found")
+		return
+	}
+	if !quotePolicies[qp] {
+		apiError(w, 422, "Validation failed: quote_approval_policy is invalid")
+		return
+	}
+	if err := app.SetQuotePolicy(c.Me, st, qp); err != nil {
+		apiError(w, 422, err.Error())
+		return
+	}
+	st, _ = app.loadStatus(c.Me, st.ID)
+	apiJSON(w, 200, app.apiStatus(c.Me, st))
 }
 
 func (app *App) apiStatusAccounts(likes bool) apiHandler {

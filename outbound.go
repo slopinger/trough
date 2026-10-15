@@ -178,6 +178,7 @@ func (app *App) noteJSON(st *Status) obj {
 	}
 	app.questionFields(st, m)
 	app.quoteFields(st, m)
+	m["interactionPolicy"] = app.interactionPolicyJSON(st)
 	return m
 }
 

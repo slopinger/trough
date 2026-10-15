@@ -45,7 +45,7 @@
     <details class="menu right">
       <summary class="act" title="More">{{template "icon" "dots"}}</summary>
       <div class="menu-list">
-        {{if eq $o.Visibility "public" "unlisted"}}<a href="/compose?quote={{$o.ID}}">{{template "icon" "quote"}} Quote</a>{{end}}
+        {{if canQuote $o $p.Me}}<a href="/compose?quote={{$o.ID}}">{{template "icon" "quote"}} Quote</a>{{end}}
         {{if eq $o.AccountID $p.Me.ID}}
           {{if $o.Local}}<a href="/compose?edit={{$o.ID}}">{{template "icon" "pen"}} Edit</a>{{end}}
           {{if eq $o.Visibility "public" "unlisted"}}
@@ -86,7 +86,9 @@
   {{if $s.Quote}}<a class="quote" href="{{$s.Quote.Path}}">
     <span class="quote-head"><img src="{{template "avatarsrc" $s.Quote.Account}}" alt="" width="20" height="20"> <b>{{name $s.Quote.Account}}</b> <span class="muted">{{handle $s.Quote.Account}}</span></span>
     <span class="quote-body">{{if $s.Quote.Spoiler}}⚠️ {{$s.Quote.Spoiler}}{{else}}{{plain $s.Quote.Content}}{{if $s.Quote.Attachments}} 🖼{{end}}{{end}}</span>
-  </a>{{else if $s.QuoteURI}}<a class="quote" href="/search?q={{$s.QuoteURI}}"><span class="quote-body muted">Quoted post: {{$s.QuoteURI}}</span></a>{{end}}
+  </a>{{else if eq $s.QuoteState "pending"}}<span class="quote"><span class="quote-body muted">Quoted post: waiting for its author's approval</span></span>
+  {{- else if $s.QuoteState}}<span class="quote"><span class="quote-body muted">The quoted post's author removed this quote</span></span>
+  {{- else if $s.QuoteURI}}<a class="quote" href="/search?q={{$s.QuoteURI}}"><span class="quote-body muted">Quoted post: {{$s.QuoteURI}}</span></a>{{end}}
   {{if $s.Attachments}}
   {{if $s.Sensitive}}<details class="sensitive"><summary>{{template "icon" "image"}} Sensitive media — click to show</summary>{{template "media" $s}}</details>
   {{else}}{{template "media" $s}}{{end}}
