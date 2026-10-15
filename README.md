@@ -17,8 +17,9 @@ Running instance: **https://fedi.freifick.net**
 - WebFinger (`/.well-known/webfinger`), host-meta, NodeInfo 2.0/2.1, a minimal `/api/v1/instance`
 - ActivityPub client-to-server: with an OAuth token (`read`/`write`, from `/oauth/token`; the actor's
   `endpoints` advertise both OAuth endpoints) a client can POST `Create`/bare `Note`, `Update`, `Delete`,
-  `Like`, `Announce`, `Follow`, `Block` and `Undo` to the user's outbox (`201` with `Location`) and read
-  their inbox (home timeline as activities). Addressing picks the visibility; addressed or tagged actors
+  `Like`, `Announce`, `Follow`, `Block` and `Undo` to the user's outbox (`201` with `Location`), upload
+  media to `endpoints.uploadMedia` (multipart `file` + `object`, then attach it by URL), and read their
+  inbox (home timeline as activities). Addressing picks the visibility; addressed or tagged actors
   are mentioned.
 - Actors with RSA keys; HTTP Signatures (draft-cavage, `rsa-sha256`/`hs2019`) on every outgoing request,
   verified on every incoming inbox POST (digest, date window, key ownership, re-fetch on key rotation).
@@ -220,8 +221,7 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 
 ## Not (yet) implemented
 
-C2S media uploads (`uploadMedia`), and C2S activities
-other than the ones listed above.
+C2S activities other than the ones listed above.
 
 ## License
 

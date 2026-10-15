@@ -160,6 +160,18 @@ func (app *App) c2sCreate(ctx context.Context, me *Account, act, note obj) (stri
 		in.InReplyTo = parent.ID
 	}
 	in.Text = app.c2sMentions(ctx, me, in.Text, addr, note)
+	for _, a := range append(objsOf(note["attachment"]), objsOf(note["image"])...) {
+		var id string
+		u := idOf(a)
+		if u == "" {
+			u = idOf(a["url"])
+		}
+		if app.db.QueryRow(`SELECT id FROM attachments WHERE account_id=? AND status_id IS NULL AND (url=? OR url=?)`,
+			me.ID, u, strings.TrimPrefix(u, app.cfg.BaseURL())).Scan(&id) != nil {
+			return "", errors.New("attachment " + u + " was not uploaded here (use uploadMedia first)")
+		}
+		in.MediaIDs = append(in.MediaIDs, id)
+	}
 	st, err := app.PostStatus(ctx, me, in)
 	if err != nil {
 		return "", err
@@ -356,4 +368,53 @@ func (app *App) handleC2SInbox(w http.ResponseWriter, r *http.Request) {
 		page["next"] = id + "?page=true&max_id=" + sts[len(sts)-1].ID
 	}
 	writeAP(w, withContext(page))
+}
+
+// handleC2SUploadMedia is the ActivityPub uploadMedia endpoint: a multipart
+// POST with "file" and an "object" shell (its name becomes the alt text).
+// The answer is the stored media object; reference it by id or url in a
+// Note's attachment to post it.
+func (app *App) handleC2SUploadMedia(w http.ResponseWriter, r *http.Request) {
+	me := app.c2sUser(w, r, "write")
+	if me == nil {
+		return
+	}
+	if err := r.ParseMultipartForm(8 << 20); err != nil || r.MultipartForm == nil || len(r.MultipartForm.File["file"]) == 0 {
+		http.Error(w, "multipart form with a file is required", http.StatusBadRequest)
+		return
+	}
+	var shell obj
+	json.Unmarshal([]byte(r.FormValue("object")), &shell)
+	alt := str(shell, "name")
+	if alt == "" {
+		alt = str(shell, "summary")
+	}
+	fh, err := r.MultipartForm.File["file"][0].Open()
+	if err != nil {
+		http.Error(w, "could not read file", http.StatusBadRequest)
+		return
+	}
+	data, _ := io.ReadAll(io.LimitReader(fh, maxUploadSize+1))
+	fh.Close()
+	at, err := app.saveUpload(me, data, alt)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	u := app.absMedia(at.URL)
+	typ := map[string]string{"image": "Image", "video": "Video", "audio": "Audio"}[at.Kind()]
+	if typ == "" {
+		typ = "Document"
+	}
+	m := obj{"id": u, "type": typ, "mediaType": at.MediaType, "url": u, "attributedTo": me.URI}
+	if at.Description != "" {
+		m["name"] = at.Description
+	}
+	if at.Width > 0 {
+		m["width"], m["height"] = at.Width, at.Height
+	}
+	w.Header().Set("Location", u)
+	w.Header().Set("Content-Type", apMimeType)
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(withContext(m))
 }

@@ -14,6 +14,7 @@ func (app *App) actorEndpoints(acc *Account) obj {
 	if acc.ActorType != "Application" {
 		e["oauthAuthorizationEndpoint"] = app.cfg.BaseURL() + "/oauth/authorize"
 		e["oauthTokenEndpoint"] = app.cfg.BaseURL() + "/oauth/token"
+		e["uploadMedia"] = acc.URI + "/uploadMedia"
 	}
 	return e
 }

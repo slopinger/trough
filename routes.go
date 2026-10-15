@@ -28,6 +28,7 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("GET /users/{name}/outbox", app.handleOutbox)
 	mux.HandleFunc("POST /users/{name}/outbox", app.handleC2SOutbox) // ActivityPub client-to-server
 	mux.HandleFunc("GET /users/{name}/inbox", app.handleC2SInbox)
+	mux.HandleFunc("POST /users/{name}/uploadMedia", app.handleC2SUploadMedia)
 	mux.HandleFunc("GET /users/{name}/followers", app.handleFollowCollection(true))
 	mux.HandleFunc("GET /users/{name}/following", app.handleFollowCollection(false))
 	mux.HandleFunc("GET /users/{name}/collections/featured", app.handleFeatured)
