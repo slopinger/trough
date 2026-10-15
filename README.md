@@ -51,7 +51,10 @@ Running instance: **https://fedi.freifick.net**
 - Streaming API over WebSocket (`/api/v1/streaming`) and server-sent events (`/api/v1/streaming/user`, ...)
 - Web Push (`/api/v1/push/subscription`, VAPID, RFC 8291 encryption) so mobile and browser apps get
   notifications while closed
-- Checked with the Mastodon.py client library (`test/mastodon_py.py`) and Go tests (`api_test.go`)
+- Checked with the Mastodon.py client library (`test/mastodon_py.py`), the toot CLI
+  (`nix shell nixpkgs#toot --command bash test/toot.sh`: login, posting, threads, polls, media,
+  favourites, boosts, bookmarks, pins, follows, lists, followed tags, mutes, blocks, deletes),
+  Phanpy and Elk in a browser, and Go tests (`api_test.go`)
 
 **Web interface**
 - Home, local and federated timelines, hashtag timelines, threads with nested replies
