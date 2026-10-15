@@ -71,6 +71,8 @@ Running instance: **https://fedi.freifick.net**
   text box and is never posted automatically. Uses DeepSeek's chat completions API (any
   OpenAI-compatible endpoint works); remote post text is passed to the model as delimited data, not
   instructions. 30 requests per user and hour; admins switch it on and off and pick the model on `/admin`.
+  The same model translates posts for Mastodon apps (`POST /api/v1/statuses/:id/translate`, cached per
+  post version and language; the instance advertises translation while AI is on).
 - Edit your posts (with an edit history), pin up to 5 to your profile (featured collection, `Add`/`Remove`), bookmarks
 - Polls (2-4 options, single or multiple choice) federated as `Question`; vote in remote polls; poll results
   and end notifications
@@ -194,6 +196,7 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 | `db.go`, `models.go` | SQLite schema/migrations, accounts, statuses, relationships |
 | `httpsig.go`, `rfc9421.go` | HTTP Signatures (draft-cavage, RFC 9421) |
 | `ai.go` | AI drafting of posts and replies |
+| `translate.go` | AI translation of posts (Mastodon translate API), instance language endpoints |
 | `api_oauth.go`, `api_entities.go`, `api_handlers.go`, `api_stream.go`, `push.go` | Mastodon client API, OAuth, streaming, Web Push |
 | `relays.go`, `tags.go`, `lists.go`, `scheduled.go`, `emoji.go` | relays, followed hashtags, lists, scheduled posts, custom emoji |
 | `features.go`, `polls.go`, `social.go`, `accounts.go` | edits, pins, bookmarks, mutes, filters, reports, polls, reactions, quotes, link cards, migration, sign-ups |

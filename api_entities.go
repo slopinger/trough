@@ -336,7 +336,7 @@ func (app *App) apiConfiguration() obj {
 			"video_size_limit": 0, "video_frame_rate_limit": 0, "video_matrix_limit": 0, "description_limit": 1500,
 		},
 		"polls":            obj{"max_options": 4, "max_characters_per_option": 100, "min_expiration": 300, "max_expiration": 7 * 24 * 3600},
-		"translation":      obj{"enabled": false},
+		"translation":      obj{"enabled": app.aiEnabled()},
 		"vapid":            obj{"public_key": app.vapidPublic()},
 		"reactions":        obj{"max_reactions": 1},
 		"timelines_access": obj{"live_feeds": obj{"local": "public", "remote": "authenticated"}},

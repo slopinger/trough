@@ -202,6 +202,12 @@ func stripMentionPrefix(s string) string { return strings.TrimPrefix(s, mentionP
 // model reasons and ("text", chunk) for the draft itself. It returns the
 // full text; on error any partial text must be discarded.
 func (app *App) aiDraft(ctx context.Context, me *Account, req aiRequest, onEvent func(kind, text string)) (string, error) {
+	return app.aiChat(ctx, aiSystemPrompt, app.aiPrompt(me, req), map[bool]float64{true: 1.3, false: 1.0}[req.Mode == "lucky"], onEvent)
+}
+
+// aiChat streams one chat completion and returns its text. onEvent (may be
+// nil) hears "thinking" once reasoning starts and each "text" delta.
+func (app *App) aiChat(ctx context.Context, system, user string, temperature float64, onEvent func(kind, text string)) (string, error) {
 	if !app.aiEnabled() {
 		return "", errAIDisabled
 	}
@@ -209,10 +215,10 @@ func (app *App) aiDraft(ctx context.Context, me *Account, req aiRequest, onEvent
 		"model":       app.aiModel(),
 		"stream":      true,
 		"max_tokens":  8000, // includes reasoning tokens
-		"temperature": map[bool]float64{true: 1.3, false: 1.0}[req.Mode == "lucky"],
+		"temperature": temperature,
 		"messages": []obj{
-			{"role": "system", "content": aiSystemPrompt},
-			{"role": "user", "content": app.aiPrompt(me, req)},
+			{"role": "system", "content": system},
+			{"role": "user", "content": user},
 		},
 	})
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
