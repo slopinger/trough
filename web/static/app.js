@@ -391,4 +391,65 @@
     ta.addEventListener("blur", function () { setTimeout(close, 150); });
   });
 
+  // Keyboard shortcuts (press ? for the list). Not while typing.
+  var shortcuts = [
+    ["j / k", "next / previous post"], ["o", "open the post"], ["r", "reply"], ["f", "favourite"],
+    ["b", "boost"], ["n", "new post"], ["/", "search"], ["?", "show this help"], ["Esc", "close"]];
+  var focused = null;
+  function posts() { return Array.prototype.slice.call(document.querySelectorAll("main article.status")); }
+  function focusPost(el) {
+    if (focused) focused.classList.remove("kbd-focus");
+    focused = el;
+    if (!el) return;
+    el.classList.add("kbd-focus");
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+  function help() {
+    var d = document.getElementById("kbd-help");
+    if (d) { d.remove(); return; }
+    d = document.createElement("div");
+    d.id = "kbd-help";
+    d.setAttribute("role", "dialog");
+    d.setAttribute("aria-label", "Keyboard shortcuts");
+    var h = document.createElement("h3"); h.textContent = "Keyboard shortcuts"; d.appendChild(h);
+    var dl = document.createElement("dl");
+    shortcuts.forEach(function (s) {
+      var dt = document.createElement("dt"); var k = document.createElement("kbd"); k.textContent = s[0]; dt.appendChild(k);
+      var dd = document.createElement("dd"); dd.textContent = s[1];
+      dl.appendChild(dt); dl.appendChild(dd);
+    });
+    d.appendChild(dl);
+    d.addEventListener("click", function () { d.remove(); });
+    document.body.appendChild(d);
+  }
+  document.addEventListener("keydown", function (ev) {
+    var t = ev.target;
+    if (ev.ctrlKey || ev.metaKey || ev.altKey || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
+    var list = posts(), i = focused ? list.indexOf(focused) : -1;
+    var click = function (sel) { var b = focused && focused.querySelector(sel); if (b && !b.disabled) b.click(); };
+    switch (ev.key) {
+      case "j": focusPost(list[Math.min(i + 1, list.length - 1)]); break;
+      case "k": focusPost(list[Math.max(i - 1, 0)]); break;
+      case "o": if (!focused) return; click("a.time"); break;
+      case "r": if (!focused) return; click('a.act[title="Reply"]'); break;
+      case "f": if (!focused) return; click("button.act.like"); break;
+      case "b": if (!focused) return; click("button.act.boost"); break;
+      case "n":
+        var ta = document.querySelector("form.compose textarea");
+        if (ta) ta.focus(); else location.href = "/compose";
+        break;
+      case "/":
+        var q = document.querySelector('input[type=search][name=q]');
+        if (!q) return;
+        q.focus();
+        break;
+      case "?": help(); break;
+      case "Escape":
+        var d = document.getElementById("kbd-help");
+        if (d) d.remove(); else focusPost(null);
+        break;
+      default: return;
+    }
+    ev.preventDefault();
+  });
 })();
