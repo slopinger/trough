@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"path"
 	"strings"
 	"testing"
 )
@@ -297,5 +298,22 @@ func TestCompatOurDocuments(t *testing.T) {
 	items, _ := page["orderedItems"].([]any)
 	if code != 200 || len(items) != 3 || typeOf(objOf(items[0])) != "Create" {
 		t.Fatalf("outbox page: %d %v", code, page)
+	}
+	// replies: an embedded first page (GoToSocial needs one) whose next link
+	// is fetchable
+	note := objOf(objOf(items[2])["object"])
+	reply, _ := la.PostStatus(context.Background(), bob, PostInput{Text: "reply", Visibility: "public", InReplyTo: path.Base(str(note, "id"))})
+	replies := objOf(note["replies"])
+	first := objOf(replies["first"])
+	if typeOf(first) != "CollectionPage" || str(first, "partOf") != str(replies, "id") {
+		t.Fatalf("replies = %v", replies)
+	}
+	priv, _ := la.PostStatus(context.Background(), bob, PostInput{Text: "secret", Visibility: "private"})
+	if privFull, _ := la.loadStatus(bob, priv.ID); la.noteJSON(privFull)["replies"] != nil {
+		t.Error("followers-only post links a replies collection that 404s")
+	}
+	code, rp, _ := get(str(first, "next"), apMimeType)
+	if ri, _ := rp["items"].([]any); code != 200 || typeOf(rp) != "CollectionPage" || len(ri) != 1 || ri[0] != reply.URI {
+		t.Fatalf("replies page %v: %d %v", replies, code, rp)
 	}
 }

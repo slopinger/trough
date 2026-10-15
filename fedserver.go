@@ -220,10 +220,12 @@ func (app *App) handleAPReplies(w http.ResponseWriter, r *http.Request) {
 	}
 	rows.Close()
 	id := st.URI + "/replies"
-	writeAP(w, withContext(obj{
-		"id": id, "type": "Collection", "totalItems": len(items),
-		"first": obj{"id": id + "?page=true", "type": "CollectionPage", "partOf": id, "items": items},
-	}))
+	page := obj{"id": id + "?page=true", "type": "CollectionPage", "partOf": id, "items": items}
+	if r.URL.Query().Get("page") != "" {
+		writeAP(w, withContext(page))
+		return
+	}
+	writeAP(w, withContext(obj{"id": id, "type": "Collection", "totalItems": len(items), "first": page}))
 }
 
 func (app *App) handleOutbox(w http.ResponseWriter, r *http.Request) {

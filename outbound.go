@@ -141,10 +141,17 @@ func (app *App) noteJSON(st *Status) obj {
 		"inReplyTo":    nil,
 		"tag":          tags,
 		"attachment":   atts,
+		// shaped like Mastodon's and GoToSocial's: an embedded first page
+		// that links the real one (GoToSocial needs the embedded page)
 		"replies": obj{
 			"id":   st.URI + "/replies",
 			"type": "Collection",
+			"first": obj{"type": "CollectionPage", "partOf": st.URI + "/replies",
+				"next": st.URI + "/replies?page=true", "items": []any{}},
 		},
+	}
+	if st.Visibility == "private" || st.Visibility == "direct" {
+		delete(m, "replies") // the collection is only served for public posts
 	}
 	if st.Spoiler != "" {
 		m["summary"] = st.Spoiler
