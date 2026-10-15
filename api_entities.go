@@ -235,6 +235,7 @@ func (app *App) apiStatusBase(v *Account, s *Status) obj {
 		"replies_count":          s.Replies,
 		"reblogs_count":          s.Boosts,
 		"favourites_count":       s.Likes,
+		"quotes_count":           app.countInt(`SELECT COUNT(*) FROM statuses WHERE quote_uri=? AND quote_state='' AND boost_of_id=''`, s.URI),
 		"edited_at":              apiTime(s.EditedAt),
 		"favourited":             s.Liked,
 		"reblogged":              s.Boosted,

@@ -94,6 +94,9 @@ func TestAPIStatusQuotes(t *testing.T) {
 	if len(got) != 2 || got[1].(map[string]any)["id"] != q1.ID || !strings.HasPrefix(texts[0], "remote quote") {
 		t.Fatalf("quotes = %q", texts)
 	}
+	if n := c.ok("GET", "/api/v1/statuses/"+orig.ID, nil).(map[string]any)["quotes_count"]; n != float64(3) {
+		t.Fatalf("quotes_count = %v", n) // two public quotes and one private
+	}
 	if got := (&apiClient{t: t, base: la.base}).ok("GET", "/api/v1/statuses/"+orig.ID+"/quotes", nil).([]any); len(got) != 2 {
 		t.Errorf("anonymous sees %d quotes", len(got))
 	}
