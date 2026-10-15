@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"io"
+	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 // featureFixture: local bob, remote Mastodon alice who follows bob (and is
@@ -172,3 +175,54 @@ func TestReportsFederate(t *testing.T) {
 }
 
 func mustMarshal(v any) string { s, _ := jsonMarshal(v); return s }
+
+func TestEditHistory(t *testing.T) {
+	la, r, bob, alice := featureFixture(t)
+	ctx := context.Background()
+	st, _ := la.PostStatus(ctx, bob, PostInput{Text: "version one", Visibility: "public"})
+	full, _ := la.loadStatus(bob, st.ID)
+	la.EditStatus(ctx, bob, full, "version two", "", false)
+	full, _ = la.loadStatus(bob, st.ID)
+	la.EditStatus(ctx, bob, full, "version three", "cw", false)
+	full, _ = la.loadStatus(bob, st.ID)
+	h := la.history(full)
+	if len(h) != 3 || !strings.Contains(h[0].Content, "version one") || !strings.Contains(h[2].Content, "version three") || h[2].Spoiler != "cw" {
+		t.Fatalf("history = %+v", h)
+	}
+	token := oauthLogin(t, la, "bob", "password123", "read")
+	c := &apiClient{t: t, base: la.base, token: token}
+	if hist := c.ok("GET", "/api/v1/statuses/"+st.ID+"/history", nil).([]any); len(hist) != 3 {
+		t.Fatalf("API history = %v", hist)
+	}
+	resp, err := http.Get(la.base + "/s/" + st.ID + "/history")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if !strings.Contains(string(body), "version one") || !strings.Contains(string(body), "Edit 2") {
+		t.Error("history page incomplete")
+	}
+	// a remote edit is recorded too
+	nid := r.Base + "/users/alice/statuses/h"
+	note := obj{"id": nid, "type": "Note", "attributedTo": alice.URI, "content": "<p>before</p>", "to": []any{asPublic}, "published": apTime(time.Now())}
+	key := r.Base + "/users/alice#main-key"
+	r.send(obj{"@context": asContext, "id": nid + "/a", "type": "Create", "actor": alice.URI, "to": []any{asPublic}, "object": note}, key, sigCavage)
+	var rs *Status
+	eventually(t, "remote post stored", func() bool { rs, _ = la.StatusByURI(nid); return rs != nil })
+	note["content"] = "<p>after</p>"
+	r.send(obj{"@context": asContext, "id": nid + "/u", "type": "Update", "actor": alice.URI, "object": note}, key, sigCavage)
+	eventually(t, "remote edit in history", func() bool {
+		s, _ := la.StatusByID(rs.ID)
+		hh := la.history(s)
+		return len(hh) == 2 && strings.Contains(hh[0].Content, "before")
+	})
+	// poll count refreshes are not edits
+	poll, _ := newPoll([]string{"a", "b"}, "1d", false)
+	ps, _ := la.PostStatus(ctx, bob, PostInput{Text: "poll", Visibility: "public", Poll: poll})
+	ps.Poll.Options[0].Votes = 3
+	la.updateStatusContent(ps)
+	if n := la.countInt(`SELECT COUNT(*) FROM status_edits WHERE status_id=?`, ps.ID); n != 0 {
+		t.Errorf("poll refresh recorded %d edits", n)
+	}
+}

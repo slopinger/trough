@@ -14,7 +14,7 @@
     </div>
     <div class="meta">
       <span class="vis" title="{{visLabel $o.Visibility}}">{{visIcon $o.Visibility}}</span>
-      <a class="time" href="{{$o.Path}}" title="{{fulltime $o.CreatedAt}}{{if not $o.EditedAt.IsZero}} (edited){{end}}"><time datetime="{{isotime $o.CreatedAt}}">{{ago $o.CreatedAt}}</time>{{if not $o.EditedAt.IsZero}}*{{end}}</a>
+      <a class="time" href="{{$o.Path}}" title="{{fulltime $o.CreatedAt}}{{if not $o.EditedAt.IsZero}} (edited){{end}}"><time datetime="{{isotime $o.CreatedAt}}">{{ago $o.CreatedAt}}</time></a>{{if not $o.EditedAt.IsZero}} <a class="edited" href="/s/{{$o.ID}}/history" title="Edited {{fulltime $o.EditedAt}} — show history">edited</a>{{end}}
     </div>
   </div>
   {{if $o.InReplyToURI}}<div class="replyto">{{template "icon" "reply"}} {{if $o.InReplyToAccount}}in reply to <a href="{{$o.InReplyToAccount.Path}}">{{handle $o.InReplyToAccount}}</a>{{else if $o.InReplyToID}}<a href="/s/{{$o.InReplyToID}}">in reply to a post</a>{{else}}in reply to a post{{end}}</div>{{end}}

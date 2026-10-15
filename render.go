@@ -198,6 +198,9 @@ func (app *App) templateFuncs() template.FuncMap {
 		"maxChars":        func() int { return maxStatusChars },
 		"aiModel":         app.aiModel,
 		"reactionChoices": func() []string { return reactionChoices },
+		"versionHTML": func(s *Status, content string) template.HTML {
+			return app.renderHTML(content, s.Mentions, s.Emojis)
+		},
 		"scopeList": func(s string) []string {
 			desc := map[string]string{"read": "read your timelines, posts, notifications and account data", "write": "post, edit, delete, like and boost on your behalf, and change your profile",
 				"follow": "follow, unfollow, block and mute accounts", "push": "receive push notifications", "profile": "see your profile",

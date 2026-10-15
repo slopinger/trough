@@ -658,16 +658,16 @@ func (app *App) apiStatusHistory(w http.ResponseWriter, r *http.Request, c *apiC
 	if !ok {
 		return
 	}
-	at := st.EditedAt
-	if at.IsZero() {
-		at = st.CreatedAt
-	}
 	media := []any{}
 	for _, a := range st.Attachments {
 		media = append(media, app.apiMedia(a))
 	}
-	apiJSON(w, 200, []any{obj{"content": st.Content, "spoiler_text": st.Spoiler, "sensitive": st.Sensitive, "created_at": apiTime(at),
-		"account": app.apiAccount(st.Account), "media_attachments": media, "emojis": app.apiEmojis(st.Emojis)}})
+	out := []any{}
+	for _, v := range app.history(st) {
+		out = append(out, obj{"content": v.Content, "spoiler_text": v.Spoiler, "sensitive": v.Sensitive, "created_at": apiTime(v.At),
+			"account": app.apiAccount(st.Account), "media_attachments": media, "emojis": app.apiEmojis(st.Emojis), "poll": nil})
+	}
+	apiJSON(w, 200, out)
 }
 
 func (app *App) apiContext(w http.ResponseWriter, r *http.Request, c *apiCtx) {

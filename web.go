@@ -75,6 +75,7 @@ type Page struct {
 	Tag           string
 	TagFollowed   bool
 	FollowedTags  []string
+	Versions      []StatusVersion
 	Apps          []ConnectedApp
 	AI            bool   // AI writing available
 	AIKeySource   string // admin: where the key comes from
@@ -1211,4 +1212,15 @@ func (app *App) handleRevokeApp(w http.ResponseWriter, r *http.Request, p *Page)
 	app.db.Exec(`DELETE FROM oauth_tokens WHERE id=? AND account_id=?`, r.PathValue("id"), p.Me.ID)
 	setFlash(w, "Access revoked.")
 	http.Redirect(w, r, "/settings#apps", http.StatusSeeOther)
+}
+
+func (app *App) handleHistory(w http.ResponseWriter, r *http.Request, p *Page) {
+	st, err := app.loadStatus(p.Me, r.PathValue("id"))
+	if err != nil || st.IsBoost() {
+		app.notFound(w, p)
+		return
+	}
+	p.Title, p.Status = "Edit history", st
+	p.Versions = app.history(st)
+	app.render(w, "history", p)
 }

@@ -484,3 +484,4 @@ code.bigcode { font-size: 18px; padding: 6px 10px; user-select: all; overflow-wr
 details.listedit > summary { cursor: pointer; font-weight: 600; }
 details.listedit[open] > summary { margin-bottom: 10px; }
 .pactions details.menu .menu-list { top: 100%; bottom: auto; }
+.edited { color: var(--muted); font-size: 12px; text-decoration: underline dotted; }

@@ -456,3 +456,32 @@ func (app *App) openReports() []*Report {
 	}
 	return out
 }
+
+// ---- edit history ----
+
+type StatusVersion struct {
+	Content, Spoiler string
+	Sensitive        bool
+	At               time.Time
+}
+
+// history returns all versions of a status, oldest first, ending with the current one.
+func (app *App) history(st *Status) []StatusVersion {
+	var out []StatusVersion
+	rows, err := app.db.Query(`SELECT content, spoiler, sensitive, created_at FROM status_edits WHERE status_id=? ORDER BY created_at, id`, st.ID)
+	if err == nil {
+		for rows.Next() {
+			var v StatusVersion
+			var at int64
+			rows.Scan(&v.Content, &v.Spoiler, &v.Sensitive, &at)
+			v.At = time.Unix(at, 0)
+			out = append(out, v)
+		}
+		rows.Close()
+	}
+	at := st.EditedAt
+	if at.IsZero() {
+		at = st.CreatedAt
+	}
+	return append(out, StatusVersion{Content: st.Content, Spoiler: st.Spoiler, Sensitive: st.Sensitive, At: at})
+}

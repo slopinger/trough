@@ -345,6 +345,20 @@ func (app *App) insertStatus(s *Status) error {
 }
 
 func (app *App) updateStatusContent(s *Status) error {
+	// keep the previous version for the edit history
+	var oldContent, oldSpoiler string
+	var oldSensitive bool
+	var created, edited int64
+	if app.db.QueryRow(`SELECT content, spoiler, sensitive, created_at, edited_at FROM statuses WHERE id=?`, s.ID).
+		Scan(&oldContent, &oldSpoiler, &oldSensitive, &created, &edited) == nil &&
+		(oldContent != s.Content || oldSpoiler != s.Spoiler || oldSensitive != s.Sensitive) {
+		at := created
+		if edited > 0 {
+			at = edited
+		}
+		app.db.Exec(`INSERT INTO status_edits (id, status_id, content, spoiler, sensitive, created_at) VALUES (?,?,?,?,?,?)`,
+			newID(), s.ID, oldContent, oldSpoiler, oldSensitive, at)
+	}
 	emojis, _ := json.Marshal(s.Emojis)
 	if s.Emojis == nil {
 		emojis = []byte("[]")

@@ -337,6 +337,16 @@ CREATE TABLE list_accounts (
 	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
 	PRIMARY KEY (list_id, account_id)
 );
+`, `
+CREATE TABLE status_edits (
+	id TEXT PRIMARY KEY,
+	status_id TEXT NOT NULL REFERENCES statuses(id) ON DELETE CASCADE,
+	content TEXT NOT NULL,
+	spoiler TEXT NOT NULL DEFAULT '',
+	sensitive INTEGER NOT NULL DEFAULT 0,
+	created_at INTEGER NOT NULL
+);
+CREATE INDEX status_edits_status ON status_edits(status_id, created_at);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

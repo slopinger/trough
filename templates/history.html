@@ -1,0 +1,10 @@
+{{define "content"}}{{$p := .}}
+<div class="pagehead"><h2 class="pagetitle">Edit history</h2><a class="btn small" href="{{.Status.Path}}">Back to the post</a></div>
+{{range $i, $v := .Versions}}
+<article class="status">
+  <div class="muted small">{{if eq $i 0}}Original{{else}}Edit {{$i}}{{end}} · <time datetime="{{isotime $v.At}}" title="{{fulltime $v.At}}">{{fulltime $v.At}}</time></div>
+  {{if $v.Spoiler}}<p class="cwtext">⚠️ {{$v.Spoiler}}</p>{{end}}
+  <div class="content">{{versionHTML $p.Status $v.Content}}</div>
+</article>
+{{end}}
+{{end}}
