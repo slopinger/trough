@@ -103,6 +103,8 @@
 - Search by `@user@server`, by profile/post URL, by `#tag`, or full text over known posts
 - Admin page: create users, reset passwords, instance title/description, domain blocks (including
   subdomains), federation stats and failing deliveries
+- Server rules (on About and sign-up, `/api/v1/instance/rules`, in the instance entity) and announcements
+  (a banner until each user dismisses it; `/api/v1/announcements` with dismissing and emoji reactions)
 - Media: uploads are re-encoded, which strips EXIF metadata such as GPS positions while keeping the
   orientation. Remote media goes through an HMAC-signed caching proxy, so remote servers never see visitors'
   IP addresses and the page can use a strict CSP (`img-src 'self'`). Cache entries with missing data

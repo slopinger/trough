@@ -71,6 +71,8 @@ type Page struct {
 	List          *List
 	Relays        []Relay
 	Tag           string
+	Rules         []Rule
+	Announcements []*Announcement // unread banner; all of them on /admin
 	TrendTags     []TrendTag
 	TrendLinks    []TrendLink
 	TagFollowed   bool
@@ -157,6 +159,7 @@ func (app *App) web(requireLogin bool, h handler) http.HandlerFunc {
 					p.Requests = app.followRequestCount(acc.ID)
 					p.AI = app.aiEnabled()
 					p.CustomEmojis = app.customEmojis()
+					p.Announcements = app.unreadAnnouncements(acc)
 					now := time.Now().Unix()
 					app.db.Exec(`UPDATE users SET last_seen=? WHERE account_id=? AND last_seen < ?`, now, acc.ID, now-3600)
 				}
@@ -258,5 +261,7 @@ func (app *App) handleAbout(w http.ResponseWriter, r *http.Request, p *Page) {
 		"instances": app.countInt(`SELECT COUNT(DISTINCT domain) FROM accounts WHERE domain != ''`),
 	}
 	p.DomainBlocks = app.domainBlockList()
+	p.Rules = app.rules()
+	p.Registrations = app.registrationMode()
 	app.render(w, "about", p)
 }

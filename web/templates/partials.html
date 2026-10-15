@@ -259,3 +259,10 @@
     </select></label>
     <label class="check"><input type="checkbox" name="exclusive"{{if .Exclusive}} checked{{end}}> Hide these accounts' posts from my Home timeline</label>
 {{end}}
+
+{{define "rules"}}<ol class="rules">{{range .}}<li><b>{{.Text}}</b>{{if .Hint}}<span class="muted small">{{.Hint}}</span>{{end}}</li>{{end}}</ol>{{end}}
+
+{{define "announcements"}}{{$p := .}}{{range .Announcements}}<aside class="announcement" role="note">
+  <div class="announcement-body">{{.HTML}}<span class="muted small">{{fulltime .CreatedAt}}{{if not .EndsAt.IsZero}} · until {{fulltime .EndsAt}}{{end}}</span></div>
+  <form method="post" action="/announcements/{{.ID}}/dismiss"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button class="btn small" title="Dismiss this announcement">Dismiss</button></form>
+</aside>{{end}}{{end}}

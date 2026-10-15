@@ -224,6 +224,7 @@ func (app *App) handleSignupForm(w http.ResponseWriter, r *http.Request, p *Page
 	}
 	p.Title = "Sign up"
 	p.Query = r.URL.Query().Get("invite")
+	p.Rules = app.rules()
 	mode := app.registrationMode()
 	if mode == "closed" || (mode == "invite" && !app.inviteValid(p.Query)) {
 		p.Error = "Sign-ups are closed. You need a valid invite link from someone on this server."

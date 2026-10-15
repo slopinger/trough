@@ -7,8 +7,9 @@
     <li><b>{{index .Stats "users"}}</b> local accounts</li>
     <li><b>{{index .Stats "posts"}}</b> local posts</li>
     <li><b>{{index .Stats "instances"}}</b> known servers</li>
-    <li>Registrations: closed</li>
+    <li>Sign-ups: {{if eq .Registrations "open"}}open{{else if eq .Registrations "invite"}}by invite{{else}}closed{{end}}</li>
   </ul>
+  {{if .Rules}}<h3>Server rules</h3>{{template "rules" .Rules}}{{end}}
   {{if .Admins}}<h3>Administered by</h3>{{$p := .}}{{range .Admins}}{{template "accountrow" (dict "A" . "P" $p)}}{{end}}{{end}}
   {{if .DomainBlocks}}<h3>Blocked servers</h3>
   <table class="tbl"><tr><th>Domain</th><th>Reason</th></tr>{{range .DomainBlocks}}<tr><td>{{.Domain}}</td><td>{{.Reason}}</td></tr>{{end}}</table>{{end}}

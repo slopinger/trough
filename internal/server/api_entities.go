@@ -326,7 +326,7 @@ func (app *App) apiInstanceV1() obj {
 		"thumbnail":     app.cfg.BaseURL() + "/static/favicon.svg",
 		"languages":     []string{"en"},
 		"registrations": app.registrationMode() == "open", "approval_required": false, "invites_enabled": app.registrationMode() == "invite",
-		"configuration": app.apiConfiguration(), "contact_account": contact, "rules": []any{},
+		"configuration": app.apiConfiguration(), "contact_account": contact, "rules": app.apiRuleList(),
 	}
 }
 
@@ -369,6 +369,6 @@ func (app *App) apiInstanceV2() obj {
 		"registrations": obj{"enabled": app.registrationMode() != "closed", "approval_required": false, "message": nil, "url": nil},
 		"api_versions":  obj{"mastodon": 7},
 		"contact":       obj{"email": "", "account": contact},
-		"rules":         []any{},
+		"rules":         app.apiRuleList(),
 	}
 }

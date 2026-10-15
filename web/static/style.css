@@ -508,3 +508,16 @@ details.listedit[open] > summary { margin-bottom: 10px; }
 .trend-img { width: 72px; height: 54px; object-fit: cover; border-radius: 8px; flex: none; background: var(--panel-2); }
 .spark { width: 60px; height: 24px; flex: none; }
 .spark polyline { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+
+/* Server rules and announcements */
+.rules { margin: 8px 0 12px; padding-left: 24px; }
+.rules li { margin: 6px 0; }
+.rules li span { display: block; }
+.rules-box { background: var(--panel-2); border-radius: 10px; padding: 10px 14px; }
+.rule-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.rule-item > span { flex: 1; min-width: 0; }
+.rule-item p { margin: 0 0 4px; }
+.announcement { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; margin-bottom: 12px;
+  background: var(--accent-soft); border: 1px solid var(--accent); border-radius: var(--radius); }
+.announcement-body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.announcement-body p { margin: 0 0 6px; }

@@ -47,6 +47,8 @@ func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Relays = app.relays()
 	p.CustomEmojis = app.customEmojis()
 	p.Registrations = app.registrationMode()
+	p.Rules = app.rules()
+	p.Announcements = app.announcements(p.Me, true)
 	p.Stats = map[string]int{
 		"users":     app.countInt(`SELECT COUNT(*) FROM users`),
 		"local":     app.countInt(`SELECT COUNT(*) FROM statuses WHERE local=1 AND boost_of_id=''`),

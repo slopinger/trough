@@ -23,6 +23,32 @@
     <button class="btn">Save</button>
   </form>
 </section>
+<section class="card" id="rules">
+  <h3>Server rules</h3>
+  <p class="muted small">Shown on the About and sign-up pages and in apps.</p>
+  {{range .Rules}}<form method="post" action="/admin/rules" class="rule-item">
+    <input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="delete" value="{{.ID}}">
+    <span><b>{{.Text}}</b>{{if .Hint}}<br><span class="muted small">{{.Hint}}</span>{{end}}</span><button class="btn small" title="Remove this rule">Remove</button></form>{{end}}
+  <form method="post" action="/admin/rules" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Rule <input name="text" maxlength="300" required placeholder="No harassment"></label>
+    <label>Explanation (optional) <input name="hint" maxlength="500"></label>
+    <button class="btn">Add rule</button>
+  </form>
+</section>
+<section class="card" id="announcements">
+  <h3>Announcements</h3>
+  <p class="muted small">Shown to every user as a banner until they dismiss it, and in apps. Supports **bold**, *italics* and links.</p>
+  {{range .Announcements}}<form method="post" action="/admin/announcements" class="rule-item">
+    <input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="delete" value="{{.ID}}">
+    <span>{{.HTML}}<span class="muted small">{{fulltime .CreatedAt}}{{if not .EndsAt.IsZero}} · until {{fulltime .EndsAt}}{{end}}{{if not .Active}} · ended{{end}}</span></span><button class="btn small">Remove</button></form>{{end}}
+  <form method="post" action="/admin/announcements" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Text <textarea name="text" rows="3" maxlength="2000" required></textarea></label>
+    <label>Show until (optional) <input type="date" name="ends"></label>
+    <button class="btn primary">Publish announcement</button>
+  </form>
+</section>
 <section class="card" id="registrations">
   <h3>Sign-ups</h3>
   <form method="post" action="/admin/registrations" class="inline-form">

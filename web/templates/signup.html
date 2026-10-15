@@ -8,7 +8,8 @@
       <span class="muted small">Your address will be @name@{{.Host}}. Letters, numbers and _ only.</span></label>
     <label>Password <input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
     <label>Confirm password <input type="password" name="confirm" minlength="8" autocomplete="new-password" required></label>
-    <label class="check"><input type="checkbox" name="rules" required> I'll be nice and follow the <a href="/about" target="_blank">server rules</a>.</label>
+    {{if .Rules}}<div class="rules-box"><b>Server rules</b>{{template "rules" .Rules}}</div>{{end}}
+    <label class="check"><input type="checkbox" name="rules" required> I'll be nice and follow the {{if .Rules}}rules above{{else}}<a href="/about" target="_blank">server rules</a>{{end}}.</label>
     <button class="btn primary">Create account</button>
   </form>
   {{end}}

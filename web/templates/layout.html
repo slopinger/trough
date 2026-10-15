@@ -51,6 +51,7 @@
   <main id="main">
     {{if .Flash}}<div class="flash" role="status">{{.Flash}}</div>{{end}}
     {{if .Error}}<div class="flash error" role="alert">{{.Error}}</div>{{end}}
+    {{if and .Me (ne .Section "admin")}}{{template "announcements" .}}{{end}}
     {{block "content" .}}{{end}}
   </main>
 </div>

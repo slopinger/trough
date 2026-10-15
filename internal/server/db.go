@@ -454,6 +454,34 @@ CREATE TABLE account_pins (
 ALTER TABLE accounts ADD COLUMN attribution_domains TEXT NOT NULL DEFAULT '[]';
 `, `
 ALTER TABLE users ADD COLUMN quote_policy TEXT NOT NULL DEFAULT 'public';
+`, `
+CREATE TABLE rules (
+	id TEXT PRIMARY KEY,
+	text TEXT NOT NULL,
+	hint TEXT NOT NULL DEFAULT '',
+	position INTEGER NOT NULL
+);
+CREATE TABLE announcements (
+	id TEXT PRIMARY KEY,
+	text TEXT NOT NULL,
+	content TEXT NOT NULL,
+	starts_at INTEGER NOT NULL DEFAULT 0,
+	ends_at INTEGER NOT NULL DEFAULT 0,
+	created_at INTEGER NOT NULL,
+	updated_at INTEGER NOT NULL
+);
+CREATE TABLE announcement_reads (
+	announcement_id TEXT NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	PRIMARY KEY (announcement_id, account_id)
+);
+CREATE TABLE announcement_reactions (
+	announcement_id TEXT NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	name TEXT NOT NULL,
+	created_at INTEGER NOT NULL,
+	PRIMARY KEY (announcement_id, account_id, name)
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {
