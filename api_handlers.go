@@ -1113,6 +1113,7 @@ func (app *App) notificationFilter(r *http.Request, c *apiCtx, pq pageQ) (where 
 
 func (app *App) apiNotifications(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 	pq := pageParams(r, 15, 80)
+	numericPageBounds(&pq)
 	where, args, order, none := app.notificationFilter(r, c, pq)
 	if none {
 		apiJSON(w, 200, []any{})

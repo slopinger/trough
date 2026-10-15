@@ -67,7 +67,7 @@ func (app *App) groupedResponse(me *Account, ns []*Notification, grouped map[str
 		g := index[key]
 		if g == nil {
 			g = obj{"group_key": key, "notifications_count": 0, "type": notificationTypes[n.Type],
-				"most_recent_notification_id": n.ID, "page_max_id": n.ID,
+				"most_recent_notification_id": notificationNumber(n.ID), "page_max_id": n.ID,
 				"latest_page_notification_at": apiTime(n.CreatedAt), "sample_account_ids": []string{}}
 			if n.Status != nil {
 				g["status_id"] = n.Status.ID
@@ -106,6 +106,7 @@ func (app *App) groupedResponse(me *Account, ns []*Notification, grouped map[str
 
 func (app *App) apiNotificationsV2(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 	pq := pageParams(r, 40, 80)
+	numericPageBounds(&pq)
 	where, args, order, none := app.notificationFilter(r, c, pq)
 	if none {
 		apiJSON(w, 200, obj{"accounts": []any{}, "statuses": []any{}, "notification_groups": []any{}})
@@ -191,4 +192,13 @@ func (app *App) apiNoSuchRequest(w http.ResponseWriter, r *http.Request, c *apiC
 
 func (app *App) apiEmptyList(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 	apiJSON(w, 200, []any{})
+}
+
+// notificationNumber is most_recent_notification_id: a number on Mastodon,
+// and Ice Cubes can't read it otherwise. It also works as max_id/since_id.
+func notificationNumber(id string) any {
+	if n, ok := ulidNumber(id); ok {
+		return n
+	}
+	return id
 }
