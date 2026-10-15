@@ -67,7 +67,7 @@ swiftc -emit-library -emit-module -parse-as-library -module-name Models -swift-v
 swiftc -emit-library -emit-module -parse-as-library -module-name NetworkClient -swift-version 5 -I . -L . -lSwiftSoup -lModels \$(find "$src/network" -name '*.swift') -o libNetworkClient.so -emit-module-path NetworkClient.swiftmodule
 swiftc -swift-version 5 -I . -L . -lSwiftSoup -lModels -lNetworkClient -Xlinker -rpath -Xlinker "$tmp/out" "$repo/test/icecubes/main.swift" -o icecubes
 EOF
-bash -lc "nix-shell --pure '$repo/test/icecubes/shell.nix' --run 'bash $tmp/build.sh'" 2>&1 | grep -E 'error:' || true
+bash -lc "nix-shell --pure '$repo/test/swift-shell.nix' --run 'bash $tmp/build.sh'" 2>&1 | grep -E 'error:' || true
 [ -x "$tmp/out/icecubes" ] || { echo "build failed"; exit 1; }
 
 port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])')
