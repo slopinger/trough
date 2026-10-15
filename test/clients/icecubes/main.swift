@@ -72,6 +72,15 @@ let _: [Account]? = await step("suggestions", { try await alice.get(endpoint: Ac
 print("3. posting, polls, quotes")
 guard let bobPost: Status = await step("bob posts", { try await bob.post(endpoint: Statuses.postStatus(json: StatusData(status: "hello from bob #ios", visibility: .pub))) })
 else { exit(1) }
+// Ice Cubes shows featured hashtags but can't create them; bob features one directly.
+var featureReq = URLRequest(url: URL(string: "http://\(server)/api/v1/featured_tags")!)
+featureReq.httpMethod = "POST"
+featureReq.setValue("Bearer \(env["ICE_TOKEN_BOB"]!)", forHTTPHeaderField: "Authorization")
+featureReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
+featureReq.httpBody = Data(#"{"name":"ios"}"#.utf8)
+_ = try? await URLSession.shared.data(for: featureReq)
+let featured: [FeaturedTag]? = await step("featured tags", { try await alice.get(endpoint: Accounts.featuredTags(id: bobPost.account.id)) })
+check("featured tag", featured?.first?.name == "ios" && featured?.first?.statusesCountInt == 1, "\(String(describing: featured))")
 check("quote_approval says alice may quote", bobPost.quoteApproval?.automatic == ["public"], "\(String(describing: bobPost.quoteApproval))")
 if let seen: Status = await step("bob's post as alice", { try await alice.get(endpoint: Statuses.status(id: bobPost.id)) }) {
   check("current_user automatic", seen.quoteApproval?.currentUser == .automatic, "\(String(describing: seen.quoteApproval))")

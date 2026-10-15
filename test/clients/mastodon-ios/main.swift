@@ -75,6 +75,10 @@ guard let post = await get(E.Status.self, "POST", "/api/v1/statuses", bobToken, 
   print("cannot continue"); exit(1)
 }
 check("quote approval present", post.quoteApproval != nil)
+let _ = await call("POST", "/api/v1/featured_tags", bobToken, json: ["name": "ios"])
+let featured = await get([E.FeaturedTag].self, "GET", "/api/v1/accounts/\(bob.id)/featured_tags", aliceToken)
+check("featured tag", featured?.first?.name == "ios" && featured?.first?.statusesCount == "1" && featured?.first?.lastStatusAt != nil,
+  "\(String(describing: featured))")
 let quote = await get(E.Status.self, "POST", "/api/v1/statuses", aliceToken,
   json: ["status": "so true", "visibility": "public", "quoted_status_id": post.id, "quote_approval_policy": "followers"])
 check("quote accepted", quote?.quote?.state == .accepted, "\(String(describing: quote?.quote?.state))")
