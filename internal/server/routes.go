@@ -88,6 +88,7 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("POST /settings/2fa", auth(app.handleTwoFactorSetup))
 	mux.HandleFunc("GET /settings/2fa/qr.png", auth(app.handleTwoFactorQR))
 	mux.HandleFunc("POST /settings/2fa/disable", auth(app.handleTwoFactorDisable))
+	mux.HandleFunc("POST /settings/delete", auth(app.handleDeleteAccount))
 	mux.HandleFunc("GET /follow_requests", auth(app.handleFollowRequests))
 	mux.HandleFunc("GET /search", auth(app.handleSearch))
 	mux.HandleFunc("GET /authorize_interaction", auth(app.handleAuthorizeInteraction))

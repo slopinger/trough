@@ -41,6 +41,7 @@ Files are grouped by prefix:
 | `featuredtags.go` | featured hashtags |
 | `directory.go` | profile directory |
 | `twofactor.go` | two-factor authentication (TOTP, recovery codes) |
+| `accountdelete.go` | deleting your own account |
 | `ai.go`, `translate.go` | AI drafting and translation |
 | `fed_server.go` | federation endpoints: WebFinger, NodeInfo, actors, collections, objects |
 | `fed_inbox.go`, `fed_remote.go` | incoming activities, storing remote posts, backfill, URL resolution |

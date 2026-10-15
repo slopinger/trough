@@ -123,7 +123,9 @@ func (app *App) handleNodeInfo(w http.ResponseWriter, r *http.Request) {
 func (app *App) handleActor(w http.ResponseWriter, r *http.Request) {
 	acc, err := app.LocalAccount(r.PathValue("name"))
 	if err != nil {
-		http.NotFound(w, r)
+		if !app.deletedLocalActor(w, r.PathValue("name")) {
+			http.NotFound(w, r)
+		}
 		return
 	}
 	if !wantsAP(r) {

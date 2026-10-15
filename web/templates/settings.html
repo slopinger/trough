@@ -145,4 +145,15 @@
   <h3>Your fediverse address</h3>
   <p>People on other servers can find and follow you as <code>{{handle $a}}</code>.</p>
 </section>
+<section class="card danger-zone" id="delete">
+  <h3>Delete account</h3>
+  <p class="muted small">Deletes your posts, media, follows and everything else here, and tells other servers your account is gone. This can't be undone; download your follows and bookmarks above first if you want to keep them. Your username stays reserved so nobody can pretend to be you.</p>
+  <form method="post" action="/settings/delete" class="stack confirm" data-confirm="Really delete your account and all your posts? This can't be undone.">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Type your username (<code>{{.Me.Username}}</code>) <input name="confirm" autocomplete="off" required></label>
+    <label>Password <input type="password" name="password" autocomplete="current-password" required></label>
+    {{if .TwoFactor}}<label>Two-factor code <input name="code" inputmode="numeric" autocomplete="one-time-code" required></label>{{end}}
+    <button class="btn danger-outline">Delete my account</button>
+  </form>
+</section>
 {{end}}
