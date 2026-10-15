@@ -8,6 +8,16 @@ import (
 
 // ActivityPub representations of local objects.
 
+// actorEndpoints also tells ActivityPub C2S clients where to get a token.
+func (app *App) actorEndpoints(acc *Account) obj {
+	e := obj{"sharedInbox": app.cfg.BaseURL() + "/inbox"}
+	if acc.ActorType != "Application" {
+		e["oauthAuthorizationEndpoint"] = app.cfg.BaseURL() + "/oauth/authorize"
+		e["oauthTokenEndpoint"] = app.cfg.BaseURL() + "/oauth/token"
+	}
+	return e
+}
+
 func (app *App) actorJSON(acc *Account) obj {
 	m := obj{
 		"@context":                  apContext,
@@ -19,7 +29,7 @@ func (app *App) actorJSON(acc *Account) obj {
 		"url":                       acc.URL,
 		"inbox":                     acc.Inbox,
 		"outbox":                    acc.Outbox,
-		"endpoints":                 obj{"sharedInbox": app.cfg.BaseURL() + "/inbox"},
+		"endpoints":                 app.actorEndpoints(acc),
 		"manuallyApprovesFollowers": acc.Locked,
 		"discoverable":              true,
 		"indexable":                 false,

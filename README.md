@@ -15,6 +15,11 @@ Running instance: **https://fedi.freifick.net**
 
 **Federation**
 - WebFinger (`/.well-known/webfinger`), host-meta, NodeInfo 2.0/2.1, a minimal `/api/v1/instance`
+- ActivityPub client-to-server: with an OAuth token (`read`/`write`, from `/oauth/token`; the actor's
+  `endpoints` advertise both OAuth endpoints) a client can POST `Create`/bare `Note`, `Update`, `Delete`,
+  `Like`, `Announce`, `Follow`, `Block` and `Undo` to the user's outbox (`201` with `Location`) and read
+  their inbox (home timeline as activities). Addressing picks the visibility; addressed or tagged actors
+  are mentioned.
 - Actors with RSA keys; HTTP Signatures (draft-cavage, `rsa-sha256`/`hs2019`) on every outgoing request,
   verified on every incoming inbox POST (digest, date window, key ownership, re-fetch on key rotation).
   RFC 9421 HTTP Message Signatures (Fedify-based servers such as Hollo and Ghost) are verified too, and
@@ -198,6 +203,7 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 | `actions.go` | what local users do (post, like, boost, follow, block, ...) |
 | `timeline.go` | timeline queries, visibility rules, threads, notifications |
 | `fedserver.go` | federation HTTP endpoints |
+| `c2s.go` | ActivityPub client-to-server (outbox POST, inbox GET) |
 | `web.go`, `admin.go`, `render.go`, `routes.go` | web interface |
 | `text.go` | post formatting and HTML sanitizing |
 | `media.go` | uploads, EXIF stripping, media proxy |
@@ -205,7 +211,8 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 
 ## Not (yet) implemented
 
-ActivityPub C2S. Signed GETs (fetches) still use draft-cavage only.
+Signed GETs (fetches) still use draft-cavage only. C2S media uploads (`uploadMedia`), and C2S activities
+other than the ones listed above.
 
 ## License
 
