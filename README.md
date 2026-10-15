@@ -60,7 +60,9 @@ Running instance: **https://fedi.freifick.net**
 - Checked with the Mastodon.py client library (`test/mastodon_py.py`), the toot CLI
   (`nix shell nixpkgs#toot --command bash test/toot.sh`: login, posting, threads, polls, media,
   favourites, boosts, bookmarks, pins, follows, lists, followed tags, mutes, blocks, deletes),
-  Phanpy and Elk in a browser, and Go tests (`api_test.go`)
+  Phanpy and Elk in a browser, the Android app Tusky 33.1 in an emulator (OAuth login in its WebView,
+  timelines, notifications, compose with visibility and language, edit, delete, threads, profiles; every
+  API call it made answered 2xx), and Go tests (`api_test.go`)
 
 **Web interface**
 - Home, local and federated timelines, hashtag timelines, threads with nested replies
