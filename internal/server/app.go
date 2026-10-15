@@ -18,6 +18,8 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"git.freifick.net/slop/trough/internal/httpsig"
 )
 
 type App struct {
@@ -175,7 +177,7 @@ func (app *App) ensureInstanceActor() (*Account, error) {
 		app.instance = acc
 		return acc, nil
 	}
-	priv, pub, err := generateKey()
+	priv, pub, err := httpsig.GenerateKey()
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +247,7 @@ func (app *App) CreateLocalUser(username, password string, admin bool) (*Account
 	if err != nil {
 		return nil, err
 	}
-	priv, pub, err := generateKey()
+	priv, pub, err := httpsig.GenerateKey()
 	if err != nil {
 		return nil, err
 	}

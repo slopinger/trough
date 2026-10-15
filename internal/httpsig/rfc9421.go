@@ -1,4 +1,6 @@
-package server
+// Package httpsig signs and verifies HTTP requests with draft-cavage HTTP
+// Signatures and RFC 9421 HTTP Message Signatures (RSA, SHA-256).
+package httpsig
 
 import (
 	"crypto"
@@ -21,14 +23,9 @@ import (
 // have sent us valid RFC 9421 signatures themselves, falling back to
 // draft-cavage (which everyone accepts) if they answer 401/403.
 
-const (
-	sigStyleCavage  = "cavage"
-	sigStyleRFC9421 = "rfc9421"
-)
-
-// signRFC9421 adds Date, Content-Digest (if body != nil), Signature-Input and
+// SignRFC9421 adds Date, Content-Digest (if body != nil), Signature-Input and
 // Signature headers, covering the same things Fedify's signatures cover.
-func signRFC9421(r *http.Request, body []byte, keyID string, key *rsa.PrivateKey) error {
+func SignRFC9421(r *http.Request, body []byte, keyID string, key *rsa.PrivateKey) error {
 	r.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	if r.Host == "" {
 		r.Host = r.URL.Host
@@ -68,39 +65,13 @@ func signRFC9421(r *http.Request, body []byte, keyID string, key *rsa.PrivateKey
 	return nil
 }
 
-// sigStyle is how we sign requests to host: RFC 9421 only once the host has
-// shown it speaks it.
-func (app *App) sigStyle(host string) string {
-	var style string
-	app.db.QueryRow(`SELECT style FROM signature_styles WHERE host=?`, strings.ToLower(host)).Scan(&style)
-	if style == "" {
-		return sigStyleCavage
-	}
-	return style
-}
-
-// sawRFC9421 records a valid RFC 9421 signature from host. A host that
-// rejected ours keeps getting draft-cavage for a month before we try again.
-func (app *App) sawRFC9421(host string) {
-	app.db.Exec(`INSERT INTO signature_styles (host, style, updated_at) VALUES (?,?,?)
-		ON CONFLICT(host) DO UPDATE SET style=excluded.style, updated_at=excluded.updated_at
-		WHERE style=excluded.style OR updated_at < ?`,
-		strings.ToLower(host), sigStyleRFC9421, time.Now().Unix(), time.Now().Add(-30*24*time.Hour).Unix())
-}
-
-func (app *App) rejectedRFC9421(host string) {
-	app.db.Exec(`INSERT INTO signature_styles (host, style, updated_at) VALUES (?,?,?)
-		ON CONFLICT(host) DO UPDATE SET style=excluded.style, updated_at=excluded.updated_at`,
-		strings.ToLower(host), sigStyleCavage, time.Now().Unix())
-}
-
 type sfItem struct {
 	name   string
 	params map[string]string
 }
 
-// parseRFC9421 returns the signature parameters and the signature base.
-func parseRFC9421(r *http.Request, body []byte, scheme string) (*sigParams, string, error) {
+// ParseRFC9421 returns the signature parameters and the signature base.
+func ParseRFC9421(r *http.Request, body []byte, scheme string) (*Params, string, error) {
 	input := strings.Join(r.Header.Values("Signature-Input"), ", ")
 	sigs := strings.Join(r.Header.Values("Signature"), ", ")
 	for _, member := range splitParams(input) {
@@ -120,7 +91,7 @@ func parseRFC9421(r *http.Request, body []byte, scheme string) (*sigParams, stri
 		if err != nil {
 			return nil, "", err
 		}
-		p := &sigParams{KeyID: keyID, Algorithm: params["alg"], Signature: sig}
+		p := &Params{KeyID: keyID, Algorithm: params["alg"], Signature: sig}
 		if p.Algorithm == "" {
 			p.Algorithm = "rsa-v1_5-sha256"
 		}
@@ -139,7 +110,7 @@ func parseRFC9421(r *http.Request, body []byte, scheme string) (*sigParams, stri
 	return nil, "", errors.New("no usable RFC 9421 signature")
 }
 
-func signatureBase(r *http.Request, body []byte, scheme string, components []sfItem, rawParams string, p *sigParams) (string, error) {
+func signatureBase(r *http.Request, body []byte, scheme string, components []sfItem, rawParams string, p *Params) (string, error) {
 	now := time.Now()
 	if p.Created == 0 {
 		return "", errors.New("signature without created parameter")

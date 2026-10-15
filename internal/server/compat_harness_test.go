@@ -30,7 +30,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-fed/httpsig"
+	gofed "github.com/go-fed/httpsig"
+
+	"git.freifick.net/slop/trough/internal/httpsig"
 )
 
 // ---- trough under test ----
@@ -113,7 +115,7 @@ func newRemote(t *testing.T, la *liveApp) *remote {
 
 func pemPair(t *testing.T, key *rsa.PrivateKey) (string, string) {
 	t.Helper()
-	priv, pub, err := keyToPEM(key)
+	priv, pub, err := httpsig.KeyToPEM(key)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +213,7 @@ func (r *remote) verifyIncoming(req *http.Request, body []byte) error {
 		return r.verifyIncomingRFC9421(req, body)
 	}
 	req.Header.Set("Host", req.Host)
-	v, err := httpsig.NewVerifier(req)
+	v, err := gofed.NewVerifier(req)
 	if err != nil {
 		return err
 	}
@@ -219,7 +221,7 @@ func (r *remote) verifyIncoming(req *http.Request, body []byte) error {
 	if err != nil {
 		return err
 	}
-	if err := v.Verify(pub, httpsig.RSA_SHA256); err != nil {
+	if err := v.Verify(pub, gofed.RSA_SHA256); err != nil {
 		return err
 	}
 	if body != nil {
@@ -310,7 +312,7 @@ func (r *remote) fetchLocalKey(keyID string) (crypto.PublicKey, error) {
 	if str(pk, "id") != keyID || str(pk, "owner") != str(actor, "id") {
 		return nil, fmt.Errorf("key %s not found in actor document", keyID)
 	}
-	return parsePublicKey(str(pk, "publicKeyPem"))
+	return httpsig.ParsePublicKey(str(pk, "publicKeyPem"))
 }
 
 // received activities of a type, in order.
@@ -343,18 +345,18 @@ func (r *remote) sign(req *http.Request, body []byte, keyID, style string) {
 	req.Header.Set("Host", req.Host)
 	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	var headers []string
-	scheme := httpsig.Signature
+	scheme := gofed.Signature
 	switch style {
 	case sigCavage, sigHS2019:
-		headers = []string{httpsig.RequestTarget, "host", "date", "digest"}
+		headers = []string{gofed.RequestTarget, "host", "date", "digest"}
 	case sigCavageCT:
-		headers = []string{httpsig.RequestTarget, "host", "date", "digest", "content-type"}
+		headers = []string{gofed.RequestTarget, "host", "date", "digest", "content-type"}
 	case sigPleroma:
-		headers = []string{httpsig.RequestTarget, "content-length", "date", "digest", "host"}
+		headers = []string{gofed.RequestTarget, "content-length", "date", "digest", "host"}
 		req.Header.Set("Content-Length", strconv.Itoa(len(body)))
 	case sigAuthHeader:
-		headers = []string{httpsig.RequestTarget, "host", "date", "digest"}
-		scheme = httpsig.Authorization
+		headers = []string{gofed.RequestTarget, "host", "date", "digest"}
+		scheme = gofed.Authorization
 	case sigCreated:
 		r.signCreated(req, body, keyID)
 		return
@@ -364,7 +366,7 @@ func (r *remote) sign(req *http.Request, body []byte, keyID, style string) {
 	default:
 		r.t.Fatalf("unknown signature style %q", style)
 	}
-	signer, _, err := httpsig.NewSigner([]httpsig.Algorithm{httpsig.RSA_SHA256}, httpsig.DigestSha256, headers, scheme, 0)
+	signer, _, err := gofed.NewSigner([]gofed.Algorithm{gofed.RSA_SHA256}, gofed.DigestSha256, headers, scheme, 0)
 	if err != nil {
 		r.t.Fatal(err)
 	}
@@ -446,8 +448,8 @@ func (r *remote) signedGet(u, keyID string) (int, obj) {
 	req.Header.Set("Host", req.Host)
 	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	if keyID != "" {
-		signer, _, _ := httpsig.NewSigner([]httpsig.Algorithm{httpsig.RSA_SHA256}, httpsig.DigestSha256,
-			[]string{httpsig.RequestTarget, "host", "date", "accept"}, httpsig.Signature, 0)
+		signer, _, _ := gofed.NewSigner([]gofed.Algorithm{gofed.RSA_SHA256}, gofed.DigestSha256,
+			[]string{gofed.RequestTarget, "host", "date", "accept"}, gofed.Signature, 0)
 		signer.SignRequest(r.key, keyID, req, nil)
 	}
 	resp, err := http.DefaultClient.Do(req)

@@ -12,6 +12,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/httpsig"
 )
 
 var (
@@ -146,10 +148,10 @@ func (app *App) fetchJSON(ctx context.Context, raw string, accept string) (obj, 
 		// signature rather than the headers net/http copies from the first GET.
 		client := *app.client
 		if inst := app.instanceActor(); inst != nil {
-			if key, err := parsePrivateKey(inst.PrivateKey); err == nil {
-				sign := signRequest
+			if key, err := httpsig.ParsePrivateKey(inst.PrivateKey); err == nil {
+				sign := httpsig.SignCavage
 				if style == sigStyleRFC9421 {
-					sign = signRFC9421
+					sign = httpsig.SignRFC9421
 				}
 				if err := sign(req, nil, inst.PublicKeyID, key); err != nil {
 					return nil, err
@@ -409,11 +411,11 @@ func (app *App) accountForKey(ctx context.Context, keyID string, refresh bool) (
 // verifyRequest checks the HTTP signature of an incoming request and
 // returns the signing actor.
 func (app *App) verifyRequest(r *http.Request, body []byte) (*Account, error) {
-	var p *sigParams
+	var p *httpsig.Params
 	var ss string
 	var err error
 	if r.Header.Get("Signature-Input") != "" {
-		p, ss, err = parseRFC9421(r, body, app.cfg.Scheme)
+		p, ss, err = httpsig.ParseRFC9421(r, body, app.cfg.Scheme)
 		if err != nil {
 			return nil, err
 		}
@@ -421,14 +423,14 @@ func (app *App) verifyRequest(r *http.Request, body []byte) (*Account, error) {
 			return nil, errBlocked
 		}
 	} else {
-		p, err = parseSignatureHeader(r)
+		p, err = httpsig.ParseCavage(r)
 		if err != nil {
 			return nil, err
 		}
 		if app.domainBlocked(hostOf(p.KeyID)) {
 			return nil, errBlocked
 		}
-		ss, err = checkSignatureShape(r, p, body)
+		ss, err = httpsig.CheckCavage(r, p, body)
 		if err != nil {
 			return nil, err
 		}
@@ -437,11 +439,11 @@ func (app *App) verifyRequest(r *http.Request, body []byte) (*Account, error) {
 	if err != nil {
 		return nil, fmt.Errorf("fetching key %s: %w", p.KeyID, err)
 	}
-	err = verifyRSA(acc.PublicKey, ss, p.Signature, p.Algorithm)
+	err = httpsig.VerifyRSA(acc.PublicKey, ss, p.Signature, p.Algorithm)
 	// maybe the key was rotated: refetch once, but not too often
 	if err != nil && time.Since(acc.FetchedAt) > 5*time.Minute {
 		if acc, err = app.accountForKey(r.Context(), p.KeyID, true); err == nil {
-			err = verifyRSA(acc.PublicKey, ss, p.Signature, p.Algorithm)
+			err = httpsig.VerifyRSA(acc.PublicKey, ss, p.Signature, p.Algorithm)
 		}
 	}
 	if err != nil {

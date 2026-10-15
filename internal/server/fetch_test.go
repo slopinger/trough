@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+
+	"git.freifick.net/slop/trough/internal/httpsig"
 )
 
 func TestFetchJSONResignsRedirect(t *testing.T) {
@@ -17,12 +19,12 @@ func TestFetchJSONResignsRedirect(t *testing.T) {
 	app.client = app.newRemoteClient()
 	actor := app.instanceActor()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		signature, err := parseSignatureHeader(r)
+		signature, err := httpsig.ParseCavage(r)
 		if err == nil {
 			var signed string
-			signed, err = checkSignatureShape(r, signature, nil)
+			signed, err = httpsig.CheckCavage(r, signature, nil)
 			if err == nil {
-				err = verifyRSA(actor.PublicKey, signed, signature.Signature, signature.Algorithm)
+				err = httpsig.VerifyRSA(actor.PublicKey, signed, signature.Signature, signature.Algorithm)
 			}
 		}
 		if err != nil {
@@ -105,12 +107,12 @@ func TestFetchJSONResignsCrossHostRedirect(t *testing.T) {
 	app.client = app.newRemoteClient()
 	actor := app.instanceActor()
 	destination := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		signature, err := parseSignatureHeader(r)
+		signature, err := httpsig.ParseCavage(r)
 		if err == nil {
 			var signed string
-			signed, err = checkSignatureShape(r, signature, nil)
+			signed, err = httpsig.CheckCavage(r, signature, nil)
 			if err == nil {
-				err = verifyRSA(actor.PublicKey, signed, signature.Signature, signature.Algorithm)
+				err = httpsig.VerifyRSA(actor.PublicKey, signed, signature.Signature, signature.Algorithm)
 			}
 		}
 		if err != nil {

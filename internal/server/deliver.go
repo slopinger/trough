@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/httpsig"
 )
 
 // Outgoing activities are queued in the deliveries table and POSTed by a
@@ -78,7 +80,7 @@ func (app *App) deliveryLoop(ctx context.Context) {
 		if k, ok := keys[accountID]; ok {
 			return acc, k, nil
 		}
-		k, err := parsePrivateKey(acc.PrivateKey)
+		k, err := httpsig.ParsePrivateKey(acc.PrivateKey)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -165,9 +167,9 @@ func (app *App) postOnce(ctx context.Context, inbox string, body []byte, keyID s
 	req.Header.Set("Content-Type", apMimeType)
 	req.Header.Set("Accept", apMimeType)
 	req.Header.Set("User-Agent", app.userAgent())
-	sign := signRequest
+	sign := httpsig.SignCavage
 	if style == sigStyleRFC9421 {
-		sign = signRFC9421
+		sign = httpsig.SignRFC9421
 	}
 	if err := sign(req, body, keyID, key); err != nil {
 		return 0, "", "", permanentError{err}

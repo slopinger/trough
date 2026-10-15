@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"git.freifick.net/slop/trough/internal/httpsig"
 )
 
 func testApp(t *testing.T) *App {
@@ -21,52 +23,52 @@ func testApp(t *testing.T) *App {
 }
 
 func TestSignatureRoundTrip(t *testing.T) {
-	priv, pub, err := generateKey()
+	priv, pub, err := httpsig.GenerateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	key, _ := parsePrivateKey(priv)
+	key, _ := httpsig.ParsePrivateKey(priv)
 	body := []byte(`{"type":"Follow"}`)
 	req, _ := http.NewRequest("POST", "https://remote.test/users/x/inbox?a=1", bytes.NewReader(body))
-	if err := signRequest(req, body, "https://me.test/users/me#main-key", key); err != nil {
+	if err := httpsig.SignCavage(req, body, "https://me.test/users/me#main-key", key); err != nil {
 		t.Fatal(err)
 	}
 	// simulate the server side
 	in := httptest.NewRequest("POST", "/users/x/inbox?a=1", bytes.NewReader(body))
 	in.Host = "remote.test"
 	in.Header = req.Header.Clone()
-	p, err := parseSignatureHeader(in)
+	p, err := httpsig.ParseCavage(in)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if p.KeyID != "https://me.test/users/me#main-key" {
 		t.Fatalf("keyId = %q", p.KeyID)
 	}
-	ss, err := checkSignatureShape(in, p, body)
+	ss, err := httpsig.CheckCavage(in, p, body)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := verifyRSA(pub, ss, p.Signature, p.Algorithm); err != nil {
+	if err := httpsig.VerifyRSA(pub, ss, p.Signature, p.Algorithm); err != nil {
 		t.Fatalf("valid signature rejected: %v", err)
 	}
 	// tampered body must fail the digest check
-	if _, err := checkSignatureShape(in, p, []byte(`{"type":"Delete"}`)); err == nil {
+	if _, err := httpsig.CheckCavage(in, p, []byte(`{"type":"Delete"}`)); err == nil {
 		t.Fatal("tampered body accepted")
 	}
 	// a different path must fail verification
 	in2 := httptest.NewRequest("POST", "/inbox", bytes.NewReader(body))
 	in2.Host = "remote.test"
 	in2.Header = req.Header.Clone()
-	ss2, err := checkSignatureShape(in2, p, body)
+	ss2, err := httpsig.CheckCavage(in2, p, body)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if verifyRSA(pub, ss2, p.Signature, p.Algorithm) == nil {
+	if httpsig.VerifyRSA(pub, ss2, p.Signature, p.Algorithm) == nil {
 		t.Fatal("signature for another path accepted")
 	}
 	// stale date must be rejected
 	in.Header.Set("Date", "Mon, 02 Jan 2006 15:04:05 GMT")
-	if _, err := checkSignatureShape(in, p, body); err == nil {
+	if _, err := httpsig.CheckCavage(in, p, body); err == nil {
 		t.Fatal("stale date accepted")
 	}
 }

@@ -1,4 +1,4 @@
-package server
+package httpsig
 
 import (
 	"crypto"
@@ -20,15 +20,15 @@ import (
 // HTTP Signatures (draft-cavage-http-signatures-12), the flavour spoken by
 // Mastodon, GoToSocial, Misskey, Pleroma, ...
 
-func generateKey() (privPEM, pubPEM string, err error) {
+func GenerateKey() (privPEM, pubPEM string, err error) {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return "", "", err
 	}
-	return keyToPEM(key)
+	return KeyToPEM(key)
 }
 
-func keyToPEM(key *rsa.PrivateKey) (privPEM, pubPEM string, err error) {
+func KeyToPEM(key *rsa.PrivateKey) (privPEM, pubPEM string, err error) {
 	privDER, err := x509.MarshalPKCS8PrivateKey(key)
 	if err != nil {
 		return "", "", err
@@ -42,7 +42,7 @@ func keyToPEM(key *rsa.PrivateKey) (privPEM, pubPEM string, err error) {
 	return
 }
 
-func parsePrivateKey(s string) (*rsa.PrivateKey, error) {
+func ParsePrivateKey(s string) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode([]byte(s))
 	if block == nil {
 		return nil, errors.New("no PEM private key")
@@ -56,7 +56,7 @@ func parsePrivateKey(s string) (*rsa.PrivateKey, error) {
 	return x509.ParsePKCS1PrivateKey(block.Bytes)
 }
 
-func parsePublicKey(s string) (*rsa.PublicKey, error) {
+func ParsePublicKey(s string) (*rsa.PublicKey, error) {
 	block, _ := pem.Decode([]byte(strings.TrimSpace(s)))
 	if block == nil {
 		return nil, errors.New("no PEM public key")
@@ -83,8 +83,8 @@ func requestTarget(r *http.Request) string {
 	return strings.ToLower(r.Method) + " " + uri
 }
 
-// signRequest adds Date, Digest (if body != nil) and Signature headers.
-func signRequest(r *http.Request, body []byte, keyID string, key *rsa.PrivateKey) error {
+// SignCavage adds Date, Digest (if body != nil) and Signature headers.
+func SignCavage(r *http.Request, body []byte, keyID string, key *rsa.PrivateKey) error {
 	r.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	if r.Host == "" {
 		r.Host = r.URL.Host
@@ -118,14 +118,14 @@ func signRequest(r *http.Request, body []byte, keyID string, key *rsa.PrivateKey
 	return nil
 }
 
-type sigParams struct {
+type Params struct {
 	KeyID, Algorithm string
 	Headers          []string
 	Signature        []byte
 	Created, Expires int64
 }
 
-func parseSignatureHeader(r *http.Request) (*sigParams, error) {
+func ParseCavage(r *http.Request) (*Params, error) {
 	h := r.Header.Get("Signature")
 	if h == "" {
 		auth := r.Header.Get("Authorization")
@@ -136,7 +136,7 @@ func parseSignatureHeader(r *http.Request) (*sigParams, error) {
 	if h == "" {
 		return nil, errors.New("no signature")
 	}
-	p := &sigParams{Headers: []string{"date"}}
+	p := &Params{Headers: []string{"date"}}
 	for _, part := range splitParams(h) {
 		k, v, ok := strings.Cut(part, "=")
 		if !ok {
@@ -190,10 +190,10 @@ func splitParams(s string) []string {
 
 const maxClockSkew = time.Hour
 
-// checkSignatureShape validates everything except the cryptographic part:
+// CheckCavage validates everything except the cryptographic part:
 // that the important headers are covered, the date is fresh and the digest
 // matches the body. It returns the signing string.
-func checkSignatureShape(r *http.Request, p *sigParams, body []byte) (string, error) {
+func CheckCavage(r *http.Request, p *Params, body []byte) (string, error) {
 	has := map[string]bool{}
 	for _, h := range p.Headers {
 		has[h] = true
@@ -280,8 +280,8 @@ func checkDigest(header string, body []byte) error {
 	return errors.New("no supported digest algorithm")
 }
 
-func verifyRSA(pubPEM, signingString string, sig []byte, alg string) error {
-	pub, err := parsePublicKey(pubPEM)
+func VerifyRSA(pubPEM, signingString string, sig []byte, alg string) error {
+	pub, err := ParsePublicKey(pubPEM)
 	if err != nil {
 		return err
 	}
