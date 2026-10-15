@@ -205,3 +205,129 @@ func notificationNumber(id string) any {
 	}
 	return id
 }
+
+// notificationFilter turns the Mastodon query parameters shared by the v1
+// and v2 notification endpoints into SQL. none means nothing can match.
+func (app *App) notificationFilter(r *http.Request, c *apiCtx, pq pageQ) (where string, args []any, order string, none bool) {
+	q := r.URL.Query()
+	where = `n.account_id=? AND a.suspended=0 AND NOT EXISTS(SELECT 1 FROM mutes mu WHERE mu.account_id=n.account_id AND mu.target_id=n.from_account_id)`
+	args = []any{c.Me.ID}
+	reverse := map[string]string{}
+	for k, v := range notificationTypes {
+		reverse[v] = k
+	}
+	if types := append(q["types[]"], q["types"]...); len(types) > 0 {
+		var ours []string
+		for _, t := range types {
+			if o, ok := reverse[t]; ok {
+				ours = append(ours, o)
+			}
+		}
+		if len(ours) == 0 {
+			return "", nil, "", true
+		}
+		ph, a := inClause(`%s`, ours)
+		where += ` AND n.type IN (` + ph + `)`
+		args = append(args, a...)
+	}
+	if ex := append(q["exclude_types[]"], q["exclude_types"]...); len(ex) > 0 {
+		var ours []string
+		for _, t := range ex {
+			if o, ok := reverse[t]; ok {
+				ours = append(ours, o)
+			}
+		}
+		if len(ours) > 0 {
+			ph, a := inClause(`%s`, ours)
+			where += ` AND n.type NOT IN (` + ph + `)`
+			args = append(args, a...)
+		}
+	}
+	if id := q.Get("account_id"); id != "" {
+		where += ` AND n.from_account_id=?`
+		args = append(args, id)
+	}
+	order = "DESC"
+	if pq.MaxID != "" {
+		where += ` AND n.id < ?`
+		args = append(args, pq.MaxID)
+	}
+	if pq.SinceID != "" {
+		where += ` AND n.id > ?`
+		args = append(args, pq.SinceID)
+	}
+	if pq.MinID != "" {
+		where += ` AND n.id > ?`
+		args = append(args, pq.MinID)
+		order = "ASC"
+	}
+	return where, args, order, false
+}
+
+func (app *App) apiNotifications(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	pq := pageParams(r, 15, 80)
+	numericPageBounds(&pq)
+	where, args, order, none := app.notificationFilter(r, c, pq)
+	if none {
+		apiJSON(w, 200, []any{})
+		return
+	}
+	ns, err := app.notificationsWhere(c.Me, where, args, order, pq.Limit)
+	if err != nil {
+		apiError(w, 500, "db error")
+		return
+	}
+	out := []any{}
+	for _, n := range app.filterNotifications(c.Me, ns) {
+		out = append(out, app.apiNotification(c.Me, n))
+	}
+	if len(ns) > 0 {
+		app.setLink(w, r, ns[0].ID, ns[len(ns)-1].ID, len(ns) == pq.Limit)
+	}
+	apiJSON(w, 200, out)
+}
+
+// filterNotifications drops notifications about posts hidden by a filter
+// for the "notifications" context and marks those to warn about.
+func (app *App) filterNotifications(me *Account, ns []*Notification) []*Notification {
+	var sts []*Status
+	for _, n := range ns {
+		if n.Status != nil {
+			sts = append(sts, n.Status)
+		}
+	}
+	keep := map[*Status]bool{}
+	for _, s := range app.applyFilters(me, sts, "notifications") {
+		keep[s] = true
+	}
+	out := ns[:0]
+	for _, n := range ns {
+		if n.Status == nil || keep[n.Status] {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+func (app *App) apiNotification1(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	ns, err := app.notificationsWhere(c.Me, `n.account_id=? AND n.id=?`, []any{c.Me.ID, r.PathValue("id")}, "DESC", 1)
+	if err != nil || len(ns) == 0 {
+		apiError(w, 404, "Record not found")
+		return
+	}
+	apiJSON(w, 200, app.apiNotification(c.Me, ns[0]))
+}
+
+func (app *App) apiClearNotifications(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	app.db.Exec(`DELETE FROM notifications WHERE account_id=?`, c.Me.ID)
+	apiJSON(w, 200, obj{})
+}
+
+func (app *App) apiDismissNotification(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	app.db.Exec(`DELETE FROM notifications WHERE account_id=? AND id=?`, c.Me.ID, r.PathValue("id"))
+	apiJSON(w, 200, obj{})
+}
+
+func (app *App) apiUnreadCount(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	apiJSON(w, 200, obj{"count": app.unreadNotifications(c.Me.ID)})
+}
