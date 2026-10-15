@@ -486,3 +486,25 @@ func (app *App) history(st *Status) []StatusVersion {
 	}
 	return append(out, StatusVersion{Content: st.Content, Spoiler: st.Spoiler, Sensitive: st.Sensitive, At: at})
 }
+
+// Private notes about other accounts (Mastodon's "note" on a relationship),
+// only ever shown to their author.
+func (app *App) SetAccountNote(me, target *Account, comment string) error {
+	comment = strings.TrimSpace(comment)
+	if utf8.RuneCountInString(comment) > 2000 {
+		return errors.New("the note is too long (2000 characters at most)")
+	}
+	if comment == "" {
+		_, err := app.db.Exec(`DELETE FROM account_notes WHERE account_id=? AND target_id=?`, me.ID, target.ID)
+		return err
+	}
+	_, err := app.db.Exec(`INSERT INTO account_notes (account_id, target_id, comment) VALUES (?,?,?)
+		ON CONFLICT(account_id, target_id) DO UPDATE SET comment=excluded.comment`, me.ID, target.ID, comment)
+	return err
+}
+
+func (app *App) accountNote(me, target *Account) string {
+	var c string
+	app.db.QueryRow(`SELECT comment FROM account_notes WHERE account_id=? AND target_id=?`, me.ID, target.ID).Scan(&c)
+	return c
+}

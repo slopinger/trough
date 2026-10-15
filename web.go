@@ -44,6 +44,7 @@ type Page struct {
 	Descendants   []*Status
 	Account       *Account
 	Rel           Relationship
+	AccountNote   string // the viewer's private note on a profile
 	Accounts      []*Account
 	Notifications []*Notification
 	NextURL       string
@@ -740,6 +741,7 @@ func (app *App) profileCommon(p *Page, acc *Account) {
 	}
 	if p.Me != nil {
 		p.Rel = app.relationship(p.Me.ID, acc.ID)
+		p.AccountNote = app.accountNote(p.Me, acc)
 	}
 	if acc.IsLocal() {
 		p.Counts.Posts = app.countInt(`SELECT COUNT(*) FROM statuses WHERE account_id=? AND boost_of_id=''`, acc.ID)
@@ -833,6 +835,8 @@ func (app *App) handleAccountAction(w http.ResponseWriter, r *http.Request, p *P
 		err = app.Mute(p.Me, target)
 	case "unmute":
 		err = app.Unmute(p.Me, target)
+	case "note":
+		err = app.SetAccountNote(p.Me, target, r.FormValue("comment"))
 	case "accept":
 		err = app.AcceptFollow(p.Me, target)
 	case "reject", "remove_follower":

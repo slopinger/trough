@@ -226,6 +226,9 @@
   {{if and (not .Me) $a.IsLocal}}<p class="follow-hint" id="follow-hint">To follow from Mastodon or any other fediverse server, search for <code>{{handle $a}}</code> there.</p>{{end}}
   {{if $a.Note}}<div class="bio content">{{bio $a}}</div>{{end}}
   {{if $a.Fields}}<dl class="fields">{{range $a.Fields}}<div><dt>{{.Name}}</dt><dd>{{field $a .Value}}</dd></div>{{end}}</dl>{{end}}
+  {{if and .Me (ne .Me.ID $a.ID)}}<details class="pnote"{{if .AccountNote}} open{{end}}><summary>{{if .AccountNote}}Your private note{{else}}Add a private note{{end}}</summary>
+    <form method="post" action="/accounts/{{$a.ID}}/note"><input type="hidden" name="csrf" value="{{.CSRF}}"><textarea name="comment" rows="2" maxlength="2000" placeholder="Only you can see this">{{.AccountNote}}</textarea><button class="btn">Save note</button></form>
+  </details>{{end}}
   <div class="pstats">
     {{if $a.IsLocal}}
     <a href="{{$a.Path}}"><b>{{.Counts.Posts}}</b> posts</a>

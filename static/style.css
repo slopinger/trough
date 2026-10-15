@@ -332,6 +332,10 @@ details.sensitive > summary { cursor: pointer; padding: 18px; text-align: center
 .fields { margin: 10px 16px 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .fields > div { display: grid; grid-template-columns: minmax(80px, 30%) 1fr; border-bottom: 1px solid var(--line); }
 .fields > div:last-child { border-bottom: 0; }
+.pnote { margin: 10px 16px 0; font-size: .9rem; }
+.pnote summary { cursor: pointer; color: var(--muted); }
+.pnote form { display: flex; gap: 8px; align-items: flex-start; margin-top: 6px; }
+.pnote textarea { flex: 1; min-width: 0; resize: vertical; }
 .fields dt { background: var(--panel-2); padding: 6px 10px; font-weight: 600; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
 .fields dd { margin: 0; padding: 6px 10px; overflow-wrap: anywhere; }
 .fields .invisible { display: none; }

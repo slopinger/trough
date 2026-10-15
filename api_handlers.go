@@ -336,7 +336,9 @@ func (app *App) apiAccountAction(w http.ResponseWriter, r *http.Request, c *apiC
 		if errors.Is(err, errNotFound) {
 			err = nil
 		}
-	case "note", "pin", "unpin", "endorse", "unendorse":
+	case "note":
+		err = app.SetAccountNote(c.Me, target, readParams(r).Get("comment"))
+	case "pin", "unpin", "endorse", "unendorse":
 	default:
 		apiError(w, 404, "Record not found")
 		return

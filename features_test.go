@@ -246,3 +246,28 @@ func TestPostLanguage(t *testing.T) {
 		t.Errorf("bad language kept: %v", st["language"])
 	}
 }
+
+func TestAccountNotes(t *testing.T) {
+	la, _, bob, alice := featureFixture(t)
+	la.CreateLocalUser("carol", "password123", false)
+	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write follow")}
+	rel := c.ok("POST", "/api/v1/accounts/"+alice.ID+"/note", url.Values{"comment": {"met at the <bakery>"}}).(map[string]any)
+	if rel["note"] != "met at the <bakery>" {
+		t.Fatalf("relationship = %v", rel)
+	}
+	if rels := c.ok("GET", "/api/v1/accounts/relationships?id[]="+alice.ID, nil).([]any); rels[0].(map[string]any)["note"] != "met at the <bakery>" {
+		t.Errorf("relationships = %v", rels)
+	}
+	// only the author sees it
+	carol := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "carol", "password123", "read")}
+	if rels := carol.ok("GET", "/api/v1/accounts/relationships?id[]="+alice.ID, nil).([]any); rels[0].(map[string]any)["note"] != "" {
+		t.Errorf("carol sees bob's note: %v", rels)
+	}
+	if code, _, _ := c.do("POST", "/api/v1/accounts/"+alice.ID+"/note", url.Values{"comment": {strings.Repeat("x", 2001)}}); code != 422 {
+		t.Errorf("overlong note: %d", code)
+	}
+	c.ok("POST", "/api/v1/accounts/"+alice.ID+"/note", url.Values{"comment": {""}})
+	if la.accountNote(bob, alice) != "" {
+		t.Error("empty comment didn't clear the note")
+	}
+}

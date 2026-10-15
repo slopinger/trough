@@ -400,6 +400,13 @@ CREATE TABLE relays_new (
 INSERT INTO relays_new SELECT id, inbox, actor_uri, follow_uri, style, accepted, created_at FROM relays;
 DROP TABLE relays;
 ALTER TABLE relays_new RENAME TO relays;
+`, `
+CREATE TABLE account_notes (
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	target_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	comment TEXT NOT NULL,
+	PRIMARY KEY (account_id, target_id)
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {
