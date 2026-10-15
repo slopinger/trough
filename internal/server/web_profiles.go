@@ -49,6 +49,13 @@ func (app *App) handleProfileOrStatus(w http.ResponseWriter, r *http.Request, p 
 		}
 		return
 	}
+	if r.PathValue("tag") != "" {
+		if sub != "tagged" {
+			app.notFound(w, p)
+			return
+		}
+		sub = ""
+	}
 	switch sub {
 	case "":
 		app.showProfile(w, r, p, acc)
@@ -103,7 +110,16 @@ func (app *App) showProfile(w http.ResponseWriter, r *http.Request, p *Page, acc
 	}
 	app.profileCommon(p, acc)
 	p.Tab = r.URL.Query().Get("tab")
-	sts, err := app.accountTimeline(p.Me, acc, p.Tab == "replies", p.Tab == "media", r.URL.Query().Get("max_id"))
+	p.FeaturedTags = app.featuredTags(acc)
+	var sts []*Status
+	var err error
+	if tag := normalizeTag(r.PathValue("tag")); tag != "" { // /@name/tagged/tag
+		p.Tag, p.Tab = tag, "tagged"
+		sts, err = app.queryStatuses(p.Me, `s.account_id=? AND s.id IN (SELECT status_id FROM status_tags WHERE tag=?)`,
+			[]any{acc.ID, tag}, r.URL.Query().Get("max_id"), pageSize, false)
+	} else {
+		sts, err = app.accountTimeline(p.Me, acc, p.Tab == "replies", p.Tab == "media", r.URL.Query().Get("max_id"))
+	}
 	if err != nil {
 		http.Error(w, "db error", 500)
 		return

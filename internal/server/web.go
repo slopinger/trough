@@ -78,6 +78,8 @@ type Page struct {
 	Suggestions    []Suggestion
 	Familiar       []*Account // people the viewer follows who follow this profile
 	TagFollowed    bool
+	TagFeatured    bool
+	FeaturedTags   []FeaturedTag
 	FollowedTags   []string
 	BlockedDomains []string
 	Import         *importState // settings: the running or last CSV import

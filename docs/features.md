@@ -92,6 +92,9 @@
   likes, boosts and replies from the last three days, and hashtags and links used by at least two people
   this week, with per-day history (also in every hashtag entity)
 - Custom emoji uploaded by admins, usable as `:shortcode:` in posts, names and bios, federated as `Emoji` tags
+- Featured hashtags on profiles (up to 10, with post counts, linking to `/@name/tagged/tag`; "Feature on
+  profile" on hashtag pages, `/api/v1/featured_tags`, `/api/v1/tags/:name/feature`), federated as the
+  actor's `featuredTags` collection like Mastodon's
 - Featured accounts on profiles (Mastodon endorsements, not federated, like on Mastodon); attribution
   domains (`attributionDomains`) for websites that credit you with `fediverse:creator`
 - Blocking whole servers for yourself (Settings, a profile's "Block server" button, `/api/v1/domain_blocks`):

@@ -49,6 +49,7 @@ func (app *App) actorJSON(acc *Account) obj {
 		m["followers"] = acc.FollowersURI
 		m["following"] = acc.FollowingURI
 		m["featured"] = acc.URI + "/collections/featured"
+		m["featuredTags"] = acc.URI + "/collections/tags"
 	}
 	if len(acc.AttributionDomains) > 0 {
 		m["attributionDomains"] = acc.AttributionDomains

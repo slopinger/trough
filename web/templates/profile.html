@@ -3,10 +3,12 @@
 <link rel="alternate" type="application/rss+xml" title="Posts by {{handle .Account}}" href="{{.Account.Path}}.rss">{{end}}{{end}}
 {{define "content"}}
 {{template "profilehead" .}}
+{{if .FeaturedTags}}<nav class="featured-tags" aria-label="Featured hashtags">{{range .FeaturedTags}}<a href="{{$.Account.Path}}/tagged/{{.Name}}" class="{{if eq $.Tag .Name}}active{{end}}"><b>#{{.Name}}</b><small>{{.StatusesCount}} {{if eq .StatusesCount 1}}post{{else}}posts{{end}}{{if not .LastStatusAt.IsZero}} · {{date .LastStatusAt}}{{end}}</small></a>{{end}}</nav>{{end}}
 <nav class="tabs">
   <a href="{{.Account.Path}}" class="{{if eq .Tab ""}}active{{end}}">Posts</a>
   <a href="{{.Account.Path}}?tab=replies" class="{{if eq .Tab "replies"}}active{{end}}">Posts &amp; replies</a>
   <a href="{{.Account.Path}}?tab=media" class="{{if eq .Tab "media"}}active{{end}}">Media</a>
+  {{if .Tag}}<a href="{{.Account.Path}}/tagged/{{.Tag}}" class="active">#{{.Tag}}</a>{{end}}
 </nav>
 {{$p := .}}{{range .Pinned}}{{template "status" (dict "S" . "P" $p "Pinned" true)}}{{end}}
 {{template "statuslist" .}}

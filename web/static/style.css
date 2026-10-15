@@ -529,3 +529,10 @@ details.listedit[open] > summary { margin-bottom: 10px; }
 .familiar-avatars { display: inline-flex; }
 .familiar-avatars img { border-radius: 50%; border: 2px solid var(--panel); margin-left: -6px; }
 .familiar-avatars img:first-child { margin-left: 0; }
+
+/* Featured hashtags on profiles */
+.featured-tags { display: flex; gap: 8px; overflow-x: auto; margin: 0 0 12px; padding-bottom: 2px; }
+.featured-tags a { display: flex; flex-direction: column; flex: none; padding: 8px 12px; color: var(--text);
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.featured-tags a:hover, .featured-tags a.active { border-color: var(--accent); text-decoration: none; }
+.featured-tags small { color: var(--muted); }

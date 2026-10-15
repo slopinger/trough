@@ -202,6 +202,7 @@ var Context = []any{
 		"toot":                      "http://joinmastodon.org/ns#",
 		"discoverable":              "toot:discoverable",
 		"attributionDomains":        obj{"@id": "toot:attributionDomains", "@type": "@id"},
+		"featuredTags":              obj{"@id": "toot:featuredTags", "@type": "@id"},
 		"indexable":                 "toot:indexable",
 		"Emoji":                     "toot:Emoji",
 		"schema":                    "http://schema.org#",

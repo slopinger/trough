@@ -496,6 +496,14 @@ CREATE TABLE suggestion_dismissals (
 	created_at INTEGER NOT NULL,
 	PRIMARY KEY (account_id, target_id)
 );
+`, `
+CREATE TABLE featured_tags (
+	id TEXT PRIMARY KEY,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	tag TEXT NOT NULL,
+	created_at INTEGER NOT NULL,
+	UNIQUE (account_id, tag)
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

@@ -95,7 +95,7 @@ func (app *App) apiGetTag(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 		apiError(w, 404, "Record not found")
 		return
 	}
-	apiJSON(w, 200, app.apiTag(t, app.followsTag(c.Me, t)))
+	apiJSON(w, 200, app.apiTagFor(c.Me, t))
 }
 
 func (app *App) apiTagAction(w http.ResponseWriter, r *http.Request, c *apiCtx) {
