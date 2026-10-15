@@ -253,6 +253,10 @@ func (app *App) importRow(me *Account, kind string, rec []string, lists map[stri
 
 func (app *App) handleExport(w http.ResponseWriter, r *http.Request, p *Page) {
 	file := r.PathValue("file")
+	if file == "archive.zip" {
+		app.handleArchive(w, r, p)
+		return
+	}
 	kind, ok := exportFiles[file]
 	if !ok {
 		http.NotFound(w, r)

@@ -95,6 +95,7 @@
     <a href="/settings/export/muted_accounts.csv">mutes</a> ·
     <a href="/settings/export/blocked_domains.csv">blocked servers</a> ·
     <a href="/settings/export/bookmarks.csv">bookmarks</a></p>
+  <p><a class="btn small" href="/settings/export/archive.zip">Download your archive</a> <span class="muted small">All your posts (also private ones), likes, bookmarks and uploaded media as a zip in Mastodon's archive format. Once an hour.</span></p>
   {{with .Import}}<p class="flash" role="status">{{if .Running}}Importing {{.Kind}}: {{.Done}} of {{.Total}} done{{if .Fail}}, {{.Fail}} failed{{end}}. Reload to update.{{else}}Last import ({{.Kind}}): {{.Total}} entries{{if .Fail}}, {{.Fail}} could not be imported (account or post not found){{end}}.{{end}}</p>{{end}}
   <form method="post" action="/settings/import" enctype="multipart/form-data" class="inline-form">
     <input type="hidden" name="csrf" value="{{.CSRF}}">

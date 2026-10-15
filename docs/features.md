@@ -105,6 +105,8 @@
   the list of servers the instance blocks is public (`/api/v1/instance/domain_blocks`)
 - Mutes, keyword filters (collapse, hide media or hide; through the API also grouped, per context and expiring), blocks; reports with optional anonymous forwarding (`Flag`)
   and incoming reports for admins
+- Archive download (Settings, once an hour): a zip in Mastodon's archive layout with actor.json, outbox.json (all
+  your posts and boosts, private ones included), likes.json, bookmarks.json, avatar, header and uploaded media
 - Import and export (Settings) of follows, lists, blocks, mutes, blocked servers and bookmarks as CSV files in
   Mastodon's formats; imports merge and run in the background with progress shown in Settings
 - Account migration: aliases (`alsoKnownAs`), moving followers to a new account (`Move`), and following
