@@ -114,7 +114,7 @@ func (app *App) Handler() http.Handler {
 	return recoverer(mux)
 }
 
-func recoverer(next http.Handler) http.Handler {
+func recoverer(mux *http.ServeMux) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		defer func() {
@@ -131,7 +131,15 @@ func recoverer(next http.Handler) http.Handler {
 			r.URL.Path = strings.TrimRight(p, "/")
 			r.URL.RawPath = ""
 		}
-		next.ServeHTTP(w, r)
+		// API clients expect JSON errors, not the HTML 404 page (a mux-level
+		// /api/ catch-all would conflict with GET /{at}/{id})
+		if strings.HasPrefix(r.URL.Path, "/api/") && r.Method != http.MethodOptions {
+			if _, pattern := mux.Handler(r); !strings.Contains(pattern, " /api/") {
+				cors(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { apiError(w, 404, "Record not found") })).ServeHTTP(w, r)
+				return
+			}
+		}
+		mux.ServeHTTP(w, r)
 	})
 }
 
