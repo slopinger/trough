@@ -54,6 +54,9 @@ let inst = await get(E.V2.Instance.self, "GET", "/api/v2/instance", aliceToken)
 check("v2 instance", inst != nil)
 let v1 = await get(E.Instance.self, "GET", "/api/v1/instance", aliceToken)
 check("v1 instance", v1 != nil)
+check("instance rules", v1?.rules?.first?.title == "Be kind" && v1?.rules?.first?.hint == "No harassment.", "\(String(describing: v1?.rules))")
+let rules = await get([E.Instance.Rule].self, "GET", "/api/v1/instance/rules", aliceToken)
+check("rules", rules?.count == 1)
 guard let me = await get(E.Account.self, "GET", "/api/v1/accounts/verify_credentials", aliceToken),
   let bob = await get(E.Account.self, "GET", "/api/v1/accounts/verify_credentials", bobToken)
 else { print("cannot continue"); exit(1) }

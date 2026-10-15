@@ -10,7 +10,7 @@
 #
 #   bash test/clients/run-mastodon-ios.sh
 #
-# Needs git, go, curl, python3 and Nix (Swift 6.2 from nixpkgs). The app is
+# Needs git, go, curl, python3, sqlite3 and Nix (Swift 6.2 from nixpkgs). The app is
 # pinned below; everything lives in a temp directory. Left out: the
 # donation-campaign entity (needs the app's settings store), the onboarding
 # server picker's Language and the unused Preferences entity.
@@ -54,6 +54,8 @@ host=127.0.0.1:$port
 flags=(-insecure -host "$host" -data "$tmp/data")
 (cd "$repo" && go build -o "$tmp/trough" ./cmd/trough)
 for u in alice bob; do echo "${u}password12" | "$tmp/trough" user create "${flags[@]}" -password-stdin $u >/dev/null 2>&1; done
+# a server rule (admins add them on /admin), so the app's Rule type gets data
+sqlite3 "$tmp/data/trough.sqlite3" "INSERT INTO rules (id, text, hint, position) VALUES ('01RULE', 'Be kind', 'No harassment.', 1)"
 "$tmp/trough" serve "${flags[@]}" -listen "$host" >"$tmp/log" 2>&1 &
 pid=$!
 for _ in $(seq 50); do curl -sf "http://$host/nodeinfo/2.0" >/dev/null && break; sleep 0.1; done
