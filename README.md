@@ -121,6 +121,10 @@ localhost:
 
 Then log in on both and search for `@alice@127.0.0.1:8801` from bob's side.
 
+Behind a local TLS proxy (needed to federate with software that always uses https, such as
+GoToSocial), add `-scheme https`: IDs then use https while private addresses stay allowed. Point
+`SSL_CERT_FILE` at the proxy's CA so trough trusts it.
+
 AI writing needs an API key: `TROUGH_DEEPSEEK_API_KEY` (or `DEEPSEEK_API_KEY`) in the environment, or one
 entered on `/admin`. Optional: `TROUGH_AI_MODEL` (default `deepseek-v4-pro`, also `deepseek-flash`) and
 `TROUGH_AI_BASE_URL` (default `https://api.deepseek.com`). On fedi.freifick.net the key lives in the

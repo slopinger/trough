@@ -30,7 +30,7 @@ const (
 // TROUGH_* environment variable (flags win).
 type Config struct {
 	Host     string // public host name, e.g. fedi.freifick.net (may include :port in dev)
-	Scheme   string // https (http only with -insecure)
+	Scheme   string // https (http by default with -insecure; -scheme https for a local TLS proxy)
 	Listen   string // listen address, e.g. 127.0.0.1:8790
 	DataDir  string // database, media and cache live here
 	Insecure bool   // dev mode: allow http and private addresses for federation
@@ -51,13 +51,18 @@ func parseConfig(fs *flag.FlagSet, args []string) (*Config, error) {
 	fs.StringVar(&c.Listen, "listen", envOr("TROUGH_LISTEN", "127.0.0.1:8790"), "address to listen on")
 	fs.StringVar(&c.DataDir, "data", envOr("TROUGH_DATA", "./data"), "data directory")
 	fs.BoolVar(&c.Insecure, "insecure", os.Getenv("TROUGH_INSECURE") == "1", "dev mode: plain http, allow private IPs")
+	fs.StringVar(&c.Scheme, "scheme", os.Getenv("TROUGH_SCHEME"), "with -insecure: https when behind a local TLS proxy (default http)")
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
 	c.Host = strings.ToLower(strings.TrimSuffix(c.Host, "/"))
-	c.Scheme = "https"
-	if c.Insecure {
+	switch {
+	case !c.Insecure:
+		c.Scheme = "https"
+	case c.Scheme == "":
 		c.Scheme = "http"
+	case c.Scheme != "http" && c.Scheme != "https":
+		return nil, fmt.Errorf("-scheme must be http or https")
 	}
 	return c, nil
 }
@@ -73,7 +78,7 @@ usage:
   trough user list [flags]                     list local accounts
   trough fetch [flags] <url>                   signed GET of an ActivityPub object (debugging)
 
-common flags: -host, -data, -listen, -insecure (or TROUGH_HOST, TROUGH_DATA, ...)
+common flags: -host, -data, -listen, -insecure, -scheme (or TROUGH_HOST, TROUGH_DATA, ...)
 `, softwareName, softwareVersion)
 }
 
@@ -181,7 +186,7 @@ func cmdUser(args []string) error {
 		if strings.HasPrefix(a, "-") {
 			flags = append(flags, a)
 			name := strings.TrimLeft(a, "-")
-			if (name == "host" || name == "listen" || name == "data") && i+1 < len(args) {
+			if (name == "host" || name == "listen" || name == "data" || name == "scheme") && i+1 < len(args) {
 				flags = append(flags, args[i+1])
 				i++
 			}
