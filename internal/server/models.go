@@ -497,6 +497,9 @@ func (app *App) notify(recipientID, typ, fromID, statusID string) {
 	if err != nil {
 		return
 	}
+	if typ != "poll" && app.conversationMuted(rec, statusID) {
+		return
+	}
 	decision := app.notificationDecision(recipientID, typ, from, statusID)
 	if decision == "drop" {
 		return

@@ -520,6 +520,13 @@ CREATE TABLE notification_accepts (
 	created_at INTEGER NOT NULL,
 	PRIMARY KEY (account_id, from_account_id)
 );
+`, `
+CREATE TABLE conversation_mutes (
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	root_id TEXT NOT NULL,
+	created_at INTEGER NOT NULL,
+	PRIMARY KEY (account_id, root_id)
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

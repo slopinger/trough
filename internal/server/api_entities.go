@@ -239,7 +239,7 @@ func (app *App) apiStatusBase(v *Account, s *Status) obj {
 		"edited_at":              apiTime(s.EditedAt),
 		"favourited":             s.Liked,
 		"reblogged":              s.Boosted,
-		"muted":                  false,
+		"muted":                  app.conversationMuted(v, s.ID),
 		"bookmarked":             s.Bookmarked,
 		"content":                s.Content,
 		"filtered":               filtered,

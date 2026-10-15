@@ -105,6 +105,8 @@
 - Blocking whole servers for yourself (Settings, a profile's "Block server" button, `/api/v1/domain_blocks`):
   hides their posts, boosts of them and notifications, removes followers there and refuses new ones;
   the list of servers the instance blocks is public (`/api/v1/instance/domain_blocks`)
+- Muting a conversation (post menu, `POST /api/v1/statuses/:id/mute`): no more notifications about replies, likes
+  or boosts in that thread
 - Mutes, keyword filters (collapse, hide media or hide; through the API also grouped, per context and expiring), blocks; reports with optional anonymous forwarding (`Flag`)
   and incoming reports for admins
 - Archive download (Settings, once an hour): a zip in Mastodon's archive layout with actor.json, outbox.json (all

@@ -45,6 +45,7 @@ Files are grouped by prefix:
 | `archive.go` | archive download (zip) |
 | `notifpolicy.go` | notification filters and requests |
 | `autocomplete.go` | compose suggestions for the web UI |
+| `convmute.go` | muted conversations |
 | `ai.go`, `translate.go` | AI drafting and translation |
 | `fed_server.go` | federation endpoints: WebFinger, NodeInfo, actors, collections, objects |
 | `fed_inbox.go`, `fed_remote.go` | incoming activities, storing remote posts, backfill, URL resolution |

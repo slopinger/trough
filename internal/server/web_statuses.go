@@ -243,6 +243,13 @@ func (app *App) handleStatusAction(w http.ResponseWriter, r *http.Request, p *Pa
 		err = app.React(p.Me, target, r.FormValue("emoji"))
 	case "unreact":
 		err = app.Unreact(p.Me, target, r.FormValue("emoji"))
+	case "mute":
+		err = app.MuteConversation(p.Me, target)
+		if err == nil {
+			setFlash(w, "Conversation muted: no more notifications from it.")
+		}
+	case "unmute":
+		err = app.UnmuteConversation(p.Me, target)
 	case "bookmark":
 		err = app.Bookmark(p.Me, target)
 	case "unbookmark":

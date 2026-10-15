@@ -194,6 +194,7 @@ func (app *App) templateFuncs() template.FuncMap {
 		},
 		"hostOf":     ap.Host,
 		"sparkline":  sparkline,
+		"convMuted":  func(st *Status, me *Account) bool { return app.conversationMuted(me, st.ID) },
 		"tagUses":    tagUses,
 		"remoteLink": func(s *Status) string { return s.URL },
 		"isImage":    func(at *Attachment) bool { return at.Kind() == "image" },

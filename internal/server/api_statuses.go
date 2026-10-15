@@ -257,7 +257,10 @@ func (app *App) apiStatusAction(w http.ResponseWriter, r *http.Request, c *apiCt
 		err = app.Pin(c.Me, target)
 	case "unpin":
 		err = app.Unpin(c.Me, target)
-	case "mute", "unmute":
+	case "mute":
+		err = app.MuteConversation(c.Me, target)
+	case "unmute":
+		err = app.UnmuteConversation(c.Me, target)
 	default:
 		apiError(w, 404, "Record not found")
 		return
