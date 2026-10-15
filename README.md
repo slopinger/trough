@@ -57,12 +57,13 @@ Running instance: **https://fedi.freifick.net**
   text box and is never posted automatically. Uses DeepSeek's chat completions API (any
   OpenAI-compatible endpoint works); remote post text is passed to the model as delimited data, not
   instructions. 30 requests per user and hour; admins switch it on and off and pick the model on `/admin`.
-- Edit your posts, pin up to 5 to your profile (featured collection, `Add`/`Remove`), bookmarks
+- Edit your posts (with an edit history), pin up to 5 to your profile (featured collection, `Add`/`Remove`), bookmarks
 - Polls (2-4 options, single or multiple choice) federated as `Question`; vote in remote polls; poll results
   and end notifications
 - Quote posts (FEP-044f `quote`, `quoteUrl`, `_misskey_quote`, FEP-e232 links) shown as embedded posts;
   emoji reactions (Misskey reactions, `EmojiReact`) shown as chips, and you can react yourself
 - Link previews (OpenGraph cards), fetched in the background
+- Custom emoji uploaded by admins, usable as `:shortcode:` in posts, names and bios, federated as `Emoji` tags
 - Mutes, keyword filters (collapse or hide), blocks; reports with optional anonymous forwarding (`Flag`)
   and incoming reports for admins
 - Account migration: aliases (`alsoKnownAs`), moving followers to a new account (`Move`), and following
@@ -183,7 +184,7 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 
 ## Not (yet) implemented
 
-Outgoing RFC 9421 signatures, edit history, custom emoji uploads, push notifications, ActivityPub C2S.
+Outgoing RFC 9421 signatures, Web Push notifications, ActivityPub C2S.
 
 ## License
 
