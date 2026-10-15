@@ -795,6 +795,18 @@ func (app *App) apiReaction(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 	apiJSON(w, 200, app.apiStatus(c.Me, fresh))
 }
 
+// apiStatusQuotes lists the posts quoting a status that the viewer may see
+// (GET /api/v1/statuses/:id/quotes, Mastodon 4.5).
+func (app *App) apiStatusQuotes(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	st, ok := app.apiLoadStatus(w, r, c)
+	if !ok {
+		return
+	}
+	pq := pageParams(r, 20, 40)
+	sts, _ := app.pageStatuses(c.Me, `s.quote_uri=? AND s.boost_of_id=''`, []any{st.URI}, pq)
+	app.writeStatuses(w, r, c.Me, sts, pq)
+}
+
 func (app *App) apiStatusAccounts(likes bool) apiHandler {
 	return func(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 		st, ok := app.apiLoadStatus(w, r, c)

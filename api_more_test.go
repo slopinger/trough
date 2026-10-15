@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -68,4 +69,28 @@ func TestAPIDeleteProfileImages(t *testing.T) {
 		t.Errorf("unknown image: %d", code)
 	}
 	eventually(t, "profile Update federated", func() bool { return len(r.receivedOf("Update")) >= 3 })
+}
+
+func TestAPIStatusQuotes(t *testing.T) {
+	la, _, bob, alice := featureFixture(t)
+	ctx := context.Background()
+	eve, _ := la.CreateLocalUser("eve", "password123", false)
+	orig, _ := la.PostStatus(ctx, bob, PostInput{Text: "quote me", Visibility: "public"})
+	q1, _ := la.PostStatus(ctx, eve, PostInput{Text: "public quote", Visibility: "public", QuoteOf: orig.ID})
+	la.PostStatus(ctx, eve, PostInput{Text: "private quote", Visibility: "private", QuoteOf: orig.ID})
+	la.PostStatus(ctx, eve, PostInput{Text: "not a quote", Visibility: "public"})
+	la.insertStatus(&Status{ID: newID(), URI: alice.URI + "/s/q", AccountID: alice.ID, Visibility: "public", Content: "<p>remote quote</p>",
+		QuoteURI: orig.URI, CreatedAt: parseTime("2026-01-01T00:00:00Z")})
+	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read")}
+	got := c.ok("GET", "/api/v1/statuses/"+orig.ID+"/quotes", nil).([]any)
+	texts := []string{}
+	for _, s := range got {
+		texts = append(texts, plainText(s.(map[string]any)["content"].(string)))
+	}
+	if len(got) != 2 || got[1].(map[string]any)["id"] != q1.ID || !strings.HasPrefix(texts[0], "remote quote") {
+		t.Fatalf("quotes = %q", texts)
+	}
+	if got := (&apiClient{t: t, base: la.base}).ok("GET", "/api/v1/statuses/"+orig.ID+"/quotes", nil).([]any); len(got) != 2 {
+		t.Errorf("anonymous sees %d quotes", len(got))
+	}
 }

@@ -256,6 +256,7 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	h("GET /api/v1/statuses/{id}/history", pub(app.apiStatusHistory))
 	h("GET /api/v1/statuses/{id}/favourited_by", pub(app.apiStatusAccounts(true)))
 	h("GET /api/v1/statuses/{id}/reblogged_by", pub(app.apiStatusAccounts(false)))
+	h("GET /api/v1/statuses/{id}/quotes", pub(app.apiStatusQuotes))
 	h("POST /api/v1/statuses/{id}/{action}", write(app.apiStatusAction))
 	h("PUT /api/v1/pleroma/statuses/{id}/reactions/{emoji}", write(app.apiReaction))
 	h("DELETE /api/v1/pleroma/statuses/{id}/reactions/{emoji}", write(app.apiReaction))
