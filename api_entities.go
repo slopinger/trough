@@ -329,7 +329,11 @@ func (app *App) apiInstanceV1() obj {
 	}
 }
 
-const mastodonVersion = "4.3.0 (compatible; trough " + softwareVersion + ")"
+// mastodonVersion and api_versions.mastodon (7) tell clients which
+// Mastodon API trough speaks: everything the Mastodon docs list up to API
+// version 7 (4.5: quote posts and their policies, featured accounts,
+// attribution domains, blur filters, media deletion) is implemented.
+const mastodonVersion = "4.5.0 (compatible; trough " + softwareVersion + ")"
 
 func (app *App) apiConfiguration() obj {
 	return obj{
@@ -362,7 +366,7 @@ func (app *App) apiInstanceV2() obj {
 		"icon":      []any{obj{"src": app.cfg.BaseURL() + "/static/favicon.svg", "size": "64x64"}},
 		"languages": []string{"en"}, "configuration": app.apiConfiguration(),
 		"registrations": obj{"enabled": app.registrationMode() != "closed", "approval_required": false, "message": nil, "url": nil},
-		"api_versions":  obj{"mastodon": 2},
+		"api_versions":  obj{"mastodon": 7},
 		"contact":       obj{"email": "", "account": contact},
 		"rules":         []any{},
 	}

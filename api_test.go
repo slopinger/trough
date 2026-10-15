@@ -143,7 +143,8 @@ func TestMastodonAPI(t *testing.T) {
 		t.Fatalf("verify_credentials = %v", me)
 	}
 	inst := c.ok("GET", "/api/v2/instance", nil).(map[string]any)
-	if inst["domain"] != la.host() || !strings.Contains(inst["version"].(string), "compatible; trough") {
+	if inst["domain"] != la.host() || !strings.Contains(inst["version"].(string), "compatible; trough") ||
+		inst["api_versions"].(map[string]any)["mastodon"] != float64(7) {
 		t.Fatalf("instance = %v", inst)
 	}
 
