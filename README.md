@@ -50,7 +50,8 @@ Running instance: **https://fedi.freifick.net**
   can be revoked in Settings
 - Accounts, statuses (post with media/polls/quotes, edit, delete, context, source, history), favourites,
   reblogs, bookmarks, pins, reactions (Pleroma-style), polls, media upload (v1/v2), home/public/hashtag
-  timelines, notifications (with type filters), relationships, follow/block/mute, follow requests, search v2
+  timelines, notifications (with type filters, plus Mastodon 4.3 grouped notifications at
+  `/api/v2/notifications`: likes/boosts per post and follows per day collapse into groups), relationships, follow/block/mute, follow requests, search v2
   with remote resolving, markers, filters, conversations, instance v1/v2, CORS for browser clients
 - Mastodon-style pagination (`max_id`/`since_id`/`min_id`, `Link` headers) and Idempotency-Key
 - Streaming API over WebSocket (`/api/v1/streaming`) and server-sent events (`/api/v1/streaming/user`, ...)
@@ -204,6 +205,7 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 | `timeline.go` | timeline queries, visibility rules, threads, notifications |
 | `fedserver.go` | federation HTTP endpoints |
 | `c2s.go` | ActivityPub client-to-server (outbox POST, inbox GET) |
+| `api_notifs.go` | grouped notifications (`/api/v2/notifications`) |
 | `web.go`, `admin.go`, `render.go`, `routes.go` | web interface |
 | `text.go` | post formatting and HTML sanitizing |
 | `media.go` | uploads, EXIF stripping, media proxy |

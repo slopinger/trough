@@ -282,7 +282,7 @@ var notificationTypes = map[string]string{
 
 func (app *App) apiNotification(v *Account, n *Notification) obj {
 	m := obj{"id": n.ID, "type": notificationTypes[n.Type], "created_at": apiTime(n.CreatedAt), "account": app.apiAccount(n.From),
-		"group_key": "ungrouped-" + n.ID}
+		"group_key": groupKey(n, defaultGroupedTypes)}
 	if n.Status != nil {
 		m["status"] = app.apiStatus(v, n.Status)
 	}
