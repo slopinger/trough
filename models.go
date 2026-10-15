@@ -265,6 +265,7 @@ type Status struct {
 	Card             *LinkCard       // link preview
 	Reactions        []ReactionCount // emoji reactions (Misskey, Pleroma, ...)
 	FilteredBy       string          // matching keyword filter ("warn")
+	Filter           *Filter         // and the keyword itself
 	MyVotes          map[int]bool    // poll choices the viewer voted for
 }
 

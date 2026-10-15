@@ -234,29 +234,98 @@ func muteSQL(v *Account) (string, []any) {
 
 // ---- keyword filters ----
 
+// A filter group (Mastodon's v2 Filter) has a title, contexts, an action and
+// an optional expiry; its keywords are the rows of filters. The web UI makes
+// one group per phrase.
+
+var filterContexts = []string{"home", "notifications", "public", "thread", "account"}
+
+type FilterGroup struct {
+	ID, Title, Action string
+	Context           []string // empty: everywhere
+	ExpiresAt         int64    // unix seconds, 0: never
+	Keywords          []*Filter
+}
+
+func (g *FilterGroup) Contexts() []string {
+	if len(g.Context) == 0 {
+		return filterContexts
+	}
+	return g.Context
+}
+
+func (g *FilterGroup) expired() bool { return g.ExpiresAt > 0 && g.ExpiresAt <= time.Now().Unix() }
+
+// Filter is one keyword of a group.
 type Filter struct {
-	ID, Phrase, Action string
+	ID, Phrase, Action string // Action is the group's
 	WholeWord          bool
+	Group              *FilterGroup
 	re                 *regexp.Regexp
 }
 
-func (app *App) filtersFor(accountID string) []*Filter {
-	rows, err := app.db.Query(`SELECT id, phrase, whole_word, action FROM filters WHERE account_id=? ORDER BY created_at`, accountID)
+func (f *Filter) compile() bool {
+	pat := regexp.QuoteMeta(strings.ToLower(f.Phrase))
+	if f.WholeWord {
+		pat = `(^|[^\pL\pN_])` + pat + `($|[^\pL\pN_])`
+	}
+	re, err := regexp.Compile(pat)
+	f.re = re
+	return err == nil
+}
+
+// filterGroups returns a user's filter groups with their keywords, including
+// expired ones.
+func (app *App) filterGroups(accountID string) []*FilterGroup {
+	rows, err := app.db.Query(`SELECT id, title, context, action, expires_at FROM filter_groups WHERE account_id=? ORDER BY created_at, id`, accountID)
 	if err != nil {
 		return nil
 	}
+	var out []*FilterGroup
+	byID := map[string]*FilterGroup{}
+	for rows.Next() {
+		g := &FilterGroup{}
+		var ctx string
+		rows.Scan(&g.ID, &g.Title, &ctx, &g.Action, &g.ExpiresAt)
+		if ctx != "" {
+			g.Context = strings.Split(ctx, ",")
+		}
+		out = append(out, g)
+		byID[g.ID] = g
+	}
+	rows.Close()
+	rows, err = app.db.Query(`SELECT id, phrase, whole_word, group_id FROM filters WHERE account_id=? ORDER BY created_at, id`, accountID)
+	if err != nil {
+		return out
+	}
 	defer rows.Close()
-	var out []*Filter
 	for rows.Next() {
 		f := &Filter{}
-		rows.Scan(&f.ID, &f.Phrase, &f.WholeWord, &f.Action)
-		pat := regexp.QuoteMeta(strings.ToLower(f.Phrase))
-		if f.WholeWord {
-			pat = `(^|[^\pL\pN_])` + pat + `($|[^\pL\pN_])`
+		var gid string
+		rows.Scan(&f.ID, &f.Phrase, &f.WholeWord, &gid)
+		if g := byID[gid]; g != nil && f.compile() {
+			f.Group, f.Action = g, g.Action
+			g.Keywords = append(g.Keywords, f)
 		}
-		if re, err := regexp.Compile(pat); err == nil {
-			f.re = re
-			out = append(out, f)
+	}
+	return out
+}
+
+func (app *App) filterGroup(accountID, id string) *FilterGroup {
+	for _, g := range app.filterGroups(accountID) {
+		if g.ID == id {
+			return g
+		}
+	}
+	return nil
+}
+
+// filtersFor returns the keywords of a user's unexpired filters.
+func (app *App) filtersFor(accountID string) []*Filter {
+	var out []*Filter
+	for _, g := range app.filterGroups(accountID) {
+		if !g.expired() {
+			out = append(out, g.Keywords...)
 		}
 	}
 	return out
@@ -270,13 +339,19 @@ func (f *Filter) matches(st *Status) bool {
 	return f.re.MatchString(text)
 }
 
-// applyFilters drops posts matching "hide" filters and marks posts matching
-// "warn" filters so they are shown collapsed. Own posts are never filtered.
-func (app *App) applyFilters(v *Account, sts []*Status) []*Status {
+// applyFilters drops posts matching "hide" filters for the context (home,
+// public, notifications, thread, account) and marks posts matching "warn"
+// filters so they are shown collapsed. Own posts are never filtered.
+func (app *App) applyFilters(v *Account, sts []*Status, context string) []*Status {
 	if v == nil {
 		return sts
 	}
-	filters := app.filtersFor(v.ID)
+	var filters []*Filter
+	for _, f := range app.filtersFor(v.ID) {
+		if contains(f.Group.Contexts(), context) {
+			filters = append(filters, f)
+		}
+	}
 	if len(filters) == 0 {
 		return sts
 	}
@@ -293,7 +368,7 @@ func (app *App) applyFilters(v *Account, sts []*Status) []*Status {
 					if f.Action == "hide" {
 						hidden = true
 					} else if s.FilteredBy == "" {
-						s.FilteredBy = f.Phrase
+						s.FilteredBy, s.Filter = f.Phrase, f
 					}
 				}
 			}
@@ -305,20 +380,107 @@ func (app *App) applyFilters(v *Account, sts []*Status) []*Status {
 	return out
 }
 
-func (app *App) AddFilter(me *Account, phrase string, wholeWord bool, action string) error {
+const maxFilterKeywords = 100
+
+func checkFilterPhrase(phrase string) (string, error) {
 	phrase = strings.TrimSpace(phrase)
 	if phrase == "" || utf8.RuneCountInString(phrase) > 100 {
-		return errors.New("filter phrases are 1-100 characters")
+		return "", errors.New("filter phrases are 1-100 characters")
 	}
-	if action != "hide" {
-		action = "warn"
+	return phrase, nil
+}
+
+// SaveFilterGroup creates the group (empty ID) or updates it.
+func (app *App) SaveFilterGroup(me *Account, g *FilterGroup) error {
+	g.Title = truncateRunes(strings.TrimSpace(g.Title), 100)
+	if g.Title == "" {
+		return errors.New("a filter needs a title")
 	}
-	if app.countInt(`SELECT COUNT(*) FROM filters WHERE account_id=?`, me.ID) >= 100 {
+	if g.Action != "hide" {
+		g.Action = "warn"
+	}
+	var ctx []string
+	for _, c := range g.Context {
+		if contains(filterContexts, c) && !contains(ctx, c) {
+			ctx = append(ctx, c)
+		}
+	}
+	if len(ctx) == len(filterContexts) {
+		ctx = nil
+	}
+	g.Context = ctx
+	if g.ID == "" {
+		if app.countInt(`SELECT COUNT(*) FROM filter_groups WHERE account_id=?`, me.ID) >= maxFilterKeywords {
+			return errors.New("too many filters")
+		}
+		g.ID = newID()
+		_, err := app.db.Exec(`INSERT INTO filter_groups (id, account_id, title, context, action, expires_at, created_at) VALUES (?,?,?,?,?,?,?)`,
+			g.ID, me.ID, g.Title, strings.Join(ctx, ","), g.Action, g.ExpiresAt, time.Now().Unix())
+		return err
+	}
+	_, err := app.db.Exec(`UPDATE filter_groups SET title=?, context=?, action=?, expires_at=? WHERE id=? AND account_id=?`,
+		g.Title, strings.Join(ctx, ","), g.Action, g.ExpiresAt, g.ID, me.ID)
+	return err
+}
+
+// AddFilterKeyword adds a keyword to one of the user's groups.
+func (app *App) AddFilterKeyword(me *Account, groupID, phrase string, wholeWord bool) (*Filter, error) {
+	phrase, err := checkFilterPhrase(phrase)
+	if err != nil {
+		return nil, err
+	}
+	if app.countInt(`SELECT COUNT(*) FROM filters WHERE account_id=?`, me.ID) >= maxFilterKeywords {
+		return nil, errors.New("too many filters")
+	}
+	f := &Filter{ID: newID(), Phrase: phrase, WholeWord: wholeWord}
+	_, err = app.db.Exec(`INSERT INTO filters (id, account_id, phrase, whole_word, created_at, group_id) VALUES (?,?,?,?,?,?)`,
+		f.ID, me.ID, phrase, wholeWord, time.Now().Unix(), groupID)
+	return f, err
+}
+
+func (app *App) UpdateFilterKeyword(me *Account, id, phrase string, wholeWord bool) error {
+	phrase, err := checkFilterPhrase(phrase)
+	if err != nil {
+		return err
+	}
+	_, err = app.db.Exec(`UPDATE filters SET phrase=?, whole_word=? WHERE id=? AND account_id=?`, phrase, wholeWord, id, me.ID)
+	return err
+}
+
+func (app *App) DeleteFilterKeyword(me *Account, id string) {
+	app.db.Exec(`DELETE FROM filters WHERE id=? AND account_id=?`, id, me.ID)
+}
+
+func (app *App) DeleteFilterGroup(me *Account, id string) {
+	app.db.Exec(`DELETE FROM filters WHERE group_id=? AND account_id=?`, id, me.ID)
+	app.db.Exec(`DELETE FROM filter_groups WHERE id=? AND account_id=?`, id, me.ID)
+}
+
+// AddFilter is the web UI's one-phrase filter.
+func (app *App) AddFilter(me *Account, phrase string, wholeWord bool, action string) error {
+	phrase, err := checkFilterPhrase(phrase)
+	if err != nil {
+		return err
+	}
+	if app.countInt(`SELECT COUNT(*) FROM filters WHERE account_id=?`, me.ID) >= maxFilterKeywords {
 		return errors.New("too many filters")
 	}
-	_, err := app.db.Exec(`INSERT INTO filters (id, account_id, phrase, whole_word, action, created_at) VALUES (?,?,?,?,?,?)`,
-		newID(), me.ID, phrase, wholeWord, action, time.Now().Unix())
+	g := &FilterGroup{Title: phrase, Action: action}
+	if err := app.SaveFilterGroup(me, g); err != nil {
+		return err
+	}
+	_, err = app.AddFilterKeyword(me, g.ID, phrase, wholeWord)
 	return err
+}
+
+// DeleteFilter removes a keyword (from the web UI), and its group once empty.
+func (app *App) DeleteFilter(me *Account, keywordID string) {
+	var gid string
+	app.db.QueryRow(`SELECT group_id FROM filters WHERE id=? AND account_id=?`, keywordID, me.ID).Scan(&gid)
+	app.DeleteFilterKeyword(me, keywordID)
+	if gid != "" && app.countInt(`SELECT COUNT(*) FROM filters WHERE group_id=?`, gid) == 0 {
+		app.DeleteFilterGroup(me, gid)
+	}
 }
 
 // ---- reports ----

@@ -193,3 +193,134 @@ func TestAPIConversations(t *testing.T) {
 		t.Errorf("eve's conversations = %v", cs)
 	}
 }
+
+func TestAPIFilters(t *testing.T) {
+	la, _, bob, alice := featureFixture(t)
+	ctx := context.Background()
+	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}
+	post := func(text string) *Status {
+		st := &Status{ID: newID(), URI: alice.URI + "/s/" + newID(), AccountID: alice.ID, Visibility: "public", Content: "<p>" + text + "</p>", CreatedAt: parseTime("2026-01-01T00:00:00Z")}
+		la.insertStatus(st)
+		return st
+	}
+	spoiler := post("big spoilers for the finale")
+	ids := func(path string) map[string]map[string]any {
+		out := map[string]map[string]any{}
+		for _, v := range c.ok("GET", path, nil).([]any) {
+			m := v.(map[string]any)
+			out[m["id"].(string)] = m
+		}
+		return out
+	}
+
+	// v2, JSON with keywords
+	f := c.ok("POST", "/api/v2/filters", map[string]any{"title": "No spoilers", "context": []string{"home"}, "filter_action": "hide",
+		"expires_in": "3600", "keywords_attributes": []any{map[string]any{"keyword": "spoilers", "whole_word": true}, map[string]any{"keyword": "finale"}}}).(map[string]any)
+	fid := f["id"].(string)
+	if len(f["keywords"].([]any)) != 2 || f["expires_at"] == nil || f["filter_action"] != "hide" || len(f["context"].([]any)) != 1 {
+		t.Fatalf("created %v", f)
+	}
+	if _, ok := ids("/api/v1/timelines/home")[spoiler.ID]; ok {
+		t.Error("hidden post in home")
+	}
+	if _, ok := ids("/api/v1/timelines/public")[spoiler.ID]; !ok {
+		t.Error("filter applied outside its context")
+	}
+
+	// update with Rails-style form fields: drop one keyword, change one, add one
+	kws := f["keywords"].([]any)
+	k0, k1 := kws[0].(map[string]any)["id"].(string), kws[1].(map[string]any)["id"].(string)
+	f = c.ok("PUT", "/api/v2/filters/"+fid, url.Values{"filter_action": {"warn"}, "context[]": {"home", "public"},
+		"keywords_attributes[][id]": {k0, k1, ""}, "keywords_attributes[][keyword]": {"spoiler", "", "ending"},
+		"keywords_attributes[][_destroy]": {"false", "true", "false"}}).(map[string]any)
+	var words []string
+	for _, k := range f["keywords"].([]any) {
+		words = append(words, k.(map[string]any)["keyword"].(string))
+	}
+	if strings.Join(words, ",") != "spoiler,ending" || f["filter_action"] != "warn" {
+		t.Fatalf("updated keywords %v, %v", words, f["filter_action"])
+	}
+	post("the ending was great")
+	home := ids("/api/v1/timelines/home")
+	if res := home[spoiler.ID]; res == nil || len(res["filtered"].([]any)) != 0 {
+		t.Errorf("'spoiler' is a whole word and shouldn't match 'spoilers': %v", res["filtered"])
+	}
+	var warned map[string]any
+	for _, s := range home {
+		if strings.Contains(s["content"].(string), "ending") {
+			warned = s
+		}
+	}
+	if fr := warned["filtered"].([]any); len(fr) != 1 || fr[0].(map[string]any)["filter"].(map[string]any)["id"] != fid ||
+		fr[0].(map[string]any)["keyword_matches"].([]any)[0] != "ending" {
+		t.Errorf("filter result = %v", warned["filtered"])
+	}
+
+	// keyword endpoints (Ice Cubes sends these as query parameters)
+	k := c.ok("POST", "/api/v2/filters/"+fid+"/keywords?keyword=finale&whole_word=false", nil).(map[string]any)
+	kid := k["id"].(string)
+	if k["whole_word"] != false || len(c.ok("GET", "/api/v2/filters/"+fid+"/keywords", nil).([]any)) != 3 {
+		t.Errorf("keyword added: %v", k)
+	}
+	if got := c.ok("PUT", "/api/v2/filters/keywords/"+kid, url.Values{"keyword": {"finales"}}).(map[string]any); got["keyword"] != "finales" {
+		t.Errorf("keyword update: %v", got)
+	}
+	if got := c.ok("GET", "/api/v2/filters/keywords/"+kid, nil).(map[string]any); got["keyword"] != "finales" {
+		t.Errorf("keyword get: %v", got)
+	}
+	c.ok("DELETE", "/api/v2/filters/keywords/"+kid, nil)
+	if len(c.ok("GET", "/api/v2/filters/"+fid, nil).(map[string]any)["keywords"].([]any)) != 2 {
+		t.Error("keyword not deleted")
+	}
+	// an empty expires_in removes the expiry; expired filters stop applying
+	if got := c.ok("PUT", "/api/v2/filters/"+fid, map[string]any{"expires_in": ""}).(map[string]any); got["expires_at"] != nil {
+		t.Errorf("expiry kept: %v", got["expires_at"])
+	}
+	la.db.Exec(`UPDATE filter_groups SET expires_at=1 WHERE id=?`, fid)
+	for _, s := range ids("/api/v1/timelines/home") {
+		if len(s["filtered"].([]any)) != 0 {
+			t.Error("expired filter applied")
+		}
+	}
+
+	// thread context
+	reply, _ := la.PostStatus(ctx, alice, PostInput{Text: "a thread reply with spoilers", Visibility: "public", InReplyTo: spoiler.ID})
+	tf := c.ok("POST", "/api/v2/filters", map[string]any{"title": "threads", "context": []string{"thread"}, "filter_action": "hide",
+		"keywords_attributes": []any{map[string]any{"keyword": "thread reply"}}}).(map[string]any)
+	if d := c.ok("GET", "/api/v1/statuses/"+spoiler.ID+"/context", nil).(map[string]any)["descendants"].([]any); len(d) != 0 {
+		t.Errorf("reply %s not hidden in thread: %v", reply.ID, d)
+	}
+	c.ok("DELETE", "/api/v2/filters/"+tf["id"].(string), nil)
+
+	// someone else can't see or change them
+	ce := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, func() string { la.CreateLocalUser("eve", "password123", false); return "eve" }(), "password123", "read write")}
+	if code, _, _ := ce.do("GET", "/api/v2/filters/"+fid, nil); code != 404 {
+		t.Errorf("eve reads bob's filter: %d", code)
+	}
+	if code, _, _ := ce.do("PUT", "/api/v2/filters/"+fid, map[string]any{"title": "x"}); code != 404 {
+		t.Errorf("eve edits bob's filter: %d", code)
+	}
+
+	// v1: one keyword per filter, shown as a group in v2
+	v1 := c.ok("POST", "/api/v1/filters", url.Values{"phrase": {"crypto"}, "context[]": {"public"}, "irreversible": {"true"}, "whole_word": {"false"}}).(map[string]any)
+	if v1["irreversible"] != true || v1["whole_word"] != false || v1["phrase"] != "crypto" {
+		t.Fatalf("v1 created %v", v1)
+	}
+	v1 = c.ok("PUT", "/api/v1/filters/"+v1["id"].(string), url.Values{"phrase": {"nft"}, "irreversible": {"false"}}).(map[string]any)
+	if v1["phrase"] != "nft" || v1["irreversible"] != false {
+		t.Errorf("v1 updated %v", v1)
+	}
+	if groups := c.ok("GET", "/api/v2/filters", nil).([]any); len(groups) != 2 {
+		t.Errorf("v2 sees %d groups", len(groups))
+	}
+	c.ok("DELETE", "/api/v1/filters/"+v1["id"].(string), nil)
+	c.ok("DELETE", "/api/v2/filters/"+fid, nil)
+	if n := la.countInt(`SELECT COUNT(*) FROM filter_groups`) + la.countInt(`SELECT COUNT(*) FROM filters`); n != 0 {
+		t.Errorf("%d filter rows left", n)
+	}
+	// filters from the web UI show up too
+	la.AddFilter(bob, "politics", true, "warn")
+	if got := c.ok("GET", "/api/v2/filters", nil).([]any); len(got) != 1 || got[0].(map[string]any)["title"] != "politics" {
+		t.Errorf("web filter = %v", got)
+	}
+}

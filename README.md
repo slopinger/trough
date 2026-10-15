@@ -54,7 +54,7 @@ Running instance: **https://fedi.freifick.net**
   reblogs, bookmarks, pins, reactions (Pleroma-style), polls, media upload (v1/v2), home/public/hashtag
   timelines, notifications (with type filters, plus Mastodon 4.3 grouped notifications at
   `/api/v2/notifications`: likes/boosts per post and follows per day collapse into groups), relationships, follow/block/mute, follow requests, search v2
-  with remote resolving, markers, filters, conversations (direct-message threads with unread state, mark
+  with remote resolving, markers, filters (v1 and v2: titles, keywords, contexts, hide/warn, expiry), conversations (direct-message threads with unread state, mark
   read, hide), reports (with forwarding), instance v1/v2, CORS
   for browser clients
 - Mastodon-style pagination (`max_id`/`since_id`/`min_id`, `Link` headers) and Idempotency-Key
@@ -88,7 +88,7 @@ Running instance: **https://fedi.freifick.net**
 - Scheduled posts (compose box "Schedule", a Scheduled page, and `scheduled_at` / `/api/v1/scheduled_statuses`)
 - Link previews (OpenGraph cards), fetched in the background
 - Custom emoji uploaded by admins, usable as `:shortcode:` in posts, names and bios, federated as `Emoji` tags
-- Mutes, keyword filters (collapse or hide), blocks; reports with optional anonymous forwarding (`Flag`)
+- Mutes, keyword filters (collapse or hide; through the API also grouped, per context and expiring), blocks; reports with optional anonymous forwarding (`Flag`)
   and incoming reports for admins
 - Account migration: aliases (`alsoKnownAs`), moving followers to a new account (`Move`), and following
   accounts that moved here
@@ -246,6 +246,7 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 | `fedserver.go` | federation HTTP endpoints |
 | `c2s.go` | ActivityPub client-to-server (outbox POST, inbox GET) |
 | `api_notifs.go` | grouped notifications (`/api/v2/notifications`) |
+| `api_filters.go` | filters API v1/v2 (filter groups with keywords) |
 | `conversations.go` | direct-message threads for `/api/v1/conversations` (read and hidden state) |
 | `web.go`, `admin.go`, `render.go`, `routes.go` | web interface |
 | `text.go` | post formatting and HTML sanitizing |

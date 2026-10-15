@@ -316,7 +316,7 @@ func (app *App) apiAccountStatuses(w http.ResponseWriter, r *http.Request, c *ap
 		apiError(w, 500, "db error")
 		return
 	}
-	app.writeStatuses(w, r, c.Me, sts, pq)
+	app.writeStatuses(w, r, c.Me, app.applyFilters(c.Me, sts, "account"), pq)
 }
 
 func (app *App) apiFollowList(followers bool) apiHandler {
@@ -488,7 +488,7 @@ func (app *App) apiHome(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 		apiError(w, 500, "db error")
 		return
 	}
-	app.writeStatuses(w, r, c.Me, app.applyFilters(c.Me, sts), pq)
+	app.writeStatuses(w, r, c.Me, app.applyFilters(c.Me, sts, "home"), pq)
 }
 
 func (app *App) apiPublic(w http.ResponseWriter, r *http.Request, c *apiCtx) {
@@ -514,7 +514,7 @@ func (app *App) apiPublic(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 		apiError(w, 500, "db error")
 		return
 	}
-	app.writeStatuses(w, r, c.Me, app.applyFilters(c.Me, sts), pq)
+	app.writeStatuses(w, r, c.Me, app.applyFilters(c.Me, sts, "public"), pq)
 }
 
 func (app *App) apiTagTimeline(w http.ResponseWriter, r *http.Request, c *apiCtx) {
@@ -529,7 +529,7 @@ func (app *App) apiTagTimeline(w http.ResponseWriter, r *http.Request, c *apiCtx
 		apiError(w, 500, "db error")
 		return
 	}
-	app.writeStatuses(w, r, c.Me, app.applyFilters(c.Me, sts), pq)
+	app.writeStatuses(w, r, c.Me, app.applyFilters(c.Me, sts, "public"), pq)
 }
 
 // apiLinkTimeline lists public posts whose link preview is the given URL
@@ -547,7 +547,7 @@ func (app *App) apiLinkTimeline(w http.ResponseWriter, r *http.Request, c *apiCt
 		apiError(w, 500, "db error")
 		return
 	}
-	app.writeStatuses(w, r, c.Me, app.applyFilters(c.Me, sts), pq)
+	app.writeStatuses(w, r, c.Me, app.applyFilters(c.Me, sts, "public"), pq)
 }
 
 // ---- statuses ----
@@ -737,6 +737,7 @@ func (app *App) apiContext(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 		cancel()
 	}
 	anc, desc := app.thread(c.Me, st)
+	anc, desc = app.applyFilters(c.Me, anc, "thread"), app.applyFilters(c.Me, desc, "thread")
 	apiJSON(w, 200, obj{"ancestors": app.apiStatuses(c.Me, anc), "descendants": app.apiStatuses(c.Me, desc)})
 }
 
@@ -984,13 +985,35 @@ func (app *App) apiNotifications(w http.ResponseWriter, r *http.Request, c *apiC
 		return
 	}
 	out := []any{}
-	for _, n := range ns {
+	for _, n := range app.filterNotifications(c.Me, ns) {
 		out = append(out, app.apiNotification(c.Me, n))
 	}
 	if len(ns) > 0 {
 		app.setLink(w, r, ns[0].ID, ns[len(ns)-1].ID, len(ns) == pq.Limit)
 	}
 	apiJSON(w, 200, out)
+}
+
+// filterNotifications drops notifications about posts hidden by a filter
+// for the "notifications" context and marks those to warn about.
+func (app *App) filterNotifications(me *Account, ns []*Notification) []*Notification {
+	var sts []*Status
+	for _, n := range ns {
+		if n.Status != nil {
+			sts = append(sts, n.Status)
+		}
+	}
+	keep := map[*Status]bool{}
+	for _, s := range app.applyFilters(me, sts, "notifications") {
+		keep[s] = true
+	}
+	out := ns[:0]
+	for _, n := range ns {
+		if n.Status == nil || keep[n.Status] {
+			out = append(out, n)
+		}
+	}
+	return out
 }
 
 func (app *App) apiNotification1(w http.ResponseWriter, r *http.Request, c *apiCtx) {
@@ -1076,29 +1099,6 @@ func (app *App) apiSearch(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 }
 
 // ---- filters (read-only mapping of our keyword filters) ----
-
-func (app *App) apiFiltersV2(w http.ResponseWriter, r *http.Request, c *apiCtx) {
-	out := []any{}
-	for _, f := range app.filtersFor(c.Me.ID) {
-		action := "warn"
-		if f.Action == "hide" {
-			action = "hide"
-		}
-		out = append(out, obj{"id": f.ID, "title": f.Phrase, "context": []string{"home", "public", "notifications", "thread", "account"},
-			"expires_at": nil, "filter_action": action, "keywords": []any{obj{"id": f.ID, "keyword": f.Phrase, "whole_word": f.WholeWord}},
-			"statuses": []any{}})
-	}
-	apiJSON(w, 200, out)
-}
-
-func (app *App) apiFiltersV1(w http.ResponseWriter, r *http.Request, c *apiCtx) {
-	out := []any{}
-	for _, f := range app.filtersFor(c.Me.ID) {
-		out = append(out, obj{"id": f.ID, "phrase": f.Phrase, "context": []string{"home", "public", "notifications", "thread", "account"},
-			"whole_word": f.WholeWord, "expires_at": nil, "irreversible": f.Action == "hide"})
-	}
-	apiJSON(w, 200, out)
-}
 
 // apiReport files a report the way the web form does (POST /api/v1/reports).
 func (app *App) apiReport(w http.ResponseWriter, r *http.Request, c *apiCtx) {

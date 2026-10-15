@@ -415,6 +415,21 @@ CREATE TABLE conversation_marks (
 	hidden_id TEXT NOT NULL DEFAULT '',
 	PRIMARY KEY (account_id, root_id)
 );
+`, `
+CREATE TABLE filter_groups (
+	id TEXT PRIMARY KEY,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	title TEXT NOT NULL,
+	context TEXT NOT NULL DEFAULT '',
+	action TEXT NOT NULL DEFAULT 'warn',
+	expires_at INTEGER NOT NULL DEFAULT 0,
+	created_at INTEGER NOT NULL
+);
+CREATE INDEX filter_groups_account ON filter_groups(account_id);
+ALTER TABLE filters ADD COLUMN group_id TEXT NOT NULL DEFAULT '';
+INSERT INTO filter_groups (id, account_id, title, action, created_at) SELECT id, account_id, phrase, action, created_at FROM filters;
+UPDATE filters SET group_id=id;
+CREATE INDEX filters_group ON filters(group_id);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

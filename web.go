@@ -334,7 +334,7 @@ func (app *App) handleHome(w http.ResponseWriter, r *http.Request, p *Page) {
 		return
 	}
 	p.Title, p.Section, p.Heading, p.Timeline = "Home", "home", "Home", "home"
-	p.Statuses = app.applyFilters(p.Me, sts)
+	p.Statuses = app.applyFilters(p.Me, sts, "home")
 	p.NextURL = nextURL(r, sts)
 	p.Compose = &Compose{Visibility: "public"}
 	p.Empty = "Your home timeline is empty. Follow some people! Use search to find accounts on other servers, e.g. @someone@mastodon.social."
@@ -351,7 +351,7 @@ func (app *App) handleLocal(w http.ResponseWriter, r *http.Request, p *Page) {
 	if p.Me != nil {
 		p.Timeline = "local"
 	}
-	p.Statuses = app.applyFilters(p.Me, sts)
+	p.Statuses = app.applyFilters(p.Me, sts, "public")
 	p.NextURL = nextURL(r, sts)
 	p.Empty = "Nobody here has posted anything public yet."
 	app.render(w, "timeline", p)
@@ -364,7 +364,7 @@ func (app *App) handleFederated(w http.ResponseWriter, r *http.Request, p *Page)
 		return
 	}
 	p.Title, p.Section, p.Heading, p.Timeline = "Federated timeline", "federated", "Federated timeline", "federated"
-	p.Statuses = app.applyFilters(p.Me, sts)
+	p.Statuses = app.applyFilters(p.Me, sts, "public")
 	p.NextURL = nextURL(r, sts)
 	p.Empty = "No public posts known yet."
 	app.render(w, "timeline", p)
@@ -383,7 +383,7 @@ func (app *App) handleTag(w http.ResponseWriter, r *http.Request, p *Page) {
 	}
 	p.Title, p.Heading = "#"+tag, "#"+tag
 	p.Tag, p.TagFollowed = tag, app.followsTag(p.Me, tag)
-	p.Statuses = app.applyFilters(p.Me, sts)
+	p.Statuses = app.applyFilters(p.Me, sts, "public")
 	p.NextURL = nextURL(r, sts)
 	p.Empty = "No public posts with this hashtag are known here."
 	if p.Me != nil {
@@ -1121,7 +1121,7 @@ func (app *App) handleAddFilter(w http.ResponseWriter, r *http.Request, p *Page)
 }
 
 func (app *App) handleDeleteFilter(w http.ResponseWriter, r *http.Request, p *Page) {
-	app.db.Exec(`DELETE FROM filters WHERE id=? AND account_id=?`, r.PathValue("id"), p.Me.ID)
+	app.DeleteFilter(p.Me, r.PathValue("id"))
 	http.Redirect(w, r, "/settings#filters", http.StatusSeeOther)
 }
 
@@ -1218,7 +1218,7 @@ func (app *App) handleNewCount(w http.ResponseWriter, r *http.Request, p *Page) 
 			sts, err = app.homeTimeline(p.Me, "")
 		}
 		if err == nil {
-			for _, s := range app.applyFilters(p.Me, sts) {
+			for _, s := range app.applyFilters(p.Me, sts, "home") {
 				if s.ID > since && s.AccountID != p.Me.ID {
 					n++
 				}

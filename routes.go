@@ -210,7 +210,23 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	h("GET /api/v1/endorsements", read(emptyList))
 	h("POST /api/v1/reports", write(app.apiReport))
 	h("GET /api/v1/filters", read(app.apiFiltersV1))
+	h("POST /api/v1/filters", write(app.apiCreateFilterV1))
+	h("GET /api/v1/filters/{id}", read(app.apiGetFilterV1))
+	h("PUT /api/v1/filters/{id}", write(app.apiUpdateFilterV1))
+	h("DELETE /api/v1/filters/{id}", write(app.apiDeleteFilterV1))
 	h("GET /api/v2/filters", read(app.apiFiltersV2))
+	h("POST /api/v2/filters", write(app.apiCreateFilterV2))
+	h("GET /api/v2/filters/{id}", read(func(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+		if g := app.apiFilterGroupOr404(w, c, r.PathValue("id")); g != nil {
+			apiJSON(w, 200, app.apiFilterV2(g))
+		}
+	}))
+	h("PUT /api/v2/filters/{id}", write(app.apiUpdateFilterV2))
+	h("DELETE /api/v2/filters/{id}", write(app.apiDeleteFilterV2))
+	h("GET /api/v2/filters/{id}/{sub}", read(app.apiFilterSub))
+	h("POST /api/v2/filters/{id}/keywords", write(app.apiAddFilterKeyword))
+	h("PUT /api/v2/filters/keywords/{id}", write(app.apiUpdateFilterKeyword))
+	h("DELETE /api/v2/filters/keywords/{id}", write(app.apiDeleteFilterKeyword))
 	h("GET /api/v1/conversations", read(app.apiConversations))
 	h("POST /api/v1/conversations/{id}/read", write(app.apiConversationRead))
 	h("DELETE /api/v1/conversations/{id}", write(app.apiConversationDelete))

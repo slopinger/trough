@@ -135,7 +135,7 @@ func (app *App) handleList(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.List = l
 	p.Accounts = app.listMembers(l)
 	p.NextURL = nextURL(r, sts)
-	p.Statuses = app.applyFilters(p.Me, sts)
+	p.Statuses = app.applyFilters(p.Me, sts, "home")
 	p.Empty = "No posts from the people in this list yet. Add accounts you follow below or from their profile."
 	app.render(w, "list", p)
 }
@@ -258,7 +258,7 @@ func (app *App) apiListTimeline(w http.ResponseWriter, r *http.Request, c *apiCt
 		apiError(w, 500, "db error")
 		return
 	}
-	app.writeStatuses(w, r, c.Me, app.applyFilters(c.Me, sts), pq)
+	app.writeStatuses(w, r, c.Me, app.applyFilters(c.Me, sts, "home"), pq)
 }
 
 func (app *App) apiAccountLists(w http.ResponseWriter, r *http.Request, c *apiCtx) {

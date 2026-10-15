@@ -215,11 +215,7 @@ func (app *App) apiStatusBase(v *Account, s *Status) obj {
 	if s.Local {
 		app_ = obj{"name": softwareName, "website": nil}
 	}
-	filtered := []any{}
-	if s.FilteredBy != "" {
-		filtered = append(filtered, obj{"filter": obj{"id": "0", "title": s.FilteredBy, "context": []string{"home", "public", "thread", "account", "notifications"},
-			"expires_at": nil, "filter_action": "warn"}, "keyword_matches": []string{s.FilteredBy}, "status_matches": nil})
-	}
+	filtered := app.apiFilterResult(s)
 	reactions := []any{}
 	for _, r := range s.Reactions {
 		reactions = append(reactions, obj{"name": strings.Trim(r.Emoji, ":"), "count": r.Count, "me": r.Mine, "url": nullIfEmpty(app.absMedia(r.URL))})

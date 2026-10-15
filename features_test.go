@@ -105,7 +105,7 @@ func TestBookmarksMutesFilters(t *testing.T) {
 		id := newID()
 		la.insertStatus(&Status{ID: id, URI: r.Base + "/s/" + id, AccountID: alice.ID, Visibility: "public", Content: txt, CreatedAt: parseTime("2026-01-01T00:00:00Z")})
 	}
-	home := func() []*Status { s, _ := la.homeTimeline(bob, ""); return la.applyFilters(bob, s) }
+	home := func() []*Status { s, _ := la.homeTimeline(bob, ""); return la.applyFilters(bob, s, "home") }
 	if n := len(home()); n != 3 {
 		t.Fatalf("home has %d posts", n)
 	}

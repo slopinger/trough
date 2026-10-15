@@ -92,7 +92,11 @@ func (app *App) publishStatus(statusID string, edited bool) {
 			if err != nil {
 				continue // not visible to this viewer
 			}
-			if filtered := app.applyFilters(s.me, []*Status{st}); len(filtered) == 0 {
+			context := "public"
+			if s.has("user") {
+				context = "home"
+			}
+			if filtered := app.applyFilters(s.me, []*Status{st}, context); len(filtered) == 0 {
 				continue
 			}
 			payload, _ := json.Marshal(app.apiStatus(s.me, st))
