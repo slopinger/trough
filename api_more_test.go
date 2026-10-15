@@ -111,3 +111,20 @@ func TestAPILinkTimeline(t *testing.T) {
 		t.Errorf("no url: %d", code)
 	}
 }
+
+func TestAPINotificationRequests(t *testing.T) {
+	la, _, _, _ := featureFixture(t)
+	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}
+	for _, p := range []string{"/api/v1/notifications/requests/accept", "/api/v1/notifications/requests/dismiss"} {
+		c.ok("POST", p, url.Values{"id[]": {"1"}})
+	}
+	if c.ok("GET", "/api/v1/notifications/requests/merged", nil).(map[string]any)["merged"] != true {
+		t.Error("not merged")
+	}
+	for _, p := range []string{"GET /api/v1/notifications/requests/1", "POST /api/v1/notifications/requests/1/accept"} {
+		m, path, _ := strings.Cut(p, " ")
+		if code, _, _ := c.do(m, path, nil); code != 404 {
+			t.Errorf("%s: %d", p, code)
+		}
+	}
+}

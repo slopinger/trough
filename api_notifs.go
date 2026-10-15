@@ -180,6 +180,15 @@ func (app *App) apiNotificationPolicy(w http.ResponseWriter, r *http.Request, c 
 	})
 }
 
+// apiNoRequests accepts or dismisses requests in bulk: there are none.
+func (app *App) apiNoRequests(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	apiJSON(w, 200, obj{})
+}
+
+func (app *App) apiNoSuchRequest(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	apiError(w, 404, "Record not found")
+}
+
 func (app *App) apiEmptyList(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 	apiJSON(w, 200, []any{})
 }
