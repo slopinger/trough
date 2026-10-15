@@ -482,6 +482,7 @@ CREATE TABLE announcement_reactions (
 	created_at INTEGER NOT NULL,
 	PRIMARY KEY (announcement_id, account_id, name)
 );
+`, `
 CREATE TABLE user_domain_blocks (
 	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
 	domain TEXT NOT NULL,
