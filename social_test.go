@@ -172,3 +172,48 @@ func TestLinkCards(t *testing.T) {
 		t.Error("firstLink picked a mention or hashtag")
 	}
 }
+
+func TestCustomEmoji(t *testing.T) {
+	la, r, bob, _ := featureFixture(t)
+	if err := la.AddCustomEmoji(":blob_pig:", pngBytes()); err != nil {
+		t.Fatal(err)
+	}
+	if la.AddCustomEmoji("x", pngBytes()) == nil || la.AddCustomEmoji("ok_name", []byte("not an image")) == nil {
+		t.Error("invalid emoji accepted")
+	}
+	st, err := la.PostStatus(context.Background(), bob, PostInput{Text: "oink :blob_pig: :unknown:", Visibility: "public"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(st.Emojis) != 1 || st.Emojis[0].Shortcode != "blob_pig" {
+		t.Fatalf("emojis = %+v", st.Emojis)
+	}
+	if html := string(la.renderHTML(st.Content, nil, st.Emojis)); !strings.Contains(html, `class="emoji"`) || !strings.Contains(html, ":unknown:") {
+		t.Errorf("rendered = %s", html)
+	}
+	eventually(t, "Create with Emoji tag", func() bool {
+		for _, c := range r.receivedOf("Create") {
+			for _, tag := range objsOf(objOf(c.Activity["object"])["tag"]) {
+				if typeOf(tag) == "Emoji" && str(tag, "name") == ":blob_pig:" && strings.HasPrefix(urlOf(objOf(tag["icon"])), la.base+"/media/") {
+					return true
+				}
+			}
+		}
+		return false
+	})
+	// names and bios
+	bob.DisplayName = "Bob :blob_pig:"
+	la.UpdateProfile(bob)
+	_, actor := r.signedGet(bob.URI, "")
+	if tags := objsOf(actor["tag"]); len(tags) != 1 || str(tags[0], "name") != ":blob_pig:" {
+		t.Errorf("actor tags = %v", actor["tag"])
+	}
+	code, em := r.signedGet(la.base+"/emojis/blob_pig", "")
+	if code != 200 || typeOf(em) != "Emoji" {
+		t.Errorf("emoji object = %d %v", code, em)
+	}
+	c := &apiClient{t: t, base: la.base}
+	if list := c.ok("GET", "/api/v1/custom_emojis", nil).([]any); len(list) != 1 || list[0].(map[string]any)["shortcode"] != "blob_pig" {
+		t.Errorf("custom_emojis = %v", list)
+	}
+}

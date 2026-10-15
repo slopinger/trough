@@ -141,6 +141,9 @@
     </div>
   </div>
   {{end}}
+  {{if $p.CustomEmojis}}<details class="attach emoji-picker"><summary>{{template "icon" "smile"}} Custom emoji</summary>
+    <div class="emoji-list">{{range $p.CustomEmojis}}<button type="button" class="emoji-pick" data-code=":{{.Shortcode}}:" title=":{{.Shortcode}}:"><img src="{{localPath .URL}}" alt=":{{.Shortcode}}:" width="28" height="28"></button>{{end}}</div>
+  </details>{{end}}
   {{if not $c.EditOf}}<details class="attach poll-compose"><summary>{{template "icon" "poll"}} Add a poll</summary>
     <div class="poll-inputs">
       <input name="poll0" maxlength="100" placeholder="Option 1"><input name="poll1" maxlength="100" placeholder="Option 2">

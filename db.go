@@ -347,6 +347,14 @@ CREATE TABLE status_edits (
 	created_at INTEGER NOT NULL
 );
 CREATE INDEX status_edits_status ON status_edits(status_id, created_at);
+`, `
+CREATE TABLE custom_emojis (
+	shortcode TEXT PRIMARY KEY,
+	file TEXT NOT NULL,
+	url TEXT NOT NULL,
+	media_type TEXT NOT NULL,
+	created_at INTEGER NOT NULL
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

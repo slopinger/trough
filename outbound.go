@@ -29,7 +29,7 @@ func (app *App) actorJSON(acc *Account) obj {
 			"owner":        acc.URI,
 			"publicKeyPem": acc.PublicKey,
 		},
-		"tag": []any{},
+		"tag": append([]any{}, app.emojiTags(acc.Emojis)...),
 	}
 	if acc.FollowersURI != "" {
 		m["followers"] = acc.FollowersURI
@@ -115,6 +115,7 @@ func (app *App) noteJSON(st *Status) obj {
 	for _, t := range st.Tags {
 		tags = append(tags, obj{"type": "Hashtag", "href": app.cfg.BaseURL() + "/tags/" + t, "name": "#" + t})
 	}
+	tags = append(tags, app.emojiTags(st.Emojis)...)
 	atts := []any{}
 	for _, a := range st.Attachments {
 		o := obj{"type": "Document", "mediaType": a.MediaType, "url": a.URL, "name": nil}

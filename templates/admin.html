@@ -44,6 +44,18 @@
     <button class="btn primary">Create invite link</button>
   </form>
 </section>
+<section class="card" id="emoji">
+  <h3>Custom emoji</h3>
+  <div class="emoji-admin">{{range .CustomEmojis}}<form method="post" action="/admin/emoji" class="emoji-item" title=":{{.Shortcode}}:">
+    <input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="delete" value="{{.Shortcode}}">
+    <img src="{{localPath .URL}}" alt=":{{.Shortcode}}:" width="32" height="32"><code>:{{.Shortcode}}:</code><button class="btn small" title="Delete">×</button></form>{{else}}<p class="muted small">No custom emoji yet.</p>{{end}}</div>
+  <form method="post" action="/admin/emoji" enctype="multipart/form-data" class="inline-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input name="shortcode" placeholder="shortcode" pattern="[A-Za-z0-9_:]{2,34}" required>
+    <input type="file" name="image" accept="image/png,image/gif,image/webp" required>
+    <button class="btn primary">Add emoji</button>
+  </form>
+</section>
 <section class="card" id="relays">
   <h3>Relays</h3>
   <p class="muted small">A relay shares public posts between many servers, which fills the federated timeline of a small server. Public posts from here are sent to the relay too. Relayed posts are always fetched from their original server.</p>

@@ -76,6 +76,7 @@ type Page struct {
 	TagFollowed   bool
 	FollowedTags  []string
 	Versions      []StatusVersion
+	CustomEmojis  []CustomEmoji
 	Apps          []ConnectedApp
 	AI            bool   // AI writing available
 	AIKeySource   string // admin: where the key comes from
@@ -154,6 +155,7 @@ func (app *App) web(requireLogin bool, h handler) http.HandlerFunc {
 					p.Unread = app.unreadNotifications(acc.ID)
 					p.Requests = app.followRequestCount(acc.ID)
 					p.AI = app.aiEnabled()
+					p.CustomEmojis = app.customEmojis()
 					now := time.Now().Unix()
 					app.db.Exec(`UPDATE users SET last_seen=? WHERE account_id=? AND last_seen < ?`, now, acc.ID, now-3600)
 				}

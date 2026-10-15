@@ -485,3 +485,8 @@ details.listedit > summary { cursor: pointer; font-weight: 600; }
 details.listedit[open] > summary { margin-bottom: 10px; }
 .pactions details.menu .menu-list { top: 100%; bottom: auto; }
 .edited { color: var(--muted); font-size: 12px; text-decoration: underline dotted; }
+.emoji-admin { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.emoji-item { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 10px; margin: 0; }
+.emoji-list { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+.emoji-pick { background: none; border: 1px solid transparent; border-radius: 8px; padding: 3px; cursor: pointer; }
+.emoji-pick:hover { border-color: var(--accent); }

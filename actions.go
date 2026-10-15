@@ -79,6 +79,7 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 		Visibility: in.Visibility,
 		CreatedAt:  time.Now(),
 		Poll:       in.Poll,
+		Emojis:     app.emojisIn(text, in.Spoiler),
 	}
 	if quoted != nil {
 		st.QuoteURI = quoted.URI
@@ -393,6 +394,13 @@ func (app *App) Unblock(me, target *Account) error {
 }
 
 func (app *App) UpdateProfile(me *Account) error {
+	if me.IsLocal() {
+		var fieldText []string
+		for _, f := range me.Fields {
+			fieldText = append(fieldText, f.Name, f.Value)
+		}
+		me.Emojis = app.emojisIn(append([]string{me.DisplayName, me.NoteSource}, fieldText...)...)
+	}
 	if err := app.saveAccount(me); err != nil {
 		return err
 	}

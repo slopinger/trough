@@ -227,6 +227,19 @@
     });
   });
 
+  // custom emoji picker: insert :shortcode: at the cursor
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest && ev.target.closest(".emoji-pick");
+    if (!b) return;
+    var ta = b.closest("form").querySelector("textarea");
+    var s = ta.selectionStart || ta.value.length, e = ta.selectionEnd || s;
+    var pad = s > 0 && !/\s/.test(ta.value[s - 1]) ? " " : "";
+    ta.value = ta.value.slice(0, s) + pad + b.dataset.code + " " + ta.value.slice(e);
+    ta.selectionStart = ta.selectionEnd = s + pad.length + b.dataset.code.length + 1;
+    ta.focus();
+    ta.dispatchEvent(new Event("input"));
+  });
+
   // post menus: copy link, close when clicking elsewhere
   document.addEventListener("click", function (ev) {
     var copy = ev.target.closest && ev.target.closest(".copy-link");

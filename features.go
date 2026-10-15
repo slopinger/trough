@@ -33,6 +33,7 @@ func (app *App) EditStatus(ctx context.Context, me *Account, st *Status, text, s
 	st.Content, st.Source = f.HTML, text
 	st.Spoiler = truncateRunes(strings.TrimSpace(spoiler), 500)
 	st.Sensitive = sensitive || st.Spoiler != ""
+	st.Emojis = app.emojisIn(text, st.Spoiler)
 	if err := app.updateStatusContent(st); err != nil {
 		return nil, err
 	}

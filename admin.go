@@ -43,6 +43,7 @@ func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Reports = app.openReports()
 	p.Invites = app.invites()
 	p.Relays = app.relays()
+	p.CustomEmojis = app.customEmojis()
 	p.Registrations = app.registrationMode()
 	p.Stats = map[string]int{
 		"users":     app.countInt(`SELECT COUNT(*) FROM users`),
