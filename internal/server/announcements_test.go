@@ -34,6 +34,12 @@ func TestRulesAndAnnouncements(t *testing.T) {
 	if a["content"] != "<p>Maintenance <strong>tonight</strong></p>" || a["read"] != false {
 		t.Fatalf("announcement = %v", a)
 	}
+	// every field Tusky's Announcement model requires (the official iOS app has no announcements screen)
+	for _, k := range []string{"id", "content", "starts_at", "ends_at", "all_day", "published_at", "updated_at", "read", "mentions", "tags", "emojis", "reactions"} {
+		if _, ok := a[k]; !ok {
+			t.Fatalf("announcement lacks %q: %v", k, a)
+		}
+	}
 	id := a["id"].(string)
 	c.ok("PUT", "/api/v1/announcements/"+id+"/reactions/👍", nil)
 	if code, _, _ := c.do("PUT", "/api/v1/announcements/"+id+"/reactions/nope", nil); code != 422 {
