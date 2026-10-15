@@ -553,3 +553,11 @@ details.listedit[open] > summary { margin-bottom: 10px; }
 .notif-request .row-actions { display: flex; gap: 8px; margin-top: 6px; }
 .policy-form { display: grid; gap: 10px; }
 .policy-form label { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+/* Compose autocomplete */
+.ac-list { list-style: none; margin: 4px 0 0; padding: 4px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; box-shadow: 0 6px 20px rgb(0 0 0 / .12); max-width: 420px; }
+.ac-list li { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.ac-list li.on, .ac-list li:hover { background: var(--accent-soft); }
+.ac-list img { border-radius: 6px; flex: none; }
+.ac-list span { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

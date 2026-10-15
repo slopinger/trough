@@ -316,4 +316,79 @@
       if (r) el.textContent = r;
     });
   }, 60000);
+
+  // Compose autocomplete: @accounts, #hashtags and :custom_emoji: while typing.
+  document.querySelectorAll("form.compose textarea").forEach(function (ta) {
+    var box = document.createElement("ul");
+    box.className = "ac-list";
+    box.setAttribute("role", "listbox");
+    box.hidden = true;
+    ta.insertAdjacentElement("afterend", box);
+    var items = [], sel = 0, token = null, timer = null, seq = 0;
+    function current() {
+      var before = ta.value.slice(0, ta.selectionStart);
+      var m = /(^|[\s(])([@#:][\w.\-]*(?:@[\w.\-]*)?)$/u.exec(before);
+      if (!m || m[2].length < 2 || (m[2][0] === ":" && m[2].length < 3)) return null;
+      return { text: m[2], start: before.length - m[2].length };
+    }
+    function close() { box.hidden = true; items = []; token = null; }
+    function render() {
+      box.textContent = "";
+      items.forEach(function (it, i) {
+        var li = document.createElement("li");
+        li.setAttribute("role", "option");
+        li.className = i === sel ? "on" : "";
+        if (it.image) { var img = document.createElement("img"); img.src = it.image; img.alt = ""; img.width = 24; img.height = 24; li.appendChild(img); }
+        var b = document.createElement("b"); b.textContent = it.label; li.appendChild(b);
+        if (it.sub) { var sub = document.createElement("span"); sub.textContent = it.sub; li.appendChild(sub); }
+        li.addEventListener("mousedown", function (ev) { ev.preventDefault(); pick(i); });
+        box.appendChild(li);
+      });
+      box.hidden = items.length === 0;
+    }
+    function pick(i) {
+      var it = items[i];
+      if (!it || !token) return;
+      var after = ta.value.slice(ta.selectionStart);
+      var ins = it.insert + " ";
+      ta.value = ta.value.slice(0, token.start) + ins + after.replace(/^\S*/, "");
+      var pos = token.start + ins.length;
+      ta.setSelectionRange(pos, pos);
+      ta.dispatchEvent(new Event("input"));
+      close();
+      ta.focus();
+    }
+    ta.addEventListener("input", function () {
+      var t = current();
+      if (!t) { close(); return; }
+      token = t;
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        var my = ++seq;
+        fetch("/autocomplete?q=" + encodeURIComponent(t.text), { credentials: "same-origin" })
+          .then(function (r) { return r.ok ? r.json() : []; })
+          .then(function (list) {
+            if (my !== seq || !token || token.text !== t.text) return;
+            items = list || []; sel = 0; render();
+          })
+          .catch(close);
+      }, 120);
+    });
+    ta.addEventListener("keydown", function (ev) {
+      if (box.hidden) return;
+      if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+        ev.preventDefault();
+        sel = (sel + (ev.key === "ArrowDown" ? 1 : items.length - 1)) % items.length;
+        render();
+      } else if ((ev.key === "Enter" || ev.key === "Tab") && !ev.ctrlKey && !ev.metaKey) {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        pick(sel);
+      } else if (ev.key === "Escape") {
+        close();
+      }
+    }, true);
+    ta.addEventListener("blur", function () { setTimeout(close, 150); });
+  });
+
 })();
