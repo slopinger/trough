@@ -234,6 +234,7 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	h("GET /api/v1/suggestions", read(emptyList))
 	h("GET /api/v2/suggestions", read(emptyList))
 
+	h("GET /api/v1/accounts", pub(app.apiAccounts))
 	h("GET /api/v1/accounts/verify_credentials", read(app.apiVerifyCredentials))
 	h("PATCH /api/v1/accounts/update_credentials", write(app.apiUpdateCredentials))
 	h("DELETE /api/v1/profile/{image}", write(func(w http.ResponseWriter, r *http.Request, c *apiCtx) {
@@ -263,6 +264,7 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	h("GET /api/v1/bookmarks", read(app.apiBookmarks))
 	h("GET /api/v1/favourites", read(app.apiFavourites))
 
+	h("GET /api/v1/statuses", pub(app.apiStatusesByID))
 	h("POST /api/v1/statuses", write(app.apiPostStatus))
 	h("GET /api/v1/scheduled_statuses", read(app.apiListScheduled))
 	h("GET /api/v1/scheduled_statuses/{id}", read(app.apiScheduled1))

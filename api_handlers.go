@@ -297,6 +297,22 @@ func (app *App) apiGetAccount(w http.ResponseWriter, r *http.Request, c *apiCtx)
 	}
 }
 
+// apiAccounts returns several accounts at once (GET /api/v1/accounts?id[]=,
+// Mastodon 4.3); unknown ids are left out.
+func (app *App) apiAccounts(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	q := r.URL.Query()
+	out := []any{}
+	for i, id := range append(q["id[]"], q["id"]...) {
+		if i >= 40 {
+			break
+		}
+		if a, err := app.AccountByID(id); err == nil && !a.Suspended && !(a.ActorType == "Application" && a.IsLocal()) {
+			out = append(out, app.apiAccount(a))
+		}
+	}
+	apiJSON(w, 200, out)
+}
+
 func (app *App) apiAccountStatuses(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 	a, ok := app.apiAccountByID(w, r)
 	if !ok {
@@ -595,6 +611,22 @@ func (app *App) apiLoadStatus(w http.ResponseWriter, r *http.Request, c *apiCtx)
 		return nil, false
 	}
 	return st, true
+}
+
+// apiStatusesByID returns several posts at once (GET /api/v1/statuses?id[]=,
+// Mastodon 4.3), leaving out those the viewer may not see.
+func (app *App) apiStatusesByID(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	q := r.URL.Query()
+	out := []any{}
+	for i, id := range append(q["id[]"], q["id"]...) {
+		if i >= 20 {
+			break
+		}
+		if st, err := app.loadStatus(c.Me, id); err == nil {
+			out = append(out, app.apiStatus(c.Me, st))
+		}
+	}
+	apiJSON(w, 200, out)
 }
 
 func (app *App) apiGetStatus(w http.ResponseWriter, r *http.Request, c *apiCtx) {

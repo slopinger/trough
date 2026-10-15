@@ -558,3 +558,21 @@ func TestDefaultQuotePolicy(t *testing.T) {
 		t.Fatalf("invalid policy: %d", code)
 	}
 }
+
+// Several accounts or posts at once (Mastodon 4.3), without the hidden ones.
+func TestAPIMultiFetch(t *testing.T) {
+	la, _, bob, alice := featureFixture(t)
+	ctx := context.Background()
+	eve, _ := la.CreateLocalUser("eve", "password123", false)
+	pub, _ := la.PostStatus(ctx, eve, PostInput{Text: "public", Visibility: "public"})
+	priv, _ := la.PostStatus(ctx, eve, PostInput{Text: "secret", Visibility: "private"})
+	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read")}
+	accs := c.ok("GET", "/api/v1/accounts?id[]="+alice.ID+"&id[]=nope&id[]="+bob.ID, nil).([]any)
+	if len(accs) != 2 || accs[0].(map[string]any)["id"] != alice.ID {
+		t.Fatalf("accounts = %v", accs)
+	}
+	sts := c.ok("GET", "/api/v1/statuses?id[]="+pub.ID+"&id[]="+priv.ID, nil).([]any)
+	if len(sts) != 1 || sts[0].(map[string]any)["id"] != pub.ID {
+		t.Fatalf("statuses = %v", sts)
+	}
+}
