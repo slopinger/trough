@@ -506,4 +506,21 @@
     ev.stopImmediatePropagation();
   }, true);
 
+  // Remind people to describe images before posting.
+  document.querySelectorAll("form.compose").forEach(function (form) {
+    form.addEventListener("submit", function (ev) {
+      if (ev.submitter && ev.submitter.getAttribute("formaction")) return; // AI drafting, not posting
+      var missing = null;
+      for (var i = 0; i < 4; i++) {
+        var file = form.querySelector('input[name="media' + i + '"]'), alt = form.querySelector('input[name="alt' + i + '"]');
+        if (file && file.files && file.files.length && alt && !alt.value.trim()) { missing = missing || alt; }
+      }
+      if (missing && !window.confirm("Some images have no description. People using screen readers won't know what they show. Post anyway?")) {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        missing.closest("details") && (missing.closest("details").open = true);
+        missing.focus();
+      }
+    }, true);
+  });
 })();

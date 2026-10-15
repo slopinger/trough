@@ -62,6 +62,7 @@
 - Home, local and federated timelines, hashtag timelines, threads with nested replies
 - Autocomplete while writing: `@accounts` (people you follow first), `#hashtags` and `:custom_emoji:`, picked with
   the arrow keys and Enter/Tab or the mouse
+- A reminder before posting images without a description (alt text)
 - Compose with content warnings, four visibilities (public, unlisted, followers-only, direct),
   up to 4 images with alt text, @mentions (resolved via WebFinger) and #hashtags
 - **AI writing (optional):** "Write with AI" in the compose box drafts a post from a short instruction,
