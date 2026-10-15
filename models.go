@@ -476,5 +476,6 @@ func (app *App) notify(recipientID, typ, fromID, statusID string) {
 	if _, err := app.db.Exec(`INSERT INTO notifications (id,account_id,type,from_account_id,status_id,created_at) VALUES (?,?,?,?,?,?)`,
 		id, recipientID, typ, fromID, statusID, time.Now().Unix()); err == nil {
 		app.publishNotification(recipientID, id)
+		app.pushNotification(recipientID, id)
 	}
 }

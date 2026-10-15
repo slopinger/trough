@@ -337,7 +337,7 @@ func (app *App) apiConfiguration() obj {
 		},
 		"polls":            obj{"max_options": 4, "max_characters_per_option": 100, "min_expiration": 300, "max_expiration": 7 * 24 * 3600},
 		"translation":      obj{"enabled": false},
-		"vapid":            obj{"public_key": ""},
+		"vapid":            obj{"public_key": app.vapidPublic()},
 		"reactions":        obj{"max_reactions": 1},
 		"timelines_access": obj{"live_feeds": obj{"local": "public", "remote": "authenticated"}},
 	}

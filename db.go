@@ -355,6 +355,20 @@ CREATE TABLE custom_emojis (
 	media_type TEXT NOT NULL,
 	created_at INTEGER NOT NULL
 );
+`, `
+CREATE TABLE push_subscriptions (
+	id TEXT PRIMARY KEY,
+	token_id TEXT NOT NULL UNIQUE REFERENCES oauth_tokens(id) ON DELETE CASCADE,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	endpoint TEXT NOT NULL,
+	p256dh TEXT NOT NULL,
+	auth TEXT NOT NULL,
+	access_token TEXT NOT NULL,
+	alerts TEXT NOT NULL DEFAULT '{}',
+	policy TEXT NOT NULL DEFAULT 'all',
+	created_at INTEGER NOT NULL
+);
+CREATE INDEX push_subscriptions_account ON push_subscriptions(account_id);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

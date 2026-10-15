@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
@@ -31,6 +32,7 @@ type App struct {
 	proxyLocks         proxyFetchLocks
 
 	instMu   sync.Mutex
+	vapid    *ecdsa.PrivateKey
 	instance *Account
 
 	inboxQueue  chan inboxJob

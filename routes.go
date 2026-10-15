@@ -252,6 +252,11 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	h("GET /api/v2/search", pub(app.apiSearch))
 	h("GET /api/v1/search", pub(app.apiSearch))
 
+	push := func(f apiHandler) http.HandlerFunc { return app.api("push", true, f) }
+	h("POST /api/v1/push/subscription", push(app.apiPushSubscribe))
+	h("GET /api/v1/push/subscription", push(app.apiPushGet))
+	h("PUT /api/v1/push/subscription", push(app.apiPushUpdate))
+	h("DELETE /api/v1/push/subscription", push(app.apiPushDelete))
 	h("GET /api/v1/streaming/health", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("OK")) })
 	h("GET /api/v1/streaming", app.handleStreaming)
 	h("GET /api/v1/streaming/{stream...}", app.handleStreaming)

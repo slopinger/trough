@@ -46,6 +46,8 @@ Running instance: **https://fedi.freifick.net**
   with remote resolving, markers, filters, conversations, instance v1/v2, CORS for browser clients
 - Mastodon-style pagination (`max_id`/`since_id`/`min_id`, `Link` headers) and Idempotency-Key
 - Streaming API over WebSocket (`/api/v1/streaming`) and server-sent events (`/api/v1/streaming/user`, ...)
+- Web Push (`/api/v1/push/subscription`, VAPID, RFC 8291 encryption) so mobile and browser apps get
+  notifications while closed
 - Checked with the Mastodon.py client library (`test/mastodon_py.py`) and Go tests (`api_test.go`)
 
 **Web interface**
@@ -184,7 +186,7 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 
 ## Not (yet) implemented
 
-Outgoing RFC 9421 signatures, Web Push notifications, ActivityPub C2S.
+Outgoing RFC 9421 signatures, ActivityPub C2S.
 
 ## License
 

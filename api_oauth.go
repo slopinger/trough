@@ -331,7 +331,7 @@ func (app *App) handleCreateApp(w http.ResponseWriter, r *http.Request, c *apiCt
 	}
 	apiJSON(w, 200, obj{"id": a.ID, "name": a.Name, "website": nullIfEmpty(a.Website), "scopes": strings.Fields(a.Scopes),
 		"redirect_uri": strings.Join(redirects, "\n"), "redirect_uris": redirects,
-		"client_id": a.ClientID, "client_secret": a.ClientSecret, "client_secret_expires_at": 0, "vapid_key": ""})
+		"client_id": a.ClientID, "client_secret": a.ClientSecret, "client_secret_expires_at": 0, "vapid_key": app.vapidPublic()})
 }
 
 func nullIfEmpty(s string) any {
@@ -344,7 +344,7 @@ func nullIfEmpty(s string) any {
 func (app *App) handleVerifyApp(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 	var name, website, scopes string
 	app.db.QueryRow(`SELECT name, website, scopes FROM oauth_apps WHERE id=?`, c.AppID).Scan(&name, &website, &scopes)
-	apiJSON(w, 200, obj{"name": name, "website": nullIfEmpty(website), "scopes": strings.Fields(scopes), "vapid_key": ""})
+	apiJSON(w, 200, obj{"name": name, "website": nullIfEmpty(website), "scopes": strings.Fields(scopes), "vapid_key": app.vapidPublic()})
 }
 
 // ---- authorize (browser) ----
