@@ -111,7 +111,14 @@ class Env:
     def __init__(self, root, stack, env, tag=None):
         self.root, self.stack, self.env, self.tag = Path(root), stack, env, tag
         self.procs, self.containers = [], []
-        signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))  # still clean up
+        signal.signal(signal.SIGTERM, self._terminate)
+
+    @staticmethod
+    def _terminate(*_):
+        # still clean up, and don't let a second SIGTERM (sudo relays the one
+        # sent to it too) interrupt that
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        sys.exit(143)
 
     def dns(self, names):
         """Answer DNS queries on 127.0.0.1:53 inside the private namespace:
