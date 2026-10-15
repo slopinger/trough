@@ -68,6 +68,9 @@ Running instance: **https://fedi.freifick.net**
 - Account migration: aliases (`alsoKnownAs`), moving followers to a new account (`Move`), and following
   accounts that moved here
 - Sign-ups: closed, invite links or open (admin setting); live "new posts" banner and notification badge
+- Lists (with replies policy and "hide from Home"), followed hashtags (public posts with them show up in
+  Home), and relay subscriptions (Mastodon `/inbox` style and LitePub actor style) on `/admin` to fill the
+  federated timeline; relayed posts are always fetched from their origin
 - Like, boost, reply and delete; likes and boosts update in place with JS, or via plain forms without it
 - Profiles with header, avatar, bio, profile fields, locked accounts and bot flag; follow, unfollow and block
 - Notifications (mentions, replies, likes, boosts, follows, follow requests), follow request management
@@ -164,6 +167,7 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 | `httpsig.go`, `rfc9421.go` | HTTP Signatures (draft-cavage, RFC 9421) |
 | `ai.go` | AI drafting of posts and replies |
 | `api_oauth.go`, `api_entities.go`, `api_handlers.go`, `api_stream.go` | Mastodon client API, OAuth, streaming |
+| `relays.go`, `tags.go`, `lists.go` | relays, followed hashtags, lists |
 | `features.go`, `polls.go`, `social.go`, `accounts.go` | edits, pins, bookmarks, mutes, filters, reports, polls, reactions, quotes, link cards, migration, sign-ups |
 | `fetch.go` | SSRF-safe HTTP client, signed fetches, actors, keys, WebFinger client |
 | `ap.go`, `outbound.go` | ActivityStreams helpers, JSON for actors/notes/activities, addressing |
@@ -179,8 +183,7 @@ copy is configured. Never copy a live SQLite file without its WAL or the online 
 
 ## Not (yet) implemented
 
-Outgoing RFC 9421 signatures, edit history, lists, followed hashtags, custom emoji uploads, ActivityPub
-C2S.
+Outgoing RFC 9421 signatures, edit history, custom emoji uploads, push notifications, ActivityPub C2S.
 
 ## License
 

@@ -14,6 +14,8 @@ Keep these notes and README up to date whenever code behavior, commands or opera
 - Mastodon client API (`api_*.go`): `api_test.go` drives OAuth (PKCE), posting, timelines, media,
   notifications and WebSocket streaming; `test/mastodon_py.py` checks a real client library against a dev
   instance. Keep entity shapes Mastodon-compatible (ids are strings, `Link` pagination, CORS).
+- Relays, followed hashtags and lists: `extras_test.go`. Content from relays is only trusted after
+  re-fetching it from its origin; only subscribed relays may forward other actors' activities.
 - AI drafting (`ai.go`) calls DeepSeek (OpenAI-compatible) with the key from `TROUGH_DEEPSEEK_API_KEY`
   (production: root-only `/etc/trough-secrets.env`) or the admin setting. Drafts never post themselves;
   keep remote text delimited as data in prompts.
