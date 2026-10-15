@@ -37,3 +37,7 @@ Keep these notes and README up to date whenever code behavior, commands or opera
   deploy script. Cache is disposable; database and uploaded media are not. Restore instructions are there.
 - Use small commits: one logical change per commit (with its tests/docs), each passing the checks above.
   Don't bundle unrelated changes or a whole session's work into one commit.
+
+- Every software change must maintain project-owned Nix flake packaging, a committed lockfile,
+  development tools and checks. Export a reusable NixOS module where host/service integration
+  applies. Verify package builds and relevant flake checks; document supported commands in README.
