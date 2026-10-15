@@ -6,10 +6,12 @@ import contextlib
 import os
 from pathlib import Path
 import secrets
+import signal
 import socket
 import ssl
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -83,6 +85,12 @@ def in_private_netns(tag, image, script, *args):
     docker("run", "-d", "--rm", "--network", "none", "--name", f"{tag}-net", image, "sleep", "infinity")
     try:
         pid = docker("inspect", "-f", "{{.State.Pid}}", f"{tag}-net").stdout.strip()
+        # Some resolvers (Node's with the ADDRCONFIG hint) return nothing without a
+        # non-loopback interface: add a dummy one with documentation addresses and
+        # no routes, so the namespace still cannot reach anything outside.
+        for cmd in (["link", "add", "dummy0", "type", "dummy"], ["addr", "add", "192.0.2.1/32", "dev", "dummy0"],
+                    ["addr", "add", "2001:db8::1/128", "dev", "dummy0", "nodad"], ["link", "set", "dummy0", "up"]):
+            subprocess.run(["sudo", "nsenter", f"--net=/proc/{pid}/ns/net", "ip", *cmd], check=True)
         return subprocess.run([
             "sudo", "-E", "nsenter", f"--net=/proc/{pid}/ns/net",
             "setpriv", f"--reuid={os.getuid()}", f"--regid={os.getgid()}", "--init-groups",
@@ -103,6 +111,41 @@ class Env:
     def __init__(self, root, stack, env, tag=None):
         self.root, self.stack, self.env, self.tag = Path(root), stack, env, tag
         self.procs, self.containers = [], []
+        signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))  # still clean up
+
+    def dns(self, names):
+        """Answer DNS queries on 127.0.0.1:53 inside the private namespace:
+        each of names gets A 127.0.0.1 and AAAA ::1, anything else NXDOMAIN.
+        For servers whose resolver skips /etc/hosts. Returns a resolv.conf."""
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.bind(("127.0.0.1", 53))
+        self.stack.callback(sock.close)
+        records = {b"\x00\x01": socket.inet_pton(socket.AF_INET, "127.0.0.1"),
+                   b"\x00\x1c": socket.inet_pton(socket.AF_INET6, "::1")}
+
+        def serve():
+            while True:
+                try:
+                    q, addr = sock.recvfrom(512)
+                except OSError:
+                    return
+                end, labels = 12, []
+                while end < len(q) and q[end]:
+                    labels.append(q[end + 1:end + 1 + q[end]].decode(errors="replace"))
+                    end += 1 + q[end]
+                qtype = q[end + 1:end + 3]
+                known = ".".join(labels).lower() in names
+                answer = b""
+                if known and qtype in records:
+                    rdata = records[qtype]
+                    answer = b"\xc0\x0c" + qtype + b"\x00\x01\x00\x00\x00\x3c" + len(rdata).to_bytes(2, "big") + rdata
+                header = q[:2] + bytes([0x81, 0x80 if known else 0x83]) + b"\x00\x01" + (b"\x00\x01" if answer else b"\x00\x00") + b"\x00\x00\x00\x00"
+                sock.sendto(header + q[12:end + 5] + answer, addr)
+        threading.Thread(target=serve, daemon=True).start()
+        conf = self.root / "resolv.conf"
+        conf.write_text("nameserver 127.0.0.1\n")
+        conf.chmod(0o644)
+        return conf
 
     def container(self, name, image, *cmd, detach=False, args=()):
         """docker run in the private namespace (see in_private_netns)."""
@@ -136,7 +179,7 @@ class Env:
         """sites: {"https host:port": backend port}. Returns the CA file."""
         conf = f"{{\n\tadmin off\n\tlocal_certs\n\tskip_install_trust\n\tauto_https disable_redirects\n\tstorage file_system {self.root}/caddy\n}}\n"
         for site, backend in sites.items():
-            conf += f"https://{site} {{\n\ttls internal\n\treverse_proxy 127.0.0.1:{backend}\n}}\n"
+            conf += f"https://{site} {{\n\ttls internal\n\treverse_proxy 127.0.0.1:{backend}\n\tlog {{\n\t\toutput file {self.root}/access.log\n\t}}\n}}\n"
         (self.root / "Caddyfile").write_text(conf)
         self.start("caddy", ["caddy", "run", "--config", str(self.root / "Caddyfile"), "--adapter", "caddyfile"])
         ca = self.root / "caddy/pki/authorities/local/root.crt"
@@ -172,7 +215,12 @@ class Env:
             subprocess.run(["sudo", "docker", "logs", "--tail", str(lines), c])
 
     def close(self):
-        for c in self.containers:
-            subprocess.run(["sudo", "docker", "rm", "-f", c], capture_output=True)
-        for _, p, _ in reversed(self.procs):
-            stop(p)
+        try:
+            if os.environ.get("INTEROP_PAUSE"):  # time to look around; end it early with SIGTERM
+                print(f"pausing {os.environ['INTEROP_PAUSE']}s before cleanup; data in {self.root}", flush=True)
+                time.sleep(int(os.environ["INTEROP_PAUSE"]))
+        finally:
+            for c in self.containers:
+                subprocess.run(["sudo", "docker", "rm", "-f", c], capture_output=True)
+            for _, p, _ in reversed(self.procs):
+                stop(p)
