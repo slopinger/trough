@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-# Federation interop check between trough and a real Misskey, driven over
-# trough's Mastodon client API and Misskey's own API. Stdlib only.
+# Federation interop check between trough and a real Misskey (or a fork that
+# keeps its API, like Sharkey), driven over trough's Mastodon client API and
+# Misskey's own API. Stdlib only.
 #
 #   python3 test/interop_misskey.py <trough-base> <user> <password> <misskey-base> <misskey-token>
 #
 # test/run-misskey.py sets everything up and calls this. Misskey has no note
-# editing and ignores remote edits, so that check only warns.
+# editing and ignores remote edits, so that check only warns (Sharkey applies them).
 import json
 from pathlib import Path
 import sys
@@ -38,7 +39,9 @@ class Misskey:
 def main():
     tbase, tuser, tpw, mbase, mtoken = sys.argv[1:6]
     t, m = API(tbase, password_token(tbase, tuser, tpw)), Misskey(mbase, mtoken)
-    meta = m("meta")
+    with urllib.request.urlopen(f"{mbase}/nodeinfo/2.1", timeout=30) as r:
+        software = json.load(r)["software"]  # misskey, sharkey, ...
+    name = f"{software['name']} {software['version']}"
     bob, mia = t.get("/api/v1/accounts/verify_credentials"), m("i")
     thost, mhost = urllib.parse.urlparse(tbase).netloc, urllib.parse.urlparse(mbase).netloc
     bob_acct, mia_acct = f"{bob['username']}@{thost}", f"{mia['username']}@{mhost}"
@@ -46,7 +49,7 @@ def main():
     mnotifs = lambda typ: [n for n in m("i/notifications", limit=50) if n["type"] == typ]
     in_home = lambda uri: next((s for s in t.get("/api/v1/timelines/home") if s["uri"] == uri), None)
     stamp = str(int(time.time()))
-    print("trough:", bob_acct, "| misskey:", mia_acct, meta["version"])
+    print("trough:", bob_acct, "| remote:", mia_acct, name)
 
     print("1. trough user follows the Misskey user")
     mia_on_t = resolve_account(t, mia_acct)
@@ -149,7 +152,7 @@ def main():
     m("following/delete", userId=bob_on_m["id"])
     wait("Misskey dropped the follower", lambda: not any(f["follower"]["username"] == bob["username"] for f in m("users/followers", userId=mia["id"])))
     wait("trough dropped the follower", lambda: not any(a["acct"] == mia_acct for a in t.get(f"/api/v1/accounts/{bob['id']}/followers")))
-    print("all interop checks passed against Misskey", meta["version"])
+    print("all interop checks passed against", name)
 
 
 if __name__ == "__main__":

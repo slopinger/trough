@@ -7,6 +7,7 @@ test/run-mastodon.py; trough is https://trough.localhost there. Needs docker
 and sudo, caddy and go. Containers and temp files are removed.
 
     python3 test/run-misskey.py
+    MISSKEY_IMAGE=registry.activitypub.software/transfem-org/sharkey:latest python3 test/run-misskey.py
 """
 import contextlib
 import json
@@ -20,7 +21,7 @@ import tempfile
 import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from interop_env import REPO, Env, build, free_port, in_private_netns, pull, wait_for  # noqa: E402
+from interop_env import REPO, Env, build, docker, free_port, in_private_netns, pull, wait_for  # noqa: E402
 
 MISSKEY = os.environ.get("MISSKEY_IMAGE", "misskey/misskey:2026.10.0")
 POSTGRES = "postgres:16-alpine"
@@ -60,14 +61,15 @@ def inside(tag, binary):
             env.container("redis", REDIS, "redis-server", "--bind", "127.0.0.1", "--port", str(rd), "--save", "", "--appendonly", "no", detach=True)
             # Misskey asks DNS first and only reads /etc/hosts after an NXDOMAIN
             resolv = env.dns({mhost, thost})
+            workdir = docker("image", "inspect", "-f", "{{.Config.WorkingDir}}", MISSKEY).stdout.strip()  # /misskey, /sharkey, ...
             env.container("web", MISSKEY, detach=True, args=(
-                "-v", f"{config}:/misskey/.config/default.yml:ro", "-v", f"{root}/hosts:/etc/hosts:ro",
+                "-v", f"{config}:{workdir}/.config/default.yml:ro", "-v", f"{root}/hosts:/etc/hosts:ro",
                 "-v", f"{resolv}:/etc/resolv.conf:ro",
                 "-v", f"{bundle}:/ca.pem:ro", "-e", "NODE_EXTRA_CA_CERTS=/ca.pem"))
 
             tproc, bob_pw = env.trough(thost, tp, binary)
             wait_for(f"https://{thost}/nodeinfo/2.0", bundle, tproc)
-            wait_for(f"https://{mhost}/nodeinfo/2.1", bundle, timeout=300, want=b"misskey")
+            wait_for(f"https://{mhost}/nodeinfo/2.1", bundle, timeout=300, want=b'"software"')
             # the first account may be created without credentials, and becomes admin
             ctx = ssl.create_default_context(cafile=str(bundle))
 

@@ -185,7 +185,9 @@ Both runners check that secure mode really refuses unsigned fetches before runni
 `python3 test/run-misskey.py` federates with a real **Misskey** 2026.10.0 (`MISSKEY_IMAGE` picks another
 image) through `test/interop_misskey.py`, which drives Misskey's own API: follows, mentions, emoji reactions
 both ways, likes, renotes, quotes, replies, polls, followers-only and direct notes both ways, deletes,
-profile updates both ways and unfollows. Misskey ignores remote edits, so that check only warns. The
+profile updates both ways and unfollows. Misskey ignores remote edits, so that check only warns. The same
+scenario passes against the fork **Sharkey** 2025.4.7, edits included
+(`MISSKEY_IMAGE=registry.activitypub.software/transfem-org/sharkey:latest`). The
 namespace gets a tiny DNS responder and a dummy interface (documentation addresses, no routes), because
 Misskey resolves names through DNS and Node's resolver returns nothing on a loopback-only host.
 
