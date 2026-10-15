@@ -163,6 +163,9 @@ func (app *App) noteJSON(st *Status) obj {
 	if st.Visibility == "private" || st.Visibility == "direct" {
 		delete(m, "replies") // the collection is only served for public posts
 	}
+	if st.Language != "" {
+		m["contentMap"] = obj{st.Language: st.Content}
+	}
 	if st.Spoiler != "" {
 		m["summary"] = st.Spoiler
 	}

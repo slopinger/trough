@@ -562,7 +562,7 @@ func (app *App) apiPostStatus(w http.ResponseWriter, r *http.Request, c *apiCtx)
 	in := PostInput{
 		Text: p.Get("status"), Spoiler: p.Get("spoiler_text"), Visibility: p.Get("visibility"),
 		Sensitive: p.Bool("sensitive"), InReplyTo: p.Get("in_reply_to_id"), MediaIDs: p.List("media_ids"),
-		QuoteOf: p.Get("quoted_status_id"),
+		QuoteOf: p.Get("quoted_status_id"), Language: p.Get("language"),
 	}
 	if in.QuoteOf == "" {
 		in.QuoteOf = p.Get("quote_id")

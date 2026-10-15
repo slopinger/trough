@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -224,5 +225,24 @@ func TestEditHistory(t *testing.T) {
 	la.updateStatusContent(ps)
 	if n := la.countInt(`SELECT COUNT(*) FROM status_edits WHERE status_id=?`, ps.ID); n != 0 {
 		t.Errorf("poll refresh recorded %d edits", n)
+	}
+}
+
+// Clients (Tusky, Mastodon apps) send the post language; we keep it and
+// federate it as contentMap, like Mastodon.
+func TestPostLanguage(t *testing.T) {
+	la, r, _, _ := featureFixture(t)
+	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}
+	st := c.ok("POST", "/api/v1/statuses", url.Values{"status": {"Guten Morgen"}, "language": {"de"}}).(map[string]any)
+	if st["language"] != "de" {
+		t.Fatalf("language = %v", st["language"])
+	}
+	eventually(t, "Create delivered", func() bool { return len(r.receivedOf("Create")) == 1 })
+	note := objOf(r.receivedOf("Create")[0].Activity["object"])
+	if cm := objOf(note["contentMap"]); cm == nil || !strings.Contains(str(cm, "de"), "Guten Morgen") {
+		t.Errorf("contentMap = %v", note["contentMap"])
+	}
+	if st := c.ok("POST", "/api/v1/statuses", url.Values{"status": {"x"}, "language": {"<script>"}}).(map[string]any); st["language"] != nil {
+		t.Errorf("bad language kept: %v", st["language"])
 	}
 }

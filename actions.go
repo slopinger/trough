@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -20,6 +21,7 @@ type PostInput struct {
 	InReplyTo                 string // local status id
 	MediaIDs                  []string
 	Poll                      *Poll
+	Language                  string    // ISO 639 code chosen by the client, may be empty
 	QuoteOf                   string    // local status id of a quoted post
 	PollStart                 time.Time // when the poll's duration was chosen (scheduled posts)
 }
@@ -78,6 +80,7 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 		Spoiler:    truncateRunes(strings.TrimSpace(in.Spoiler), 500),
 		Sensitive:  in.Sensitive || strings.TrimSpace(in.Spoiler) != "",
 		Visibility: in.Visibility,
+		Language:   normLanguage(in.Language),
 		CreatedAt:  time.Now(),
 		Poll:       in.Poll,
 		Emojis:     app.emojisIn(text, in.Spoiler),
@@ -407,4 +410,16 @@ func (app *App) UpdateProfile(me *Account) error {
 	}
 	app.enqueue(me, app.followerInboxes(me.ID), app.updateActorActivity(me))
 	return nil
+}
+
+var languageRe = regexp.MustCompile(`^[a-z]{2,3}(-[a-z0-9]{2,8})?$`)
+
+// normLanguage keeps a client's post language if it looks like a BCP 47
+// tag (ISO 639 language plus an optional region or script).
+func normLanguage(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	if !languageRe.MatchString(s) {
+		return ""
+	}
+	return s
 }
