@@ -340,8 +340,9 @@ func (f *Filter) matches(st *Status) bool {
 }
 
 // applyFilters drops posts matching "hide" filters for the context (home,
-// public, notifications, thread, account) and marks posts matching "warn"
-// filters so they are shown collapsed. Own posts are never filtered.
+// public, notifications, thread, account), marks posts matching "warn"
+// filters so they are shown collapsed and hides the media of posts
+// matching "blur" filters. Own posts are never filtered.
 func (app *App) applyFilters(v *Account, sts []*Status, context string) []*Status {
 	if v == nil {
 		return sts
@@ -367,6 +368,11 @@ func (app *App) applyFilters(v *Account, sts []*Status, context string) []*Statu
 				if f.matches(o) {
 					if f.Action == "hide" {
 						hidden = true
+					} else if f.Action == "blur" {
+						o.Blurred = true
+						if s.Filter == nil {
+							s.Filter = f
+						}
 					} else if s.FilteredBy == "" {
 						s.FilteredBy, s.Filter = f.Phrase, f
 					}
@@ -396,7 +402,7 @@ func (app *App) SaveFilterGroup(me *Account, g *FilterGroup) error {
 	if g.Title == "" {
 		return errors.New("a filter needs a title")
 	}
-	if g.Action != "hide" {
+	if g.Action != "hide" && g.Action != "blur" {
 		g.Action = "warn"
 	}
 	var ctx []string

@@ -269,6 +269,7 @@ type Status struct {
 	Reactions        []ReactionCount // emoji reactions (Misskey, Pleroma, ...)
 	FilteredBy       string          // matching keyword filter ("warn")
 	Filter           *Filter         // and the keyword itself
+	Blurred          bool            // media hidden by a "blur" filter
 	MyVotes          map[int]bool    // poll choices the viewer voted for
 }
 

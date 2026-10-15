@@ -55,7 +55,7 @@ func readFilterGroup(p *apiParams, g *FilterGroup) {
 		g.Context = p.List("context")
 	}
 	if p.Has("filter_action") {
-		g.Action = p.Get("filter_action") // "blur" (4.4) collapses like "warn"
+		g.Action = p.Get("filter_action") // warn, hide or blur (4.4)
 	}
 	readExpiry(p, g)
 }

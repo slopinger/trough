@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Endpoints found missing by comparing with the open-source iOS clients
@@ -431,5 +432,36 @@ func TestAPIEndorsements(t *testing.T) {
 	resp.Body.Close()
 	if page := string(body); !strings.Contains(page, `class="featured"`) || !strings.Contains(page, eve.Path()) {
 		t.Fatal("profile doesn't show featured accounts")
+	}
+}
+
+// "blur" filters (Mastodon 4.4) keep the post but hide its media.
+func TestAPIFilterBlur(t *testing.T) {
+	la, _, bob, alice := featureFixture(t)
+	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}
+	st := &Status{ID: newID(), URI: alice.URI + "/s/blur", AccountID: alice.ID, Visibility: "public", Content: "<p>scary spider pics</p>", CreatedAt: time.Now()}
+	la.insertStatus(st)
+	f := c.ok("POST", "/api/v2/filters", map[string]any{"title": "spiders", "context": []string{"home"}, "filter_action": "blur",
+		"keywords_attributes": []any{map[string]any{"keyword": "spider"}}}).(map[string]any)
+	if f["filter_action"] != "blur" {
+		t.Fatalf("filter_action = %v", f["filter_action"])
+	}
+	var got map[string]any
+	for _, s := range c.ok("GET", "/api/v1/timelines/home", nil).([]any) {
+		if s.(map[string]any)["id"] == st.ID {
+			got = s.(map[string]any)
+		}
+	}
+	if got == nil {
+		t.Fatal("blurred post missing")
+	}
+	if fr := got["filtered"].([]any); len(fr) != 1 || fr[0].(map[string]any)["filter"].(map[string]any)["filter_action"] != "blur" {
+		t.Fatalf("filtered = %v", got["filtered"])
+	}
+	sts, _ := la.homeTimeline(bob, "")
+	for _, s := range la.applyFilters(bob, sts, "home") {
+		if s.ID == st.ID && (!s.Blurred || s.FilteredBy != "") {
+			t.Fatalf("web: blurred=%v filteredBy=%q", s.Blurred, s.FilteredBy)
+		}
 	}
 }

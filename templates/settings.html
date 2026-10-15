@@ -40,7 +40,7 @@
 </section>
 <section class="card" id="filters">
   <h3>Keyword filters</h3>
-  <p class="muted small">Posts containing these words are collapsed (“warn”) or hidden in your timelines. Your own posts are never filtered.</p>
+  <p class="muted small">Posts containing these words are collapsed (“warn”), get their media hidden (“blur”) or are hidden in your timelines. Your own posts are never filtered.</p>
   {{if .Filters}}<table class="tbl"><tr><th>Phrase</th><th>Action</th><th></th></tr>
   {{range .Filters}}<tr><td>{{.Phrase}}{{if .WholeWord}} <span class="muted small">(whole word)</span>{{end}}</td><td>{{.Action}}</td>
     <td><form method="post" action="/settings/filters/{{.ID}}/delete"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small">Remove</button></form></td></tr>{{end}}
@@ -48,7 +48,7 @@
   <form method="post" action="/settings/filters" class="inline-form">
     <input type="hidden" name="csrf" value="{{.CSRF}}">
     <input name="phrase" placeholder="word or phrase" maxlength="100" required>
-    <select name="action"><option value="warn">Collapse</option><option value="hide">Hide</option></select>
+    <select name="action"><option value="warn">Collapse</option><option value="blur">Hide media</option><option value="hide">Hide</option></select>
     <label class="check"><input type="checkbox" name="whole_word" checked> whole word</label>
     <button class="btn">Add filter</button>
   </form>

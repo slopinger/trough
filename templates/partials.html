@@ -90,7 +90,7 @@
   {{- else if $s.QuoteState}}<span class="quote"><span class="quote-body muted">The quoted post's author removed this quote</span></span>
   {{- else if $s.QuoteURI}}<a class="quote" href="/search?q={{$s.QuoteURI}}"><span class="quote-body muted">Quoted post: {{$s.QuoteURI}}</span></a>{{end}}
   {{if $s.Attachments}}
-  {{if $s.Sensitive}}<details class="sensitive"><summary>{{template "icon" "image"}} Sensitive media — click to show</summary>{{template "media" $s}}</details>
+  {{if or $s.Sensitive $s.Blurred}}<details class="sensitive"><summary>{{template "icon" "image"}} {{if $s.Blurred}}Media hidden by a filter{{else}}Sensitive media{{end}} — click to show</summary>{{template "media" $s}}</details>
   {{else}}{{template "media" $s}}{{end}}
   {{else if $s.Card}}{{with $s.Card}}<a class="card-link" href="{{.URL}}" target="_blank" rel="noopener noreferrer nofollow">
     {{if .Image}}<img src="{{media .Image}}" alt="" loading="lazy">{{end}}
