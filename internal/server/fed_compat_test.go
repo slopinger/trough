@@ -360,6 +360,11 @@ func runScenario(t *testing.T, f flavor) {
 	send(create)
 	var st *Status
 	eventually(t, "post stored", func() bool { st, err = la.StatusByURI(noteID); return err == nil })
+	// the status row comes first, attachments, tags and mentions right after;
+	// the mention notification is the last step of storing it
+	eventually(t, "mention notification", func() bool {
+		return la.countInt(`SELECT COUNT(*) FROM notifications WHERE account_id=? AND type='mention' AND status_id=?`, bob.ID, st.ID) == 1
+	})
 	full, err := la.loadStatus(bob, st.ID)
 	if err != nil {
 		t.Fatalf("post not visible to bob: %v", err)
@@ -386,9 +391,6 @@ func runScenario(t *testing.T, f flavor) {
 	if !mentioned {
 		t.Errorf("bob not recorded as mentioned")
 	}
-	eventually(t, "mention notification", func() bool {
-		return la.countInt(`SELECT COUNT(*) FROM notifications WHERE account_id=? AND type='mention' AND status_id=?`, bob.ID, st.ID) == 1
-	})
 	if strings.Contains(string(la.renderHTML(full.Content, full.Mentions, full.Emojis)), "<script") {
 		t.Error("unsanitized content")
 	}
