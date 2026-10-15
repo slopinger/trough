@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Federate a disposable trough with a disposable real Misskey and run test/interop_misskey.py.
+"""Federate a disposable trough with a disposable real Misskey and run test/interop/interop_misskey.py.
 
 Misskey (MISSKEY_IMAGE, default misskey/misskey:2026.10.0), PostgreSQL and
 Redis run in Docker in a private loopback-only network namespace, like
-test/run-mastodon.py; trough is https://trough.localhost there. Needs docker
+test/interop/run-mastodon.py; trough is https://trough.localhost there. Needs docker
 and sudo, caddy and go. Containers and temp files are removed.
 
-    python3 test/run-misskey.py
-    MISSKEY_IMAGE=registry.activitypub.software/transfem-org/sharkey:latest python3 test/run-misskey.py
+    python3 test/interop/run-misskey.py
+    MISSKEY_IMAGE=registry.activitypub.software/transfem-org/sharkey:latest python3 test/interop/run-misskey.py
 """
 import contextlib
 import json
@@ -81,7 +81,7 @@ def inside(tag, binary):
             token = api("admin/accounts/create", username="mia", password=secrets.token_urlsafe(18))["token"]
             api("admin/update-meta", i=token, federation="all")  # new instances start with federation off
 
-            result = subprocess.run([sys.executable, "-I", str(REPO / "test/interop_misskey.py"),
+            result = subprocess.run([sys.executable, "-I", str(REPO / "test/interop/interop_misskey.py"),
                                      f"https://{thost}", "bob", bob_pw, f"https://{mhost}", token], env=env.env)
             if result.returncode:
                 env.dump_logs(60)

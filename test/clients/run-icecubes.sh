@@ -4,13 +4,13 @@
 # iOS apps can't run here, but Ice Cubes is open source: its Models and
 # NetworkClient packages (the Codable entities and MastodonClient every
 # screen goes through) build on Linux with a few shims for Apple-only APIs
-# (SwiftUI/OSLog types, Markdown AttributedString, a lock). test/icecubes/
+# (SwiftUI/OSLog types, Markdown AttributedString, a lock). test/clients/icecubes/
 # main.swift then walks through what its screens do (instance, accounts,
 # posting, polls, quotes, timelines, grouped notifications with paging,
 # search, lists, filters, conversations, media) and checks the decoded
 # values, since the app decodes some fields leniently.
 #
-#   bash test/run-icecubes.sh
+#   bash test/clients/run-icecubes.sh
 #
 # Needs git, go, curl, python3 and Nix (Swift 6.2 from nixpkgs). Ice Cubes
 # and SwiftSoup are pinned below; everything lives in a temp directory.
@@ -19,7 +19,7 @@
 set -euo pipefail
 ICECUBES_REV=${ICECUBES_REV:-98098b9c4b5928f89f338203193c2bf40ab7f38c}
 SWIFTSOUP_REV=18b80329749eca5ea29fc50211dca5c7eff5bfec # 2.13.9, as Ice Cubes resolves it
-repo=$(cd "$(dirname "$0")/.." && pwd)
+repo=$(cd "$(dirname "$0")/../.." && pwd)
 tmp=$(mktemp -d)
 pid=
 cleanup() { [ -n "$pid" ] && kill "$pid" 2>/dev/null; rm -rf "$tmp"; }
@@ -37,8 +37,8 @@ cp -r "$tmp/ice/Packages/Models/Sources/Models/." "$src/models/"
 rm -rf "$src/models/SwiftData" "$src/models/AppAccount.swift"
 cp -r "$tmp/ice/Packages/NetworkClient/Sources/NetworkClient/." "$src/network/"
 rm -f "$src/network/"{OpenAIClient,DeepLClient,InstanceSocialClient}.swift
-cp "$repo/test/icecubes/ModelShims.swift" "$src/models/"
-cp "$repo/test/icecubes/NetworkShims.swift" "$src/network/"
+cp "$repo/test/clients/icecubes/ModelShims.swift" "$src/models/"
+cp "$repo/test/clients/icecubes/NetworkShims.swift" "$src/network/"
 find "$src" -name '*.swift' -exec sed -i -e 's/^import SwiftUI$/import Foundation/' -e '/^import \(Combine\|OSLog\|os\)$/d' {} +
 python3 - "$src/network/MastodonClient.swift" <<'PY'
 import sys
@@ -65,9 +65,9 @@ cd "$tmp/out"
 swiftc -O -emit-library -emit-module -parse-as-library -module-name SwiftSoup -swift-version 5 \$(find "$tmp/soup/Sources" -name '*.swift') -o libSwiftSoup.so -emit-module-path SwiftSoup.swiftmodule
 swiftc -emit-library -emit-module -parse-as-library -module-name Models -swift-version 5 -I . -L . -lSwiftSoup \$(find "$src/models" -name '*.swift') -o libModels.so -emit-module-path Models.swiftmodule
 swiftc -emit-library -emit-module -parse-as-library -module-name NetworkClient -swift-version 5 -I . -L . -lSwiftSoup -lModels \$(find "$src/network" -name '*.swift') -o libNetworkClient.so -emit-module-path NetworkClient.swiftmodule
-swiftc -swift-version 5 -I . -L . -lSwiftSoup -lModels -lNetworkClient -Xlinker -rpath -Xlinker "$tmp/out" "$repo/test/icecubes/main.swift" -o icecubes
+swiftc -swift-version 5 -I . -L . -lSwiftSoup -lModels -lNetworkClient -Xlinker -rpath -Xlinker "$tmp/out" "$repo/test/clients/icecubes/main.swift" -o icecubes
 EOF
-bash -lc "nix-shell --pure '$repo/test/swift-shell.nix' --run 'bash $tmp/build.sh'" 2>&1 | grep -E 'error:' || true
+bash -lc "nix-shell --pure '$repo/test/clients/swift-shell.nix' --run 'bash $tmp/build.sh'" 2>&1 | grep -E 'error:' || true
 [ -x "$tmp/out/icecubes" ] || { echo "build failed"; exit 1; }
 
 port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])')

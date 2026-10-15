@@ -3,9 +3,9 @@
 # keeps its API, like Sharkey), driven over trough's Mastodon client API and
 # Misskey's own API. Stdlib only.
 #
-#   python3 test/interop_misskey.py <trough-base> <user> <password> <misskey-base> <misskey-token>
+#   python3 test/interop/interop_misskey.py <trough-base> <user> <password> <misskey-base> <misskey-token>
 #
-# test/run-misskey.py sets everything up and calls this. Misskey has no note
+# test/interop/run-misskey.py sets everything up and calls this. Misskey has no note
 # editing and ignores remote edits, so that check only warns (Sharkey applies them).
 import json
 from pathlib import Path

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Client API check with the toot CLI (https://toot.bezdomni.net) against a
 # disposable dev instance. Needs toot on PATH, e.g.:
-#   nix shell nixpkgs#toot --command bash test/toot.sh
+#   nix shell nixpkgs#toot --command bash test/clients/toot.sh
 set -euo pipefail
-repo=$(cd "$(dirname "$0")/.." && pwd)
+repo=$(cd "$(dirname "$0")/../.." && pwd)
 tmp=$(mktemp -d)
 pid=
 cleanup() { [ -n "$pid" ] && kill "$pid" 2>/dev/null; rm -rf "$tmp"; }

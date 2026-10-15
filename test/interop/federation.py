@@ -4,7 +4,7 @@
 Start two fresh dev instances (see README, "Local development") with users
 alice (on 127.0.0.1:8801) and bob (on 127.0.0.1:8802), then run:
 
-    python3 test/federation.py <alice-password> <bob-password>
+    python3 test/interop/federation.py <alice-password> <bob-password>
 """
 import http.cookiejar, os, re, sys, time, urllib.parse, urllib.request
 

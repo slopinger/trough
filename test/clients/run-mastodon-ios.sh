@@ -4,11 +4,11 @@
 # The app (github.com/mastodon/mastodon-ios) is open source. Its API layer
 # needs Combine, but its entities (MastodonSDK/Entity, every type it
 # decodes server answers into) and its JSONDecoder build on Linux with
-# shims for a few display-only Apple APIs. test/mastodon-ios/main.swift
+# shims for a few display-only Apple APIs. test/clients/mastodon-ios/main.swift
 # then calls a disposable trough on the paths the app requests, with the
 # JSON bodies it sends, and decodes the answers with them.
 #
-#   bash test/run-mastodon-ios.sh
+#   bash test/clients/run-mastodon-ios.sh
 #
 # Needs git, go, curl, python3 and Nix (Swift 6.2 from nixpkgs). The app is
 # pinned below; everything lives in a temp directory. Left out: the
@@ -16,7 +16,7 @@
 # server picker's Language and the unused Preferences entity.
 set -euo pipefail
 MASTODON_IOS_REV=${MASTODON_IOS_REV:-14c140cb2be0ec5a6a004bfb89f7b8d8f5436013}
-repo=$(cd "$(dirname "$0")/.." && pwd)
+repo=$(cd "$(dirname "$0")/../.." && pwd)
 tmp=$(mktemp -d)
 pid=
 cleanup() { [ -n "$pid" ] && kill "$pid" 2>/dev/null; rm -rf "$tmp"; }
@@ -30,7 +30,7 @@ mkdir -p "$tmp/src" "$tmp/out"
 cp "$sdk"/Entity/*.swift "$sdk/Mastodon.swift" "$sdk/InstanceConfigLimitingPropertyContaining.swift" "$tmp/src/"
 rm "$tmp/src/Mastodon+Entity+DonationCampaign.swift"
 sed -i '/^import \(UIKit\|MastodonCommon\|MastodonLocalization\)$/d' "$tmp/src"/*.swift
-cp "$repo/test/mastodon-ios/Shims.swift" "$tmp/src/"
+cp "$repo/test/clients/mastodon-ios/Shims.swift" "$tmp/src/"
 # the app's JSONDecoder (custom date parsing), verbatim from Mastodon+API.swift
 python3 - "$sdk/API/Mastodon+API.swift" "$tmp/src/Decoder.swift" <<'PY'
 import sys
@@ -44,9 +44,9 @@ cat > "$tmp/build.sh" <<SH
 set -e
 cd "$tmp/out"
 swiftc -emit-library -emit-module -parse-as-library -module-name MastodonEntities -swift-version 5 "$tmp"/src/*.swift -o libMastodonEntities.so -emit-module-path MastodonEntities.swiftmodule
-swiftc -swift-version 5 -I . -L . -lMastodonEntities -Xlinker -rpath -Xlinker "$tmp/out" "$repo/test/mastodon-ios/main.swift" -o check
+swiftc -swift-version 5 -I . -L . -lMastodonEntities -Xlinker -rpath -Xlinker "$tmp/out" "$repo/test/clients/mastodon-ios/main.swift" -o check
 SH
-bash -lc "nix-shell --pure '$repo/test/swift-shell.nix' --run 'bash $tmp/build.sh'" 2>&1 | grep -E 'error:' || true
+bash -lc "nix-shell --pure '$repo/test/clients/swift-shell.nix' --run 'bash $tmp/build.sh'" 2>&1 | grep -E 'error:' || true
 [ -x "$tmp/out/check" ] || { echo "build failed"; exit 1; }
 
 port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])')

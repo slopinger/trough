@@ -2,12 +2,12 @@
 # Federation interop check between trough and another real server (GoToSocial,
 # Mastodon, ...), driven over both servers' Mastodon client APIs. Stdlib only.
 #
-#   python3 test/interop.py <trough-base> <user> <password> <remote-base> <remote-email> <remote-password>
-#   python3 test/interop.py <trough-base> <user> <password> <remote-base> --token <remote-token>
-#   python3 test/interop.py <trough-base> <user> <password> <remote-base> --password <remote-user> <remote-password>
+#   python3 test/interop/interop.py <trough-base> <user> <password> <remote-base> <remote-email> <remote-password>
+#   python3 test/interop/interop.py <trough-base> <user> <password> <remote-base> --token <remote-token>
+#   python3 test/interop/interop.py <trough-base> <user> <password> <remote-base> --password <remote-user> <remote-password>
 #
 # The first form signs in through GoToSocial's web sign-in, the last uses the
-# OAuth password grant. test/run-{gotosocial,mastodon,akkoma}.py set everything
+# OAuth password grant. test/interop/run-{gotosocial,mastodon,akkoma}.py set everything
 # up and call this.
 import json, re, sys, time, urllib.error, urllib.parse, urllib.request, http.cookiejar
 

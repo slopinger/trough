@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Federate a disposable trough with a disposable real Mastodon and run test/interop.py.
+"""Federate a disposable trough with a disposable real Mastodon and run test/interop/interop.py.
 
 Mastodon only federates with servers on the default https port, so everything
 runs in a private network namespace of its own: a `--network none` Docker
@@ -9,8 +9,8 @@ port 443 for https://localhost (Mastodon) and https://127.0.0.1 (trough). The
 namespace has only a loopback interface, so nothing is reachable from outside.
 Needs docker and sudo, caddy and go. Containers and temp files are removed.
 
-    python3 test/run-mastodon.py              # MASTODON_IMAGE=... to pick a version
-    AUTHORIZED_FETCH=true python3 test/run-mastodon.py
+    python3 test/interop/run-mastodon.py              # MASTODON_IMAGE=... to pick a version
+    AUTHORIZED_FETCH=true python3 test/interop/run-mastodon.py
 """
 import contextlib
 import os
@@ -89,7 +89,7 @@ def inside(tag, binary):
             if os.environ.get("AUTHORIZED_FETCH") == "true":
                 require_signed_fetches(f"https://{mhost}/users/mal", bundle)
 
-            result = subprocess.run([sys.executable, "-I", str(REPO / "test/interop.py"),
+            result = subprocess.run([sys.executable, "-I", str(REPO / "test/interop/interop.py"),
                                      f"https://{thost}", "bob", bob_pw, f"https://{mhost}", "--token", token], env=env.env)
             if result.returncode:
                 env.dump_logs()

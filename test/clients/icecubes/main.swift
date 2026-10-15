@@ -1,6 +1,6 @@
 // Drives a trough instance with Ice Cubes' own NetworkClient and Models
 // (the iOS app's networking layer), the way its screens use them.
-// Built and run by test/run-icecubes.sh.
+// Built and run by test/clients/run-icecubes.sh.
 import Foundation
 import Models
 import NetworkClient

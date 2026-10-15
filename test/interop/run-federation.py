@@ -12,7 +12,7 @@ import time
 import urllib.error
 import urllib.request
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]
 
 
 def available_host():
@@ -84,7 +84,7 @@ def main():
                     env[f"TROUGH_TEST_{label}"] = base
                     env[f"TROUGH_TEST_{user.upper()}_PASSWORD"] = password
                 subprocess.run(
-                    [sys.executable, "-u", str(REPO / "test/federation.py")],
+                    [sys.executable, "-u", str(REPO / "test/interop/federation.py")],
                     env=env, check=True, timeout=180,
                 )
             except BaseException:

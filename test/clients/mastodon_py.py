@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Mastodon client API interop check using the Mastodon.py library.
 # Usage: start a dev instance with users alice (password alicepassword1) and bob, then
-#   python3 test/mastodon_py.py http://127.0.0.1:8813 some.png
+#   python3 test/clients/mastodon_py.py http://127.0.0.1:8813 some.png
 # Mastodon.py from Nix: nix build --impure --expr 'let p = (builtins.getFlake "nixpkgs").legacyPackages.x86_64-linux; in p.python3.withPackages (ps: [ps.mastodon-py])'
 import sys, threading, time, io
 from mastodon import Mastodon, StreamListener

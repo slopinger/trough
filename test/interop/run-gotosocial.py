@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Federate a disposable trough with a disposable real GoToSocial and run test/interop.py.
+"""Federate a disposable trough with a disposable real GoToSocial and run test/interop/interop.py.
 
 GoToSocial always uses https for WebFinger, so both servers sit behind a
 throwaway Caddy with its own local CA on loopback; trough runs with
@@ -65,7 +65,7 @@ def main():
             wait_for(f"https://{tr_host}/nodeinfo/2.0", ca, tp)
             wait_for(f"https://{gts_host}/api/v1/instance", ca, p, want=b'"uri"')
 
-            result = subprocess.run([sys.executable, "-I", str(REPO / "test/interop.py"),
+            result = subprocess.run([sys.executable, "-I", str(REPO / "test/interop/interop.py"),
                                      f"https://{tr_host}", "bob", bob_pw, f"https://{gts_host}", "gal@example.org", gal_pw], env=env.env)
             if result.returncode:
                 env.dump_logs()

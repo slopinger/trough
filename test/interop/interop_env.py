@@ -16,7 +16,7 @@ import time
 import urllib.error
 import urllib.request
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]
 
 
 def free_port():

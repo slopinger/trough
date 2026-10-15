@@ -1,6 +1,6 @@
 // Decodes trough's answers with the official Mastodon iOS app's entities
 // (MastodonSDK) and its own JSONDecoder, on the paths the app requests.
-// Built and run by test/run-mastodon-ios.sh.
+// Built and run by test/clients/run-mastodon-ios.sh.
 import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking

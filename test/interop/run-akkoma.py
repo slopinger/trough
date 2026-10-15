@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Federate a disposable trough with a disposable real Akkoma or Pleroma and run test/interop.py.
+"""Federate a disposable trough with a disposable real Akkoma or Pleroma and run test/interop/interop.py.
 
 Akkoma (the Pleroma fork, built with Nix: nixpkgs#akkoma, or AKKOMA=/path to
 a release, which can also be Pleroma's) and PostgreSQL run in a private loopback-only network namespace,
-like test/run-mastodon.py. Akkoma runs in a container that mounts /nix/store
+like test/interop/run-mastodon.py. Akkoma runs in a container that mounts /nix/store
 read-only, because its HTTP client only trusts the OS certificate store and
 the container lets the test CA stand in for it. Needs docker and sudo, caddy,
 go and nix. Containers and temp files are removed.
 
-    python3 test/run-akkoma.py
-    AUTHORIZED_FETCH=true python3 test/run-akkoma.py
-    AKKOMA=$(nix build --no-link --print-out-paths nixpkgs#pleroma) python3 test/run-akkoma.py
+    python3 test/interop/run-akkoma.py
+    AUTHORIZED_FETCH=true python3 test/interop/run-akkoma.py
+    AKKOMA=$(nix build --no-link --print-out-paths nixpkgs#pleroma) python3 test/interop/run-akkoma.py
 """
 import contextlib
 import os
@@ -123,7 +123,7 @@ config :tzdata, :autoupdate, :disabled
                 # Akkoma keeps actors public so their keys can be fetched
                 require_signed_fetches(f"https://{ahost}/users/mal/outbox", bundle)
 
-            result = subprocess.run([sys.executable, "-I", str(REPO / "test/interop.py"),
+            result = subprocess.run([sys.executable, "-I", str(REPO / "test/interop/interop.py"),
                                      f"https://{thost}", "bob", bob_pw, f"https://{ahost}", "--password", "mal", mal_pw], env=env.env)
             if result.returncode:
                 env.dump_logs(200)
