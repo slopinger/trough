@@ -137,6 +137,7 @@
   or invalid metadata are refetched; per-URL locks coordinate fetches and expiry cleanup.
 - Keyboard shortcuts: j/k move between posts, o opens, r replies, f favourites, b boosts, n writes, / searches,
   ? shows the list
+- Image viewer: attached images open large with their description; arrow keys go through a post's images
 - Light and dark theme, responsive layout with a bottom navigation bar on phones
 - Deleting your own account (Settings; password, 2FA code and username to confirm): removes posts, media and
   everything else, sends a `Delete` of the actor to followers' and followees' servers; the actor then answers

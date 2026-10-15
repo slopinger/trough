@@ -452,4 +452,58 @@
     }
     ev.preventDefault();
   });
+
+  // Image viewer: open attached images large, with their description;
+  // arrow keys or buttons go through a post's images, Esc or a click closes.
+  var viewer = null;
+  function closeViewer() { if (viewer) { viewer.remove(); viewer = null; } }
+  function openViewer(links, index) {
+    closeViewer();
+    viewer = document.createElement("div");
+    viewer.className = "viewer";
+    viewer.setAttribute("role", "dialog");
+    viewer.setAttribute("aria-label", "Image");
+    var img = document.createElement("img");
+    var cap = document.createElement("p");
+    var prev = document.createElement("button"), next = document.createElement("button"), close = document.createElement("button");
+    prev.className = "viewer-prev"; prev.textContent = "‹"; prev.setAttribute("aria-label", "Previous image");
+    next.className = "viewer-next"; next.textContent = "›"; next.setAttribute("aria-label", "Next image");
+    close.className = "viewer-close"; close.textContent = "×"; close.setAttribute("aria-label", "Close");
+    function show(i) {
+      index = (i + links.length) % links.length;
+      var a = links[index], thumb = a.querySelector("img");
+      img.src = a.href;
+      img.alt = thumb ? thumb.alt : "";
+      cap.textContent = img.alt;
+      cap.hidden = !img.alt;
+      prev.hidden = next.hidden = links.length < 2;
+    }
+    prev.addEventListener("click", function (ev) { ev.stopPropagation(); show(index - 1); });
+    next.addEventListener("click", function (ev) { ev.stopPropagation(); show(index + 1); });
+    close.addEventListener("click", closeViewer);
+    viewer.addEventListener("click", function (ev) { if (ev.target === viewer) closeViewer(); });
+    viewer.show = show;
+    viewer.step = function (d) { show(index + d); };
+    [img, cap, prev, next, close].forEach(function (el) { viewer.appendChild(el); });
+    document.body.appendChild(viewer);
+    show(index);
+    close.focus();
+  }
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest && ev.target.closest("a.m-img");
+    if (!a || ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey) return;
+    ev.preventDefault();
+    var links = Array.prototype.slice.call(a.closest(".media").querySelectorAll("a.m-img"));
+    openViewer(links, links.indexOf(a));
+  });
+  document.addEventListener("keydown", function (ev) {
+    if (!viewer) return;
+    if (ev.key === "Escape") closeViewer();
+    else if (ev.key === "ArrowLeft") viewer.step(-1);
+    else if (ev.key === "ArrowRight") viewer.step(1);
+    else return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+  }, true);
+
 })();
