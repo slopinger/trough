@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -31,7 +32,7 @@ func TestRelays(t *testing.T) {
 	}
 	eventually(t, "relay Follow delivered", func() bool { return len(r.receivedOf("Follow")) == 1 })
 	f := r.receivedOf("Follow")[0]
-	if f.SigErr != nil || idOf(f.Activity["object"]) != asPublic || idOf(f.Activity["actor"]) != la.instanceActor().URI {
+	if f.SigErr != nil || ap.ID(f.Activity["object"]) != ap.Public || ap.ID(f.Activity["actor"]) != la.instanceActor().URI {
 		t.Fatalf("relay follow = %v (%v)", f.Activity, f.SigErr)
 	}
 	r.send(obj{"@context": asContext, "id": r.Base + "/accepts/1", "type": "Accept", "actor": r.Base + "/actor", "object": f.Activity}, relayKey, sigCavage)
@@ -42,7 +43,7 @@ func TestRelays(t *testing.T) {
 	note := `{"id": "` + noteID + `", "type": "Note", "attributedTo": "{{R}}/users/carol", "content": "<p>relayed!</p>", "to": ["https://www.w3.org/ns/activitystreams#Public"], "published": "2026-01-01T00:00:00Z"}`
 	r.put("/users/carol/statuses/1", note)
 	r.send(obj{"@context": asContext, "id": noteID + "/activity", "type": "Create", "actor": r.Base + "/users/carol",
-		"to": []any{asPublic}, "object": mustJSON(t, r.expand(note))}, relayKey, sigCavage)
+		"to": []any{ap.Public}, "object": mustJSON(t, r.expand(note))}, relayKey, sigCavage)
 	eventually(t, "relayed post stored", func() bool { _, err := la.StatusByURI(noteID); return err == nil })
 	fed, _ := la.federatedTimeline(bob, "")
 	if len(fed) != 1 {
@@ -51,7 +52,7 @@ func TestRelays(t *testing.T) {
 	// LitePub-style Announce from the relay
 	note2ID := r.Base + "/users/carol/statuses/2"
 	r.put("/users/carol/statuses/2", strings.Replace(note, noteID, note2ID, 1))
-	r.send(obj{"@context": asContext, "id": r.Base + "/announces/1", "type": "Announce", "actor": r.Base + "/actor", "to": []any{asPublic}, "object": note2ID}, relayKey, sigCavage)
+	r.send(obj{"@context": asContext, "id": r.Base + "/announces/1", "type": "Announce", "actor": r.Base + "/actor", "to": []any{ap.Public}, "object": note2ID}, relayKey, sigCavage)
 	eventually(t, "announced post stored", func() bool { _, err := la.StatusByURI(note2ID); return err == nil })
 	if la.countInt(`SELECT COUNT(*) FROM statuses WHERE boost_of_id != ''`) != 0 {
 		t.Error("relay announce stored as a boost")
@@ -174,7 +175,7 @@ func TestLitePubRelayViaAdmin(t *testing.T) {
 	eventually(t, "Follows delivered", func() bool { return len(r.receivedOf("Follow")) == 2 })
 	for i, tag := range []string{"cats", "dogs"} {
 		f := r.receivedOf("Follow")[i]
-		if f.SigErr != nil || idOf(f.Activity["object"]) != r.Base+"/tag/"+tag || f.Path != "/instance/relay" {
+		if f.SigErr != nil || ap.ID(f.Activity["object"]) != r.Base+"/tag/"+tag || f.Path != "/instance/relay" {
 			t.Fatalf("follow to %s = %v (%v)", f.Path, f.Activity, f.SigErr)
 		}
 		if !strings.Contains(page2, r.Base+"/tag/"+tag+"</td>") {

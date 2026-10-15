@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/httpsig"
 )
 
@@ -40,7 +41,7 @@ func (app *App) enqueueAt(signer *Account, inboxes []string, activity obj, at ti
 			continue
 		}
 		seen[inbox] = true
-		if app.domainBlocked(hostOf(inbox)) {
+		if app.domainBlocked(ap.Host(inbox)) {
 			continue
 		}
 		if _, err := app.db.Exec(`INSERT INTO deliveries (account_id,inbox,payload,next_try,created_at) VALUES (?,?,?,?,?)`,
@@ -164,8 +165,8 @@ func (app *App) postOnce(ctx context.Context, inbox string, body []byte, keyID s
 	if err != nil {
 		return 0, "", "", permanentError{err}
 	}
-	req.Header.Set("Content-Type", apMimeType)
-	req.Header.Set("Accept", apMimeType)
+	req.Header.Set("Content-Type", ap.MimeType)
+	req.Header.Set("Accept", ap.MimeType)
 	req.Header.Set("User-Agent", app.userAgent())
 	sign := httpsig.SignCavage
 	if style == sigStyleRFC9421 {

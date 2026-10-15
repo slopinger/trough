@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -73,10 +74,10 @@ func (app *App) questionFields(st *Status, m obj) {
 	} else {
 		m["oneOf"] = opts
 	}
-	m["endTime"] = apTime(p.EndTime)
+	m["endTime"] = ap.Time(p.EndTime)
 	m["votersCount"] = app.countInt(`SELECT COUNT(DISTINCT account_id) FROM poll_votes WHERE status_id=?`, st.ID)
 	if p.Closed() {
-		m["closed"] = apTime(p.EndTime)
+		m["closed"] = ap.Time(p.EndTime)
 	}
 }
 
@@ -119,7 +120,7 @@ func (app *App) Vote(me *Account, st *Status, choices []int) error {
 		p.Options[c].Votes++
 		if !author.IsLocal() {
 			note := obj{"id": uri, "type": "Note", "name": p.Options[c].Name, "attributedTo": me.URI, "inReplyTo": st.URI,
-				"to": []any{author.URI}, "published": apTime(time.Now())}
+				"to": []any{author.URI}, "published": ap.Time(time.Now())}
 			app.enqueue(me, []string{author.DeliveryInbox()}, withContext(obj{
 				"id": uri + "/activity", "type": "Create", "actor": me.URI, "to": []any{author.URI}, "object": note,
 			}))
@@ -171,9 +172,9 @@ func (app *App) pollChanged(st *Status) {
 // inPollVote handles a remote vote on a local poll. It reports whether the
 // note was a vote (and must not be stored as a post).
 func (app *App) inPollVote(voter *Account, note obj) bool {
-	name := str(note, "name")
-	parent := idOf(note["inReplyTo"])
-	if name == "" || parent == "" || !app.isLocalIRI(parent) || strings.TrimSpace(plainText(str(note, "content"))) != "" {
+	name := ap.Str(note, "name")
+	parent := ap.ID(note["inReplyTo"])
+	if name == "" || parent == "" || !app.isLocalIRI(parent) || strings.TrimSpace(plainText(ap.Str(note, "content"))) != "" {
 		return false
 	}
 	st, err := app.StatusByURI(parent)
@@ -193,7 +194,7 @@ func (app *App) inPollVote(voter *Account, note obj) bool {
 			return true
 		}
 		res, err := app.db.Exec(`INSERT OR IGNORE INTO poll_votes (status_id, account_id, choice, uri, created_at) VALUES (?,?,?,?,?)`,
-			st.ID, voter.ID, i, str(note, "id"), time.Now().Unix())
+			st.ID, voter.ID, i, ap.Str(note, "id"), time.Now().Unix())
 		if err == nil {
 			if n, _ := res.RowsAffected(); n > 0 {
 				st.Poll.Options[i].Votes++

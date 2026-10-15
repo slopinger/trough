@@ -19,6 +19,7 @@ import (
 
 	"golang.org/x/net/websocket"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -284,8 +285,8 @@ func TestStreamingWebsocket(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	// a post by alice arrives via federation
 	nid := r.Base + "/notes/live"
-	r.send(obj{"@context": asContext, "id": nid + "/activity", "type": "Create", "actor": alice.URI, "to": []any{asPublic},
-		"object": obj{"id": nid, "type": "Note", "attributedTo": alice.URI, "content": "<p>live!</p>", "to": []any{asPublic}, "published": apTime(time.Now())}},
+	r.send(obj{"@context": asContext, "id": nid + "/activity", "type": "Create", "actor": alice.URI, "to": []any{ap.Public},
+		"object": obj{"id": nid, "type": "Note", "attributedTo": alice.URI, "content": "<p>live!</p>", "to": []any{ap.Public}, "published": ap.Time(time.Now())}},
 		r.Base+"/users/alice#main-key", sigCavage)
 	ws.SetReadDeadline(time.Now().Add(5 * time.Second))
 	for {

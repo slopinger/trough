@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -23,7 +24,7 @@ func TestAPIReport(t *testing.T) {
 	la, r, bob, alice := featureFixture(t)
 	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}
 	id := ulid.New()
-	la.insertStatus(&Status{ID: id, URI: r.Base + "/s/bad", AccountID: alice.ID, Visibility: "public", Content: "<p>spam</p>", CreatedAt: parseTime("2026-01-01T00:00:00Z")})
+	la.insertStatus(&Status{ID: id, URI: r.Base + "/s/bad", AccountID: alice.ID, Visibility: "public", Content: "<p>spam</p>", CreatedAt: ap.ParseTime("2026-01-01T00:00:00Z")})
 	rep := c.ok("POST", "/api/v1/reports", url.Values{"account_id": {alice.ID}, "status_ids[]": {id, "nope"}, "comment": {"spam"},
 		"forward": {"true"}, "category": {"spam"}}).(map[string]any)
 	if rep["forwarded"] != true || rep["category"] != "spam" || len(rep["status_ids"].([]any)) != 1 || rep["target_account"].(map[string]any)["id"] != alice.ID {
@@ -86,7 +87,7 @@ func TestAPIStatusQuotes(t *testing.T) {
 	la.PostStatus(ctx, eve, PostInput{Text: "private quote", Visibility: "private", QuoteOf: orig.ID})
 	la.PostStatus(ctx, eve, PostInput{Text: "not a quote", Visibility: "public"})
 	la.insertStatus(&Status{ID: ulid.New(), URI: alice.URI + "/s/q", AccountID: alice.ID, Visibility: "public", Content: "<p>remote quote</p>",
-		QuoteURI: orig.URI, CreatedAt: parseTime("2026-01-01T00:00:00Z")})
+		QuoteURI: orig.URI, CreatedAt: ap.ParseTime("2026-01-01T00:00:00Z")})
 	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read")}
 	got := c.ok("GET", "/api/v1/statuses/"+orig.ID+"/quotes", nil).([]any)
 	texts := []string{}
@@ -109,7 +110,7 @@ func TestAPILinkTimeline(t *testing.T) {
 	link := "https://news.example/story"
 	for i, vis := range []string{"public", "public", "private"} {
 		la.insertStatus(&Status{ID: ulid.New(), URI: alice.URI + "/s/" + string(rune('a'+i)), AccountID: alice.ID, Visibility: vis,
-			Content: "<p>read this</p>", CardURL: link, CreatedAt: parseTime("2026-01-01T00:00:00Z")})
+			Content: "<p>read this</p>", CardURL: link, CreatedAt: ap.ParseTime("2026-01-01T00:00:00Z")})
 	}
 	la.PostStatus(context.Background(), bob, PostInput{Text: "unrelated", Visibility: "public"})
 	pub := &apiClient{t: t, base: la.base}
@@ -208,7 +209,7 @@ func TestAPIFilters(t *testing.T) {
 	ctx := context.Background()
 	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}
 	post := func(text string) *Status {
-		st := &Status{ID: ulid.New(), URI: alice.URI + "/s/" + ulid.New(), AccountID: alice.ID, Visibility: "public", Content: "<p>" + text + "</p>", CreatedAt: parseTime("2026-01-01T00:00:00Z")}
+		st := &Status{ID: ulid.New(), URI: alice.URI + "/s/" + ulid.New(), AccountID: alice.ID, Visibility: "public", Content: "<p>" + text + "</p>", CreatedAt: ap.ParseTime("2026-01-01T00:00:00Z")}
 		la.insertStatus(st)
 		return st
 	}

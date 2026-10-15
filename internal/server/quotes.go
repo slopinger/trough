@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -86,7 +87,7 @@ func (app *App) interactionPolicyJSON(st *Status) obj {
 	var who []any
 	switch quotePolicy(st) {
 	case "public":
-		who = []any{asPublic}
+		who = []any{ap.Public}
 	case "followers":
 		who = []any{st.Account.FollowersURI}
 	default:
@@ -103,9 +104,9 @@ func remoteQuotePolicy(note obj, author *Account) string {
 	if cq == nil {
 		return ""
 	}
-	auto := idsOf(cq["automaticApproval"])
-	for _, id := range append(auto, idsOf(cq["manualApproval"])...) {
-		if isPublicIRI(id) {
+	auto := ap.IDs(cq["automaticApproval"])
+	for _, id := range append(auto, ap.IDs(cq["manualApproval"])...) {
+		if ap.IsPublic(id) {
 			return "public"
 		}
 	}
@@ -179,11 +180,11 @@ func (app *App) quoteRequestActivity(st *Status, quoted *Status) obj {
 
 // inQuoteRequest answers a QuoteRequest for one of our posts.
 func (app *App) inQuoteRequest(ctx context.Context, actor *Account, act obj) error {
-	reqID := str(act, "id")
-	if reqID == "" || !sameHost(reqID, actor.URI) {
+	reqID := ap.Str(act, "id")
+	if reqID == "" || !ap.SameHost(reqID, actor.URI) {
 		return errors.New("quote request from another host")
 	}
-	quoted, err := app.StatusByURI(idOf(act["object"]))
+	quoted, err := app.StatusByURI(ap.ID(act["object"]))
 	if err != nil || !quoted.Local || quoted.IsBoost() {
 		return errNotFound
 	}
@@ -192,9 +193,9 @@ func (app *App) inQuoteRequest(ctx context.Context, actor *Account, act obj) err
 		return err
 	}
 	quoted.Account = owner
-	instURI := idOf(act["instrument"])
+	instURI := ap.ID(act["instrument"])
 	answer := obj{"id": reqID, "type": "QuoteRequest", "actor": actor.URI, "object": quoted.URI, "instrument": instURI}
-	if app.quoteApproval(quoted, actor) != "automatic" || app.isBlockedBy(owner.ID, actor.ID) || instURI == "" || !sameHost(instURI, actor.URI) {
+	if app.quoteApproval(quoted, actor) != "automatic" || app.isBlockedBy(owner.ID, actor.ID) || instURI == "" || !ap.SameHost(instURI, actor.URI) {
 		app.enqueue(owner, []string{actor.DeliveryInbox()}, withContext(obj{
 			"id": owner.URI + "#rejects/quote_requests/" + ulid.New(), "type": "Reject", "actor": owner.URI, "object": answer,
 		}))
@@ -202,7 +203,7 @@ func (app *App) inQuoteRequest(ctx context.Context, actor *Account, act obj) err
 	}
 	quoting, err := app.StatusByURI(instURI)
 	if err != nil {
-		if inst, ok := act["instrument"].(obj); ok && str(inst, "id") == instURI && attributedToIncludes(inst, actor.URI) {
+		if inst, ok := act["instrument"].(obj); ok && ap.Str(inst, "id") == instURI && attributedToIncludes(inst, actor.URI) {
 			quoting, err = app.storeNote(ctx, actor, inst, 0)
 		} else {
 			quoting, err = app.resolveStatus(ctx, instURI)
@@ -233,7 +234,7 @@ func (app *App) inQuoteRequest(ctx context.Context, actor *Account, act obj) err
 // quoteAnswer handles Accept/Reject of a QuoteRequest we sent. It reports
 // whether the activity was one.
 func (app *App) quoteAnswer(actor *Account, act obj) bool {
-	reqID := idOf(act["object"])
+	reqID := ap.ID(act["object"])
 	uri, ok := strings.CutSuffix(reqID, "#quote-request")
 	if !ok || !app.isLocalIRI(uri) {
 		return false
@@ -246,13 +247,13 @@ func (app *App) quoteAnswer(actor *Account, act obj) bool {
 	if err != nil || quoted.AccountID != actor.ID {
 		return true
 	}
-	if typeOf(act) == "Reject" {
+	if ap.Type(act) == "Reject" {
 		app.db.Exec(`UPDATE statuses SET quote_state='rejected', quote_auth='' WHERE id=?`, st.ID)
 		app.publishStatus(st.ID, true)
 		return true
 	}
-	stamp := idOf(act["result"])
-	if stamp == "" || !sameHost(stamp, actor.URI) {
+	stamp := ap.ID(act["result"])
+	if stamp == "" || !ap.SameHost(stamp, actor.URI) {
 		return true
 	}
 	app.db.Exec(`UPDATE statuses SET quote_state='', quote_auth=? WHERE id=?`, stamp, st.ID)
@@ -295,7 +296,7 @@ func (app *App) RevokeQuote(me *Account, quoted, quoting *Status) error {
 			stamp := app.quoteAuthURI(me, id)
 			app.enqueue(me, append(app.followerInboxes(me.ID), author.DeliveryInbox()), withContext(obj{
 				"id": stamp + "#delete", "type": "Delete", "actor": me.URI, "object": stamp,
-				"to": []any{asPublic},
+				"to": []any{ap.Public},
 			}))
 		}
 	}

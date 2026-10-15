@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -41,8 +42,8 @@ func TestEditFederates(t *testing.T) {
 	if up.SigErr != nil {
 		t.Fatal(up.SigErr)
 	}
-	note := objOf(up.Activity["object"])
-	if str(note, "id") != st.URI || !strings.Contains(str(note, "content"), "first post") || str(note, "updated") == "" {
+	note := ap.Object(up.Activity["object"])
+	if ap.Str(note, "id") != st.URI || !strings.Contains(ap.Str(note, "content"), "first post") || ap.Str(note, "updated") == "" {
 		t.Fatalf("Update object = %v", note)
 	}
 	again, _ := la.loadStatus(bob, st.ID)
@@ -73,12 +74,12 @@ func TestPinsFederate(t *testing.T) {
 	}
 	eventually(t, "Add delivered", func() bool { return len(r.receivedOf("Add")) == 1 })
 	add := r.receivedOf("Add")[0].Activity
-	if idOf(add["object"]) != st.URI || idOf(add["target"]) != bob.URI+"/collections/featured" {
+	if ap.ID(add["object"]) != st.URI || ap.ID(add["target"]) != bob.URI+"/collections/featured" {
 		t.Fatalf("Add = %v", add)
 	}
 	code, coll := r.signedGet(bob.URI+"/collections/featured", "")
 	items, _ := coll["orderedItems"].([]any)
-	if code != 200 || len(items) != 1 || str(objOf(items[0]), "id") != st.URI {
+	if code != 200 || len(items) != 1 || ap.Str(ap.Object(items[0]), "id") != st.URI {
 		t.Fatalf("featured = %d %v", code, coll)
 	}
 	priv, _ := la.PostStatus(ctx, bob, PostInput{Text: "secret", Visibility: "private"})
@@ -105,7 +106,7 @@ func TestBookmarksMutesFilters(t *testing.T) {
 	ctx := context.Background()
 	for _, txt := range []string{"<p>talking about politics again</p>", "<p>spoilers for the finale</p>", "<p>cute cats</p>"} {
 		id := ulid.New()
-		la.insertStatus(&Status{ID: id, URI: r.Base + "/s/" + id, AccountID: alice.ID, Visibility: "public", Content: txt, CreatedAt: parseTime("2026-01-01T00:00:00Z")})
+		la.insertStatus(&Status{ID: id, URI: r.Base + "/s/" + id, AccountID: alice.ID, Visibility: "public", Content: txt, CreatedAt: ap.ParseTime("2026-01-01T00:00:00Z")})
 	}
 	home := func() []*Status { s, _ := la.homeTimeline(bob, ""); return la.applyFilters(bob, s, "home") }
 	if n := len(home()); n != 3 {
@@ -151,7 +152,7 @@ func TestReportsFederate(t *testing.T) {
 	la, r, bob, alice := featureFixture(t)
 	admin, _ := la.CreateLocalUser("root2", "password123", true)
 	id := ulid.New()
-	la.insertStatus(&Status{ID: id, URI: r.Base + "/s/bad", AccountID: alice.ID, Visibility: "public", Content: "<p>spam</p>", CreatedAt: parseTime("2026-01-01T00:00:00Z")})
+	la.insertStatus(&Status{ID: id, URI: r.Base + "/s/bad", AccountID: alice.ID, Visibility: "public", Content: "<p>spam</p>", CreatedAt: ap.ParseTime("2026-01-01T00:00:00Z")})
 	if _, err := la.FileReport(bob, alice, []string{id}, "this is spam", true); err != nil {
 		t.Fatal(err)
 	}
@@ -160,8 +161,8 @@ func TestReportsFederate(t *testing.T) {
 	if flag.SigErr != nil {
 		t.Fatal(flag.SigErr)
 	}
-	objs := idsOf(flag.Activity["object"])
-	if idOf(flag.Activity["actor"]) != la.instanceActor().URI || len(objs) != 2 || objs[0] != alice.URI || objs[1] != r.Base+"/s/bad" {
+	objs := ap.IDs(flag.Activity["object"])
+	if ap.ID(flag.Activity["actor"]) != la.instanceActor().URI || len(objs) != 2 || objs[0] != alice.URI || objs[1] != r.Base+"/s/bad" {
 		t.Fatalf("Flag = %v", flag.Activity)
 	}
 	if strings.Contains(mustMarshal(flag.Activity), bob.URI) {
@@ -208,9 +209,9 @@ func TestEditHistory(t *testing.T) {
 	}
 	// a remote edit is recorded too
 	nid := r.Base + "/users/alice/statuses/h"
-	note := obj{"id": nid, "type": "Note", "attributedTo": alice.URI, "content": "<p>before</p>", "to": []any{asPublic}, "published": apTime(time.Now())}
+	note := obj{"id": nid, "type": "Note", "attributedTo": alice.URI, "content": "<p>before</p>", "to": []any{ap.Public}, "published": ap.Time(time.Now())}
 	key := r.Base + "/users/alice#main-key"
-	r.send(obj{"@context": asContext, "id": nid + "/a", "type": "Create", "actor": alice.URI, "to": []any{asPublic}, "object": note}, key, sigCavage)
+	r.send(obj{"@context": asContext, "id": nid + "/a", "type": "Create", "actor": alice.URI, "to": []any{ap.Public}, "object": note}, key, sigCavage)
 	var rs *Status
 	eventually(t, "remote post stored", func() bool { rs, _ = la.StatusByURI(nid); return rs != nil })
 	note["content"] = "<p>after</p>"
@@ -240,8 +241,8 @@ func TestPostLanguage(t *testing.T) {
 		t.Fatalf("language = %v", st["language"])
 	}
 	eventually(t, "Create delivered", func() bool { return len(r.receivedOf("Create")) == 1 })
-	note := objOf(r.receivedOf("Create")[0].Activity["object"])
-	if cm := objOf(note["contentMap"]); cm == nil || !strings.Contains(str(cm, "de"), "Guten Morgen") {
+	note := ap.Object(r.receivedOf("Create")[0].Activity["object"])
+	if cm := ap.Object(note["contentMap"]); cm == nil || !strings.Contains(ap.Str(cm, "de"), "Guten Morgen") {
 		t.Errorf("contentMap = %v", note["contentMap"])
 	}
 	if st := c.ok("POST", "/api/v1/statuses", url.Values{"status": {"x"}, "language": {"<script>"}}).(map[string]any); st["language"] != nil {

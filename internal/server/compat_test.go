@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"git.freifick.net/slop/trough/internal/ap"
 )
 
 type flavor struct {
@@ -303,7 +305,7 @@ func runScenario(t *testing.T, f flavor) {
 			f.tweak(act)
 		}
 		if code := r.send(act, keyID, f.style); code != 202 {
-			t.Fatalf("%s rejected with %d", typeOf(act), code)
+			t.Fatalf("%s rejected with %d", ap.Type(act), code)
 		}
 	}
 	act := func(typ string, object any) obj {
@@ -322,7 +324,7 @@ func runScenario(t *testing.T, f flavor) {
 	if got := acc.Header.Get("Signature-Input") != ""; got != (f.style == sigRFC9421) {
 		t.Fatalf("Accept signed with RFC 9421 = %v for a %s sender", got, f.style)
 	}
-	if idOf(objOf(acc.Activity["object"])["id"]) != follow["id"] && idOf(acc.Activity["object"]) != follow["id"] {
+	if ap.ID(ap.Object(acc.Activity["object"])["id"]) != follow["id"] && ap.ID(acc.Activity["object"]) != follow["id"] {
 		t.Fatalf("Accept does not reference the Follow: %v", acc.Activity["object"])
 	}
 	remoteAcc, err := la.AccountByURI(actorID)
@@ -401,7 +403,7 @@ func runScenario(t *testing.T, f flavor) {
 	if cr.SigErr != nil {
 		t.Fatalf("our Create failed signature verification: %v", cr.SigErr)
 	}
-	checkOurNote(t, la, objOf(cr.Activity["object"]), mine)
+	checkOurNote(t, la, ap.Object(cr.Activity["object"]), mine)
 
 	like := act("Like", mine.URI)
 	for k, v := range f.likeExtra {
@@ -413,7 +415,7 @@ func runScenario(t *testing.T, f flavor) {
 		return la.countInt(`SELECT COUNT(*) FROM notifications WHERE type='favourite' AND status_id=?`, mine.ID) == 1
 	})
 	announce := act("Announce", mine.URI)
-	announce["to"], announce["cc"] = []any{asPublic}, []any{bob.URI, actorID + "/followers"}
+	announce["to"], announce["cc"] = []any{ap.Public}, []any{bob.URI, actorID + "/followers"}
 	send(announce)
 	eventually(t, "boost stored", func() bool { return la.countInt(`SELECT COUNT(*) FROM statuses WHERE boost_of_id=?`, mine.ID) == 1 })
 
@@ -456,21 +458,21 @@ func runScenario(t *testing.T, f flavor) {
 // checkOurNote validates what we send against what Mastodon and friends require.
 func checkOurNote(t *testing.T, la *liveApp, note obj, st *Status) {
 	t.Helper()
-	if str(note, "id") != st.URI || typeOf(note) != "Note" {
+	if ap.Str(note, "id") != st.URI || ap.Type(note) != "Note" {
 		t.Fatalf("unexpected object %v", note)
 	}
-	if !sameHost(str(note, "id"), str(note, "attributedTo")) {
+	if !ap.SameHost(ap.Str(note, "id"), ap.Str(note, "attributedTo")) {
 		t.Error("note id and attributedTo on different hosts")
 	}
-	if parseTime(str(note, "published")).IsZero() {
+	if ap.ParseTime(ap.Str(note, "published")).IsZero() {
 		t.Error("note without valid published date")
 	}
-	if !strings.Contains(str(note, "content"), "hashtag") {
+	if !strings.Contains(ap.Str(note, "content"), "hashtag") {
 		t.Error("hashtag not linked in content")
 	}
 	foundTag := false
-	for _, tag := range objsOf(note["tag"]) {
-		if typeOf(tag) == "Hashtag" && str(tag, "name") == "#hello" && strings.HasPrefix(str(tag, "href"), la.base) {
+	for _, tag := range ap.Objects(note["tag"]) {
+		if ap.Type(tag) == "Hashtag" && ap.Str(tag, "name") == "#hello" && strings.HasPrefix(ap.Str(tag, "href"), la.base) {
 			foundTag = true
 		}
 	}
@@ -478,8 +480,8 @@ func checkOurNote(t *testing.T, la *liveApp, note obj, st *Status) {
 		t.Errorf("Hashtag tag missing: %v", note["tag"])
 	}
 	public := false
-	for _, to := range idsOf(note["to"]) {
-		public = public || to == asPublic
+	for _, to := range ap.IDs(note["to"]) {
+		public = public || to == ap.Public
 	}
 	if !public {
 		t.Error("public post not addressed to as:Public")

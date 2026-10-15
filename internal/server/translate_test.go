@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"git.freifick.net/slop/trough/internal/ap"
 )
 
 func TestTranslate(t *testing.T) {
@@ -18,7 +20,7 @@ func TestTranslate(t *testing.T) {
 	}
 	f.mu.Lock()
 	n := len(f.requests)
-	user := str(objOf(f.requests[0]["messages"].([]any)[1]), "content")
+	user := ap.Str(ap.Object(f.requests[0]["messages"].([]any)[1]), "content")
 	f.mu.Unlock()
 	if !strings.Contains(user, "Target language: German") || !strings.Contains(user, "<post>\nHello world") || !strings.HasSuffix(user, "</post>") {
 		t.Errorf("prompt = %q", user)
@@ -41,7 +43,7 @@ func TestTranslate(t *testing.T) {
 		t.Errorf("translation_languages = %v", langs)
 	}
 	inst := c.ok("GET", "/api/v2/instance", nil).(map[string]any)
-	if !objOf(objOf(inst["configuration"])["translation"])["enabled"].(bool) {
+	if !ap.Object(ap.Object(inst["configuration"])["translation"])["enabled"].(bool) {
 		t.Error("instance doesn't advertise translation")
 	}
 	la.setSetting("ai_api_key", "")

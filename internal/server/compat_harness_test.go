@@ -32,6 +32,7 @@ import (
 
 	gofed "github.com/go-fed/httpsig"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/httpsig"
 )
 
@@ -179,9 +180,9 @@ func (r *remote) serve(w http.ResponseWriter, req *http.Request) {
 		defer r.mu.Unlock()
 		for path, doc := range r.docs {
 			var m obj
-			if json.Unmarshal([]byte(doc), &m) == nil && actorTypes[typeOf(m)] && str(m, "preferredUsername") == user {
+			if json.Unmarshal([]byte(doc), &m) == nil && actorTypes[ap.Type(m)] && ap.Str(m, "preferredUsername") == user {
 				w.Header().Set("Content-Type", "application/jrd+json")
-				json.NewEncoder(w).Encode(obj{"subject": res, "links": []obj{{"rel": "self", "type": apMimeType, "href": r.Base + path}}})
+				json.NewEncoder(w).Encode(obj{"subject": res, "links": []obj{{"rel": "self", "type": ap.MimeType, "href": r.Base + path}}})
 				return
 			}
 		}
@@ -200,7 +201,7 @@ func (r *remote) serve(w http.ResponseWriter, req *http.Request) {
 	case doc == "GONE":
 		w.WriteHeader(http.StatusGone)
 	default:
-		w.Header().Set("Content-Type", apMimeType)
+		w.Header().Set("Content-Type", ap.MimeType)
 		io.WriteString(w, doc)
 	}
 }
@@ -297,8 +298,8 @@ func (r *remote) verifyIncomingRFC9421(req *http.Request, body []byte) error {
 }
 
 func (r *remote) fetchLocalKey(keyID string) (crypto.PublicKey, error) {
-	req, _ := http.NewRequest("GET", stripFragment(keyID), nil)
-	req.Header.Set("Accept", apMimeType)
+	req, _ := http.NewRequest("GET", ap.StripFragment(keyID), nil)
+	req.Header.Set("Accept", ap.MimeType)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -308,11 +309,11 @@ func (r *remote) fetchLocalKey(keyID string) (crypto.PublicKey, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&actor); err != nil {
 		return nil, err
 	}
-	pk := objOf(actor["publicKey"])
-	if str(pk, "id") != keyID || str(pk, "owner") != str(actor, "id") {
+	pk := ap.Object(actor["publicKey"])
+	if ap.Str(pk, "id") != keyID || ap.Str(pk, "owner") != ap.Str(actor, "id") {
 		return nil, fmt.Errorf("key %s not found in actor document", keyID)
 	}
-	return httpsig.ParsePublicKey(str(pk, "publicKeyPem"))
+	return httpsig.ParsePublicKey(ap.Str(pk, "publicKeyPem"))
 }
 
 // received activities of a type, in order.
@@ -321,7 +322,7 @@ func (r *remote) receivedOf(typ string) []received {
 	defer r.mu.Unlock()
 	var out []received
 	for _, rec := range r.inbox {
-		if typeOf(rec.Activity) == typ {
+		if ap.Type(rec.Activity) == typ {
 			out = append(out, rec)
 		}
 	}
@@ -427,7 +428,7 @@ func (r *remote) send(act obj, keyID, style string, path ...string) int {
 		p = path[0]
 	}
 	req, _ := http.NewRequest("POST", r.la.base+p, bytes.NewReader(body))
-	req.Header.Set("Content-Type", apMimeType)
+	req.Header.Set("Content-Type", ap.MimeType)
 	r.sign(req, body, keyID, style)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -444,7 +445,7 @@ func (r *remote) send(act obj, keyID, style string, path ...string) int {
 // signedGet fetches a trough URL as the remote actor (authorized fetch).
 func (r *remote) signedGet(u, keyID string) (int, obj) {
 	req, _ := http.NewRequest("GET", u, nil)
-	req.Header.Set("Accept", apMimeType)
+	req.Header.Set("Accept", ap.MimeType)
 	req.Header.Set("Host", req.Host)
 	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	if keyID != "" {

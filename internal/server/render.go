@@ -20,6 +20,7 @@ import (
 
 	xhtml "golang.org/x/net/html"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 	"git.freifick.net/slop/trough/web"
 )
@@ -191,7 +192,7 @@ func (app *App) templateFuncs() template.FuncMap {
 		"visLabel": func(v string) string {
 			return map[string]string{"public": "Public", "unlisted": "Unlisted", "private": "Followers only", "direct": "Direct"}[v]
 		},
-		"hostOf":     hostOf,
+		"hostOf":     ap.Host,
 		"remoteLink": func(s *Status) string { return s.URL },
 		"isImage":    func(at *Attachment) bool { return at.Kind() == "image" },
 		"localPath": func(u string) string {
@@ -414,7 +415,7 @@ func (app *App) handleFromLink(href, text string) string {
 		return ""
 	}
 	if domain == "" {
-		domain = hostOf(href)
+		domain = ap.Host(href)
 	}
 	domain = strings.ToLower(domain)
 	if domain == "" || strings.ContainsAny(domain, " /?#@") {

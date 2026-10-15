@@ -8,6 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -104,7 +105,7 @@ func (app *App) collectionActivity(kind string, me *Account, st *Status) obj {
 		"id":     me.URI + "#" + strings.ToLower(kind) + "/" + ulid.New(),
 		"type":   kind,
 		"actor":  me.URI,
-		"to":     []any{asPublic},
+		"to":     []any{ap.Public},
 		"cc":     []any{me.FollowersURI},
 		"object": st.URI,
 		"target": me.URI + "/collections/featured",
@@ -124,14 +125,14 @@ func (app *App) pinnedStatuses(v, acc *Account) []*Status {
 
 // inAddRemove handles pins of remote accounts (Add/Remove to their featured collection).
 func (app *App) inAddRemove(ctx context.Context, actor *Account, act obj) error {
-	target := idOf(act["target"])
-	if target == "" || (target != actor.FeaturedURI && !strings.HasSuffix(target, "/collections/featured")) || !sameHost(target, actor.URI) {
+	target := ap.ID(act["target"])
+	if target == "" || (target != actor.FeaturedURI && !strings.HasSuffix(target, "/collections/featured")) || !ap.SameHost(target, actor.URI) {
 		return nil
 	}
-	iri := idOf(act["object"])
+	iri := ap.ID(act["object"])
 	st, err := app.StatusByURI(iri)
 	if err != nil {
-		if typeOf(act) == "Remove" || !app.hasLocalFollowers(actor.ID) {
+		if ap.Type(act) == "Remove" || !app.hasLocalFollowers(actor.ID) {
 			return nil
 		}
 		if st, err = app.resolveStatus(ctx, iri); err != nil {
@@ -141,7 +142,7 @@ func (app *App) inAddRemove(ctx context.Context, actor *Account, act obj) error 
 	if st.AccountID != actor.ID {
 		return errors.New("pin of someone else's post")
 	}
-	if typeOf(act) == "Add" {
+	if ap.Type(act) == "Add" {
 		_, err = app.db.Exec(`UPDATE statuses SET pinned_at=? WHERE id=?`, time.Now().Unix(), st.ID)
 	} else {
 		_, err = app.db.Exec(`UPDATE statuses SET pinned_at=0 WHERE id=?`, st.ID)
@@ -151,7 +152,7 @@ func (app *App) inAddRemove(ctx context.Context, actor *Account, act obj) error 
 
 // syncFeatured fetches a remote account's pinned posts.
 func (app *App) syncFeatured(ctx context.Context, acc *Account) {
-	if acc.IsLocal() || acc.FeaturedURI == "" || !sameHost(acc.FeaturedURI, acc.URI) {
+	if acc.IsLocal() || acc.FeaturedURI == "" || !ap.SameHost(acc.FeaturedURI, acc.URI) {
 		return
 	}
 	coll, err := app.fetchAP(ctx, acc.FeaturedURI)
@@ -174,12 +175,12 @@ func (app *App) syncFeatured(ctx context.Context, acc *Account) {
 			break
 		}
 		var st *Status
-		if note, ok := it.(obj); ok && noteTypes[typeOf(note)] && attributedToIncludes(note, acc.URI) && sameHost(str(note, "id"), acc.URI) {
-			if v := visibilityFrom(note, acc.FollowersURI); v != "public" && v != "unlisted" {
+		if note, ok := it.(obj); ok && noteTypes[ap.Type(note)] && attributedToIncludes(note, acc.URI) && ap.SameHost(ap.Str(note, "id"), acc.URI) {
+			if v := ap.Visibility(note, acc.FollowersURI); v != "public" && v != "unlisted" {
 				continue
 			}
 			st, err = app.storeNote(ctx, acc, note, 5)
-		} else if iri := idOf(it); sameHost(iri, acc.URI) {
+		} else if iri := ap.ID(it); ap.SameHost(iri, acc.URI) {
 			st, err = app.resolveStatusDepth(ctx, iri, 5)
 		}
 		if err == nil && st != nil && st.AccountID == acc.ID {
@@ -568,7 +569,7 @@ func (app *App) notifyAdmins(fromID, typ string) {
 func (app *App) inFlag(actor *Account, act obj) error {
 	var target *Account
 	var statusIDs []string
-	for _, iri := range idsOf(act["object"]) {
+	for _, iri := range ap.IDs(act["object"]) {
 		if acc, err := app.localTarget(iri); err == nil && target == nil {
 			target = acc
 		} else if st, err := app.StatusByURI(iri); err == nil && st.Local {
@@ -583,7 +584,7 @@ func (app *App) inFlag(actor *Account, act obj) error {
 	}
 	ids, _ := jsonMarshal(statusIDs)
 	_, err := app.db.Exec(`INSERT INTO reports (id,uri,account_id,target_id,status_ids,comment,created_at) VALUES (?,?,?,?,?,?,?)`,
-		ulid.New(), str(act, "id"), actor.ID, target.ID, ids, truncateRunes(plainText(str(act, "content")), 1000), time.Now().Unix())
+		ulid.New(), ap.Str(act, "id"), actor.ID, target.ID, ids, truncateRunes(plainText(ap.Str(act, "content")), 1000), time.Now().Unix())
 	if err == nil {
 		app.notifyAdmins(actor.ID, "report")
 	}

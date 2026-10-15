@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -53,7 +54,7 @@ func (app *App) AddRelay(ctx context.Context, raw string) error {
 	if strings.HasSuffix(u.Path, "/inbox") {
 		// Mastodon-style relay: follow the public collection
 		r.Inbox, r.Style = u.String(), "mastodon"
-		follow = withContext(obj{"id": followURI, "type": "Follow", "actor": inst.URI, "object": asPublic})
+		follow = withContext(obj{"id": followURI, "type": "Follow", "actor": inst.URI, "object": ap.Public})
 	} else {
 		// LitePub-style relay: follow the relay actor
 		m, err := app.fetchAP(ctx, u.String())
@@ -81,7 +82,7 @@ func (app *App) RemoveRelay(id string) error {
 		return errNotFound
 	}
 	inst := app.instanceActor()
-	object := any(asPublic)
+	object := any(ap.Public)
 	if r.Style == "litepub" {
 		object = r.ActorURI
 	}
@@ -97,13 +98,13 @@ func (app *App) isRelay(actor *Account) bool {
 	}
 	var x int
 	return app.db.QueryRow(`SELECT 1 FROM relays WHERE actor_uri=? OR (style='mastodon' AND actor_uri='' AND inbox LIKE ?)`,
-		actor.URI, "%://"+hostOf(actor.URI)+"/%").Scan(&x) == nil
+		actor.URI, "%://"+ap.Host(actor.URI)+"/%").Scan(&x) == nil
 }
 
 // relayAccept marks a relay subscription as accepted.
 func (app *App) relayAccept(actor *Account, followURI string, accepted bool) bool {
 	var id string
-	if app.db.QueryRow(`SELECT id FROM relays WHERE follow_uri=? OR (actor_uri='' AND inbox LIKE ?)`, followURI, "%://"+hostOf(actor.URI)+"/%").Scan(&id) != nil {
+	if app.db.QueryRow(`SELECT id FROM relays WHERE follow_uri=? OR (actor_uri='' AND inbox LIKE ?)`, followURI, "%://"+ap.Host(actor.URI)+"/%").Scan(&id) != nil {
 		return false
 	}
 	if accepted {
@@ -134,14 +135,14 @@ func (app *App) relayInboxes() []string {
 // always fetched from its origin server.
 func (app *App) inRelayed(ctx context.Context, act obj) error {
 	o := act["object"]
-	if inner, ok := o.(obj); ok && wrappedActivityTypes[typeOf(inner)] {
+	if inner, ok := o.(obj); ok && wrappedActivityTypes[ap.Type(inner)] {
 		act, o = inner, inner["object"]
 	}
-	iri := idOf(o)
+	iri := ap.ID(o)
 	if iri == "" || app.isLocalIRI(iri) {
 		return nil
 	}
-	switch typeOf(act) {
+	switch ap.Type(act) {
 	case "Announce", "Create":
 		if _, err := app.StatusByURI(iri); err == nil {
 			return nil

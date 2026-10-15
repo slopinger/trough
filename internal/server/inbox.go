@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -30,18 +31,18 @@ func (app *App) handleInbox(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
-	actorIRI := idOf(act["actor"])
+	actorIRI := ap.ID(act["actor"])
 	if actorIRI == "" {
 		http.Error(w, "activity without actor", http.StatusBadRequest)
 		return
 	}
-	if app.domainBlocked(hostOf(actorIRI)) {
+	if app.domainBlocked(ap.Host(actorIRI)) {
 		w.WriteHeader(http.StatusAccepted)
 		return
 	}
 	// Deletes of accounts we never heard of are very common (servers
 	// broadcast them everywhere); don't bother fetching a key that is gone.
-	if typeOf(act) == "Delete" && idOf(act["object"]) == actorIRI {
+	if ap.Type(act) == "Delete" && ap.ID(act["object"]) == actorIRI {
 		if _, err := app.AccountByURI(actorIRI); err != nil {
 			w.WriteHeader(http.StatusAccepted)
 			return
@@ -53,11 +54,11 @@ func (app *App) handleInbox(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusAccepted)
 			return
 		}
-		log.Printf("inbox: rejecting %s %s from %s: %v", typeOf(act), str(act, "id"), actorIRI, err)
+		log.Printf("inbox: rejecting %s %s from %s: %v", ap.Type(act), ap.Str(act, "id"), actorIRI, err)
 		http.Error(w, "signature verification failed", http.StatusUnauthorized)
 		return
 	}
-	if signer.URI != stripFragment(actorIRI) && !app.isRelay(signer) {
+	if signer.URI != ap.StripFragment(actorIRI) && !app.isRelay(signer) {
 		log.Printf("inbox: signer %s does not match actor %s", signer.URI, actorIRI)
 		http.Error(w, "signer does not match actor", http.StatusUnauthorized)
 		return
@@ -82,7 +83,7 @@ func (app *App) inboxWorker(ctx context.Context) {
 		case job := <-app.inboxQueue:
 			jctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 			if err := app.processActivity(jctx, job.signer, job.activity); err != nil {
-				log.Printf("inbox: %s %s from %s: %v", typeOf(job.activity), str(job.activity, "id"), job.signer.URI, err)
+				log.Printf("inbox: %s %s from %s: %v", ap.Type(job.activity), ap.Str(job.activity, "id"), job.signer.URI, err)
 			}
 			cancel()
 		}
@@ -95,12 +96,12 @@ func (app *App) isLocalIRI(iri string) bool {
 
 func (app *App) processActivity(ctx context.Context, actor *Account, act obj) error {
 	if app.isRelay(actor) {
-		switch typeOf(act) {
+		switch ap.Type(act) {
 		case "Announce", "Create", "Update", "Delete":
 			return app.inRelayed(ctx, act)
 		}
 	}
-	switch typeOf(act) {
+	switch ap.Type(act) {
 	case "Follow":
 		return app.inFollow(actor, act)
 	case "Accept", "Reject":
@@ -148,11 +149,11 @@ func (app *App) localTarget(iri string) (*Account, error) {
 }
 
 func (app *App) inFollow(actor *Account, act obj) error {
-	target, err := app.localTarget(idOf(act["object"]))
+	target, err := app.localTarget(ap.ID(act["object"]))
 	if err != nil {
 		return err
 	}
-	followURI := str(act, "id")
+	followURI := ap.Str(act, "id")
 	if followURI == "" {
 		return errors.New("follow without id")
 	}
@@ -186,24 +187,24 @@ func (app *App) inFollow(actor *Account, act obj) error {
 
 func (app *App) inAcceptReject(ctx context.Context, actor *Account, act obj) error {
 	o := act["object"]
-	followURI := idOf(o)
+	followURI := ap.ID(o)
 	var followerID string
 	err := app.db.QueryRow(`SELECT account_id FROM follows WHERE uri=? AND target_id=?`, followURI, actor.ID).Scan(&followerID)
 	if err != nil {
 		// some servers only embed actor/object of our Follow
-		if m, ok := o.(obj); ok && typeOf(m) == "Follow" {
-			if me, err := app.localTarget(idOf(m["actor"])); err == nil {
+		if m, ok := o.(obj); ok && ap.Type(m) == "Follow" {
+			if me, err := app.localTarget(ap.ID(m["actor"])); err == nil {
 				followerID = me.ID
 			}
 		}
 		if followerID == "" {
-			if app.relayAccept(actor, followURI, typeOf(act) == "Accept") {
+			if app.relayAccept(actor, followURI, ap.Type(act) == "Accept") {
 				return nil
 			}
 			return errors.New("unknown follow")
 		}
 	}
-	if typeOf(act) == "Accept" {
+	if ap.Type(act) == "Accept" {
 		app.db.Exec(`UPDATE follows SET accepted=1 WHERE account_id=? AND target_id=?`, followerID, actor.ID)
 		go app.backfillOutbox(context.Background(), actor)
 	} else {
@@ -214,12 +215,12 @@ func (app *App) inAcceptReject(ctx context.Context, actor *Account, act obj) err
 
 func (app *App) inUndo(actor *Account, act obj) error {
 	o := act["object"]
-	innerID := idOf(o)
+	innerID := ap.ID(o)
 	inner, _ := o.(obj)
 	kind := ""
 	if inner != nil {
-		kind = typeOf(inner)
-		if a := idOf(inner["actor"]); a != "" && a != actor.URI {
+		kind = ap.Type(inner)
+		if a := ap.ID(inner["actor"]); a != "" && a != actor.URI {
 			return errors.New("undo of someone else's activity")
 		}
 	}
@@ -234,7 +235,7 @@ func (app *App) inUndo(actor *Account, act obj) error {
 		var targetID string
 		err := app.db.QueryRow(`DELETE FROM follows WHERE uri=? AND account_id=? RETURNING target_id`, innerID, actor.ID).Scan(&targetID)
 		if errors.Is(err, sql.ErrNoRows) && inner != nil {
-			if target, targetErr := app.localTarget(idOf(inner["object"])); targetErr == nil {
+			if target, targetErr := app.localTarget(ap.ID(inner["object"])); targetErr == nil {
 				err = app.db.QueryRow(`DELETE FROM follows WHERE account_id=? AND target_id=? RETURNING target_id`, actor.ID, target.ID).Scan(&targetID)
 			}
 		}
@@ -254,7 +255,7 @@ func (app *App) inUndo(actor *Account, act obj) error {
 		var statusID string
 		err := app.db.QueryRow(`DELETE FROM likes WHERE uri=? AND account_id=? RETURNING status_id`, innerID, actor.ID).Scan(&statusID)
 		if errors.Is(err, sql.ErrNoRows) && inner != nil {
-			if st, statusErr := app.StatusByURI(idOf(inner["object"])); statusErr == nil {
+			if st, statusErr := app.StatusByURI(ap.ID(inner["object"])); statusErr == nil {
 				err = app.db.QueryRow(`DELETE FROM likes WHERE account_id=? AND status_id=? RETURNING status_id`, actor.ID, st.ID).Scan(&statusID)
 			}
 		}
@@ -286,22 +287,22 @@ func (app *App) inUndo(actor *Account, act obj) error {
 }
 
 func (app *App) inBlock(actor *Account, act obj) error {
-	target, err := app.localTarget(idOf(act["object"]))
+	target, err := app.localTarget(ap.ID(act["object"]))
 	if err != nil {
 		return err
 	}
 	app.db.Exec(`INSERT OR IGNORE INTO blocks (id,uri,account_id,target_id,created_at) VALUES (?,?,?,?,?)`,
-		ulid.New(), str(act, "id"), actor.ID, target.ID, time.Now().Unix())
+		ulid.New(), ap.Str(act, "id"), actor.ID, target.ID, time.Now().Unix())
 	app.db.Exec(`DELETE FROM follows WHERE (account_id=? AND target_id=?) OR (account_id=? AND target_id=?)`, actor.ID, target.ID, target.ID, actor.ID)
 	return nil
 }
 
 func (app *App) inLike(actor *Account, act obj) error {
-	st, err := app.StatusByURI(idOf(act["object"]))
+	st, err := app.StatusByURI(ap.ID(act["object"]))
 	if err != nil {
 		return nil // not something we know about
 	}
-	uri := str(act, "id")
+	uri := ap.Str(act, "id")
 	if uri == "" {
 		uri = actor.URI + "#likes/" + st.ID
 	}
@@ -314,9 +315,9 @@ func (app *App) inLike(actor *Account, act obj) error {
 		app.notify(st.AccountID, "favourite", actor.ID, st.ID)
 	}
 	// Misskey sends reactions as Likes with the emoji as content
-	reaction := str(act, "_misskey_reaction")
+	reaction := ap.Str(act, "_misskey_reaction")
 	if reaction == "" {
-		reaction = str(act, "content")
+		reaction = ap.Str(act, "content")
 	}
 	if reaction != "" {
 		app.storeReaction(actor, st, act, reaction)
@@ -325,17 +326,17 @@ func (app *App) inLike(actor *Account, act obj) error {
 }
 
 func (app *App) inAnnounce(ctx context.Context, actor *Account, act obj) error {
-	uri := str(act, "id")
+	uri := ap.Str(act, "id")
 	if uri == "" {
 		return errors.New("announce without id")
 	}
 	if _, err := app.StatusByURI(uri); err == nil {
 		return nil
 	}
-	if inner, ok := act["object"].(obj); ok && wrappedActivityTypes[typeOf(inner)] {
+	if inner, ok := act["object"].(obj); ok && wrappedActivityTypes[ap.Type(inner)] {
 		return app.inAnnouncedActivity(ctx, actor, act, inner)
 	}
-	objIRI := idOf(act["object"])
+	objIRI := ap.ID(act["object"])
 	orig, err := app.StatusByURI(objIRI)
 	if err != nil {
 		// only pull in boosted posts for accounts somebody here follows
@@ -350,13 +351,13 @@ func (app *App) inAnnounce(ctx context.Context, actor *Account, act obj) error {
 	if orig.Visibility != "public" && orig.Visibility != "unlisted" {
 		return nil
 	}
-	published := parseTime(str(act, "published"))
+	published := ap.ParseTime(ap.Str(act, "published"))
 	if published.IsZero() || published.After(time.Now()) {
 		published = time.Now()
 	}
 	b := &Status{
 		ID: ulid.At(published), URI: uri, URL: uri, AccountID: actor.ID, BoostOfID: orig.ID,
-		Visibility: visibilityFrom(act, actor.FollowersURI), CreatedAt: published,
+		Visibility: ap.Visibility(act, actor.FollowersURI), CreatedAt: published,
 	}
 	if b.Visibility != "public" && b.Visibility != "unlisted" {
 		b.Visibility = "unlisted"
@@ -379,15 +380,15 @@ var wrappedActivityTypes = map[string]bool{"Create": true, "Update": true, "Dele
 // Announce. The wrapped activity isn't signed by its author, so everything
 // is re-fetched from the origin server instead of trusting the embed.
 func (app *App) inAnnouncedActivity(ctx context.Context, group *Account, act, inner obj) error {
-	objIRI := idOf(inner["object"])
+	objIRI := ap.ID(inner["object"])
 	if objIRI == "" {
 		return nil
 	}
-	switch typeOf(inner) {
+	switch ap.Type(inner) {
 	case "Create", "Update":
 		existing, err := app.StatusByURI(objIRI)
 		if err == nil {
-			if typeOf(inner) == "Update" {
+			if ap.Type(inner) == "Update" {
 				return app.refreshStatus(ctx, existing)
 			}
 		} else {
@@ -398,10 +399,10 @@ func (app *App) inAnnouncedActivity(ctx context.Context, group *Account, act, in
 				return err
 			}
 		}
-		if typeOf(inner) != "Create" || existing.Visibility == "private" || existing.Visibility == "direct" {
+		if ap.Type(inner) != "Create" || existing.Visibility == "private" || existing.Visibility == "direct" {
 			return nil
 		}
-		boostURI := str(act, "id")
+		boostURI := ap.Str(act, "id")
 		if _, err := app.StatusByURI(boostURI); err == nil || boostURI == "" {
 			return nil
 		}
@@ -422,7 +423,7 @@ func (app *App) inAnnouncedActivity(ctx context.Context, group *Account, act, in
 		}
 		// only believe the deletion if the origin no longer serves the post
 		m, err := app.fetchAP(ctx, objIRI)
-		if errors.Is(err, errGone) || errors.Is(err, errNotFound) || (err == nil && typeOf(m) == "Tombstone") {
+		if errors.Is(err, errGone) || errors.Is(err, errNotFound) || (err == nil && ap.Type(m) == "Tombstone") {
 			return app.purgeStatus(st.ID)
 		}
 		return nil
@@ -443,7 +444,7 @@ func (app *App) refreshStatus(ctx context.Context, st *Status) error {
 	if err != nil {
 		return err
 	}
-	if _, listed := attributedTo(m, acc.URI); !listed || str(m, "id") != st.URI {
+	if _, listed := attributedTo(m, acc.URI); !listed || ap.Str(m, "id") != st.URI {
 		return errors.New("refetched post changed author or id")
 	}
 	app.applyNote(st, m)
@@ -466,19 +467,19 @@ func (app *App) inCreate(ctx context.Context, actor *Account, act obj) error {
 	note, ok := o.(obj)
 	if !ok {
 		// only a reference; fetch it
-		m, err := app.fetchAP(ctx, idOf(o))
+		m, err := app.fetchAP(ctx, ap.ID(o))
 		if err != nil {
 			return err
 		}
 		note = m
 	}
-	if !noteTypes[typeOf(note)] {
+	if !noteTypes[ap.Type(note)] {
 		return nil
 	}
 	sender, author := actor, actor
-	if a, listed := attributedTo(note, actor.URI); !listed || !sameHost(str(note, "id"), actor.URI) {
+	if a, listed := attributedTo(note, actor.URI); !listed || !ap.SameHost(ap.Str(note, "id"), actor.URI) {
 		// forwarded or forged: trust only what the origin server says
-		m, err := app.fetchAP(ctx, str(note, "id"))
+		m, err := app.fetchAP(ctx, ap.Str(note, "id"))
 		if err != nil {
 			return err
 		}
@@ -488,7 +489,7 @@ func (app *App) inCreate(ctx context.Context, actor *Account, act obj) error {
 		if err != nil {
 			return err
 		}
-		if !sameHost(str(note, "id"), author.URI) {
+		if !ap.SameHost(ap.Str(note, "id"), author.URI) {
 			return errors.New("note and author on different hosts")
 		}
 	}
@@ -506,15 +507,15 @@ func (app *App) inCreate(ctx context.Context, actor *Account, act obj) error {
 // array (PeerTube lists the account and the channel); the sender wins if it
 // is listed, otherwise the first Person.
 func attributedTo(note obj, sender string) (string, bool) {
-	ids := idsOf(note["attributedTo"])
+	ids := ap.IDs(note["attributedTo"])
 	for _, id := range ids {
 		if id == sender && sender != "" {
 			return id, true
 		}
 	}
-	for _, o := range objsOf(note["attributedTo"]) {
-		if typeOf(o) == "Person" && str(o, "id") != "" {
-			return str(o, "id"), false
+	for _, o := range ap.Objects(note["attributedTo"]) {
+		if ap.Type(o) == "Person" && ap.Str(o, "id") != "" {
+			return ap.Str(o, "id"), false
 		}
 	}
 	if len(ids) > 0 {
@@ -529,17 +530,17 @@ func (app *App) relevant(author *Account, note obj) bool {
 	if app.hasLocalFollowers(author.ID) {
 		return true
 	}
-	for _, r := range recipientsOf(note) {
+	for _, r := range ap.Recipients(note) {
 		if app.isLocalIRI(r) {
 			return true
 		}
 	}
-	for _, t := range objsOf(note["tag"]) {
-		if typeOf(t) == "Mention" && app.isLocalIRI(str(t, "href")) {
+	for _, t := range ap.Objects(note["tag"]) {
+		if ap.Type(t) == "Mention" && app.isLocalIRI(ap.Str(t, "href")) {
 			return true
 		}
 	}
-	if p := idOf(note["inReplyTo"]); p != "" {
+	if p := ap.ID(note["inReplyTo"]); p != "" {
 		if _, err := app.StatusByURI(p); err == nil {
 			return true
 		}
@@ -552,15 +553,15 @@ func (app *App) inUpdate(ctx context.Context, actor *Account, act obj) error {
 	if o == nil {
 		return nil
 	}
-	if actorTypes[typeOf(o)] {
-		if str(o, "id") != actor.URI {
+	if actorTypes[ap.Type(o)] {
+		if ap.Str(o, "id") != actor.URI {
 			return errors.New("update of another actor")
 		}
 		_, err := app.upsertActor(o)
 		return err
 	}
-	if noteTypes[typeOf(o)] {
-		st, err := app.StatusByURI(str(o, "id"))
+	if noteTypes[ap.Type(o)] {
+		st, err := app.StatusByURI(ap.Str(o, "id"))
 		if err != nil {
 			return nil
 		}
@@ -586,7 +587,7 @@ func (app *App) inUpdate(ctx context.Context, actor *Account, act obj) error {
 }
 
 func (app *App) inDelete(actor *Account, act obj) error {
-	iri := idOf(act["object"])
+	iri := ap.ID(act["object"])
 	if iri == actor.URI {
 		// the account is gone; remove what we have of it
 		log.Printf("inbox: account %s deleted", actor.URI)

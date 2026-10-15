@@ -5,6 +5,7 @@ import (
 	"path"
 	"strings"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -23,7 +24,7 @@ func (app *App) actorEndpoints(acc *Account) obj {
 
 func (app *App) actorJSON(acc *Account) obj {
 	m := obj{
-		"@context":                  apContext,
+		"@context":                  ap.Context,
 		"id":                        acc.URI,
 		"type":                      acc.ActorType,
 		"preferredUsername":         acc.Username,
@@ -36,7 +37,7 @@ func (app *App) actorJSON(acc *Account) obj {
 		"manuallyApprovesFollowers": acc.Locked,
 		"discoverable":              true,
 		"indexable":                 false,
-		"published":                 apTime(acc.CreatedAt),
+		"published":                 ap.Time(acc.CreatedAt),
 		"publicKey": obj{
 			"id":           acc.PublicKeyID,
 			"owner":        acc.URI,
@@ -102,11 +103,11 @@ func (app *App) addressing(st *Status) (to, cc []any) {
 	}
 	switch st.Visibility {
 	case "public":
-		to = []any{asPublic}
+		to = []any{ap.Public}
 		cc = append([]any{followers}, mentions...)
 	case "unlisted":
 		to = []any{followers}
-		cc = append([]any{asPublic}, mentions...)
+		cc = append([]any{ap.Public}, mentions...)
 	case "private":
 		to = []any{followers}
 		cc = mentions
@@ -148,7 +149,7 @@ func (app *App) noteJSON(st *Status) obj {
 		"type":         "Note",
 		"url":          st.URL,
 		"attributedTo": st.Account.URI,
-		"published":    apTime(st.CreatedAt),
+		"published":    ap.Time(st.CreatedAt),
 		"to":           to,
 		"cc":           cc,
 		"content":      st.Content,
@@ -179,7 +180,7 @@ func (app *App) noteJSON(st *Status) obj {
 		m["inReplyTo"] = st.InReplyToURI
 	}
 	if !st.EditedAt.IsZero() {
-		m["updated"] = apTime(st.EditedAt)
+		m["updated"] = ap.Time(st.EditedAt)
 	}
 	app.questionFields(st, m)
 	app.quoteFields(st, m)
@@ -195,7 +196,7 @@ func (app *App) accountHost(a *Account) string {
 }
 
 func withContext(m obj) obj {
-	m["@context"] = apContext
+	m["@context"] = ap.Context
 	return m
 }
 
@@ -226,17 +227,17 @@ func (app *App) updateNoteActivity(st *Status) obj {
 
 func (app *App) announceActivity(boost *Status) obj {
 	orig := boost.BoostOf
-	to := []any{asPublic}
+	to := []any{ap.Public}
 	cc := []any{orig.Account.URI, boost.Account.FollowersURI}
 	if orig.Visibility == "unlisted" {
 		to = []any{boost.Account.FollowersURI}
-		cc = []any{asPublic, orig.Account.URI}
+		cc = []any{ap.Public, orig.Account.URI}
 	}
 	return withContext(obj{
 		"id":        boost.URI,
 		"type":      "Announce",
 		"actor":     boost.Account.URI,
-		"published": apTime(boost.CreatedAt),
+		"published": ap.Time(boost.CreatedAt),
 		"to":        to,
 		"cc":        cc,
 		"object":    orig.URI,
@@ -313,7 +314,7 @@ func (app *App) updateActorActivity(acc *Account) obj {
 		"id":     acc.URI + "#updates/" + ulid.New(),
 		"type":   "Update",
 		"actor":  acc.URI,
-		"to":     []any{asPublic},
+		"to":     []any{ap.Public},
 		"cc":     []any{acc.FollowersURI},
 		"object": actor,
 	})

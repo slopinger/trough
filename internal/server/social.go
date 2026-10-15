@@ -13,6 +13,7 @@ import (
 
 	xhtml "golang.org/x/net/html"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -47,7 +48,7 @@ func (app *App) storeReaction(actor *Account, st *Status, act obj, content strin
 		return false
 	}
 	res, err := app.db.Exec(`INSERT OR IGNORE INTO reactions (status_id, account_id, emoji, emoji_url, uri, created_at) VALUES (?,?,?,?,?,?)`,
-		st.ID, actor.ID, content, emojiURL, str(act, "id"), time.Now().Unix())
+		st.ID, actor.ID, content, emojiURL, ap.Str(act, "id"), time.Now().Unix())
 	if err != nil {
 		return false
 	}
@@ -56,13 +57,13 @@ func (app *App) storeReaction(actor *Account, st *Status, act obj, content strin
 }
 
 func (app *App) inEmojiReact(actor *Account, act obj) error {
-	st, err := app.StatusByURI(idOf(act["object"]))
+	st, err := app.StatusByURI(ap.ID(act["object"]))
 	if err != nil {
 		return nil
 	}
-	content := str(act, "content")
+	content := ap.Str(act, "content")
 	if content == "" {
-		content = str(act, "_misskey_reaction")
+		content = ap.Str(act, "_misskey_reaction")
 	}
 	if app.storeReaction(actor, st, act, content) && st.Local {
 		app.notify(st.AccountID, "reaction", actor.ID, st.ID)
@@ -146,14 +147,14 @@ func (app *App) reactionsFor(v *Account, ids []string) map[string][]ReactionCoun
 // or a FEP-e232 object link tag.
 func quoteOf(note obj) string {
 	for _, k := range []string{"quote", "quoteUri", "quoteUrl", "_misskey_quote"} {
-		if v := idOf(note[k]); strings.HasPrefix(v, "http") {
+		if v := ap.ID(note[k]); strings.HasPrefix(v, "http") {
 			return v
 		}
 	}
-	for _, t := range objsOf(note["tag"]) {
-		mt := str(t, "mediaType")
-		if typeOf(t) == "Link" && (strings.Contains(mt, "activity+json") || strings.Contains(mt, "ld+json")) {
-			if h := str(t, "href"); strings.HasPrefix(h, "http") {
+	for _, t := range ap.Objects(note["tag"]) {
+		mt := ap.Str(t, "mediaType")
+		if ap.Type(t) == "Link" && (strings.Contains(mt, "activity+json") || strings.Contains(mt, "ld+json")) {
+			if h := ap.Str(t, "href"); strings.HasPrefix(h, "http") {
 				return h
 			}
 		}
@@ -170,7 +171,7 @@ func (app *App) quoteFields(st *Status, m obj) {
 		m["quoteAuthorization"] = st.QuoteAuth
 	}
 	tags, _ := m["tag"].([]any)
-	m["tag"] = append(tags, obj{"type": "Link", "mediaType": ldMimeType, "href": st.QuoteURI, "name": "RE: " + st.QuoteURI})
+	m["tag"] = append(tags, obj{"type": "Link", "mediaType": ap.LDMimeType, "href": st.QuoteURI, "name": "RE: " + st.QuoteURI})
 }
 
 // hydrateQuotes attaches quoted posts (one level deep) that the viewer may see.

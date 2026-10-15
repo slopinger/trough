@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -26,9 +27,9 @@ func TestPollsFederate(t *testing.T) {
 		t.Fatal(err)
 	}
 	eventually(t, "Question delivered", func() bool { return len(r.receivedOf("Create")) == 1 })
-	q := objOf(r.receivedOf("Create")[0].Activity["object"])
-	opts := objsOf(q["oneOf"])
-	if typeOf(q) != "Question" || len(opts) != 2 || str(opts[1], "name") != "coffee" || str(q, "endTime") == "" {
+	q := ap.Object(r.receivedOf("Create")[0].Activity["object"])
+	opts := ap.Objects(q["oneOf"])
+	if ap.Type(q) != "Question" || len(opts) != 2 || ap.Str(opts[1], "name") != "coffee" || ap.Str(q, "endTime") == "" {
 		t.Fatalf("question = %v", q)
 	}
 	// alice votes coffee the way Mastodon does
@@ -45,8 +46,8 @@ func TestPollsFederate(t *testing.T) {
 	}
 	eventually(t, "Update with new counts", func() bool {
 		for _, u := range r.receivedOf("Update") {
-			o := objOf(u.Activity["object"])
-			if typeOf(o) == "Question" && objsOf(o["oneOf"])[1]["replies"].(obj)["totalItems"].(float64) == 1 {
+			o := ap.Object(u.Activity["object"])
+			if ap.Type(o) == "Question" && ap.Objects(o["oneOf"])[1]["replies"].(obj)["totalItems"].(float64) == 1 {
 				return true
 			}
 		}
@@ -58,10 +59,10 @@ func TestPollsFederate(t *testing.T) {
 	// bob votes in alice's poll
 	qid := r.Base + "/users/alice/statuses/poll"
 	question := `{"id": "` + qid + `", "type": "Question", "attributedTo": "{{R}}/users/alice", "content": "<p>cats or dogs?</p>",
-		"to": ["https://www.w3.org/ns/activitystreams#Public"], "endTime": "` + apTime(time.Now().Add(time.Hour)) + `",
+		"to": ["https://www.w3.org/ns/activitystreams#Public"], "endTime": "` + ap.Time(time.Now().Add(time.Hour)) + `",
 		"anyOf": [{"type": "Note", "name": "cats", "replies": {"type": "Collection", "totalItems": 3}}, {"type": "Note", "name": "dogs", "replies": {"type": "Collection", "totalItems": 1}}]}`
 	r.put("/users/alice/statuses/poll", question)
-	r.send(obj{"@context": asContext, "id": qid + "/activity", "type": "Create", "actor": alice.URI, "to": []any{asPublic}, "object": mustJSON(t, r.expand(question))},
+	r.send(obj{"@context": asContext, "id": qid + "/activity", "type": "Create", "actor": alice.URI, "to": []any{ap.Public}, "object": mustJSON(t, r.expand(question))},
 		r.Base+"/users/alice#main-key", sigCavage)
 	var rq *Status
 	eventually(t, "remote poll stored", func() bool { rq, err = la.StatusByURI(qid); return err == nil && rq.Poll != nil })
@@ -75,7 +76,7 @@ func TestPollsFederate(t *testing.T) {
 	eventually(t, "votes delivered", func() bool {
 		n := 0
 		for _, c := range r.receivedOf("Create") {
-			if o := objOf(c.Activity["object"]); str(o, "inReplyTo") == qid && str(o, "name") != "" {
+			if o := ap.Object(c.Activity["object"]); ap.Str(o, "inReplyTo") == qid && ap.Str(o, "name") != "" {
 				n++
 			}
 		}
@@ -117,7 +118,7 @@ func TestReactionsAndQuotes(t *testing.T) {
 		t.Fatal(err)
 	}
 	eventually(t, "EmojiReact delivered", func() bool { return len(r.receivedOf("EmojiReact")) == 1 })
-	if er := r.receivedOf("EmojiReact")[0].Activity; str(er, "content") != "🤓" || idOf(er["object"]) != theirs.URI {
+	if er := r.receivedOf("EmojiReact")[0].Activity; ap.Str(er, "content") != "🤓" || ap.ID(er["object"]) != theirs.URI {
 		t.Fatalf("EmojiReact = %v", er)
 	}
 
@@ -125,8 +126,8 @@ func TestReactionsAndQuotes(t *testing.T) {
 	for i, field := range []string{"_misskey_quote"} {
 		nid := r.Base + "/notes/q" + itoa(i)
 		note := obj{"id": nid, "type": "Note", "attributedTo": alice.URI, "content": "<p>look at this<span class=\"quote-inline\"><br>RE: " + mine.URL + "</span></p>",
-			"to": []any{asPublic}, "published": apTime(time.Now()), field: mine.URI}
-		r.send(obj{"@context": asContext, "id": nid + "/activity", "type": "Create", "actor": alice.URI, "to": []any{asPublic}, "object": note}, key, sigCavage)
+			"to": []any{ap.Public}, "published": ap.Time(time.Now()), field: mine.URI}
+		r.send(obj{"@context": asContext, "id": nid + "/activity", "type": "Create", "actor": alice.URI, "to": []any{ap.Public}, "object": note}, key, sigCavage)
 		var q *Status
 		eventually(t, field+" quote stored", func() bool { q, _ = la.StatusByURI(nid); return q != nil })
 		qf, _ := la.loadStatus(bob, q.ID)
@@ -144,8 +145,8 @@ func TestReactionsAndQuotes(t *testing.T) {
 	}
 	eventually(t, "quote Create delivered", func() bool {
 		for _, c := range r.receivedOf("Create") {
-			if o := objOf(c.Activity["object"]); str(o, "id") == qs.URI {
-				return str(o, "quote") == theirs.URI && str(o, "_misskey_quote") == theirs.URI && strings.Contains(str(o, "content"), "RE:")
+			if o := ap.Object(c.Activity["object"]); ap.Str(o, "id") == qs.URI {
+				return ap.Str(o, "quote") == theirs.URI && ap.Str(o, "_misskey_quote") == theirs.URI && strings.Contains(ap.Str(o, "content"), "RE:")
 			}
 		}
 		return false
@@ -159,15 +160,15 @@ func TestQuoteHandshake(t *testing.T) {
 	ctx := context.Background()
 	key := r.Base + "/users/alice#main-key"
 	mine, _ := la.PostStatus(ctx, bob, PostInput{Text: "quote me", Visibility: "public"})
-	if cq := objOf(objOf(la.noteJSON(mine)["interactionPolicy"])["canQuote"]); !reflect.DeepEqual(cq["automaticApproval"], []any{asPublic}) {
+	if cq := ap.Object(ap.Object(la.noteJSON(mine)["interactionPolicy"])["canQuote"]); !reflect.DeepEqual(cq["automaticApproval"], []any{ap.Public}) {
 		t.Fatalf("canQuote = %v", cq)
 	}
 
 	// alice quotes bob: pending until her server asks and bob's approves
 	nid := r.Base + "/notes/fq"
-	note := obj{"id": nid, "type": "Note", "attributedTo": alice.URI, "content": "<p>look</p>", "to": []any{asPublic},
-		"published": apTime(time.Now()), "quote": mine.URI}
-	r.send(obj{"@context": asContext, "id": nid + "/activity", "type": "Create", "actor": alice.URI, "to": []any{asPublic}, "object": note}, key, sigCavage)
+	note := obj{"id": nid, "type": "Note", "attributedTo": alice.URI, "content": "<p>look</p>", "to": []any{ap.Public},
+		"published": ap.Time(time.Now()), "quote": mine.URI}
+	r.send(obj{"@context": asContext, "id": nid + "/activity", "type": "Create", "actor": alice.URI, "to": []any{ap.Public}, "object": note}, key, sigCavage)
 	var q *Status
 	eventually(t, "quote stored", func() bool { q, _ = la.StatusByURI(nid); return q != nil })
 	if qf, _ := la.loadStatus(bob, q.ID); qf.QuoteState != "pending" || qf.Quote != nil || la.apiStatus(bob, qf)["quote"].(obj)["state"] != "pending" {
@@ -180,8 +181,8 @@ func TestQuoteHandshake(t *testing.T) {
 		"object": mine.URI, "instrument": note}, key, sigCavage)
 	eventually(t, "Accept with a stamp", func() bool { return len(r.receivedOf("Accept")) == 1 })
 	acc := r.receivedOf("Accept")[0].Activity
-	stamp := idOf(acc["result"])
-	if idOf(objOf(acc["object"])["id"]) != r.Base+"/quote_requests/1" || !strings.HasPrefix(stamp, bob.URI+"/quote_authorizations/") {
+	stamp := ap.ID(acc["result"])
+	if ap.ID(ap.Object(acc["object"])["id"]) != r.Base+"/quote_requests/1" || !strings.HasPrefix(stamp, bob.URI+"/quote_authorizations/") {
 		t.Fatalf("Accept = %v", acc)
 	}
 	qf, _ := la.loadStatus(bob, q.ID)
@@ -192,8 +193,8 @@ func TestQuoteHandshake(t *testing.T) {
 		t.Fatalf("quote notifications = %d", n)
 	}
 	code, auth := r.signedGet(stamp, "")
-	if code != 200 || typeOf(auth) != "QuoteAuthorization" || str(auth, "attributedTo") != bob.URI ||
-		idOf(auth["interactingObject"]) != nid || idOf(auth["interactionTarget"]) != mine.URI {
+	if code != 200 || ap.Type(auth) != "QuoteAuthorization" || ap.Str(auth, "attributedTo") != bob.URI ||
+		ap.ID(auth["interactingObject"]) != nid || ap.ID(auth["interactionTarget"]) != mine.URI {
 		t.Fatalf("stamp = %d %v", code, auth)
 	}
 	// her server then updates the note with the stamp; it stays approved
@@ -209,7 +210,7 @@ func TestQuoteHandshake(t *testing.T) {
 	}
 	eventually(t, "stamp deleted", func() bool {
 		for _, d := range r.receivedOf("Delete") {
-			if idOf(d.Activity["object"]) == stamp {
+			if ap.ID(d.Activity["object"]) == stamp {
 				return true
 			}
 		}
@@ -227,7 +228,7 @@ func TestQuoteHandshake(t *testing.T) {
 	r.send(obj{"@context": asContext, "id": r.Base + "/quote_requests/2", "type": "QuoteRequest", "actor": alice.URI,
 		"object": priv.URI, "instrument": r.Base + "/notes/fq2"}, key, sigCavage)
 	eventually(t, "Reject", func() bool { return len(r.receivedOf("Reject")) == 1 })
-	if rej := r.receivedOf("Reject")[0].Activity; idOf(objOf(rej["object"])["id"]) != r.Base+"/quote_requests/2" {
+	if rej := r.receivedOf("Reject")[0].Activity; ap.ID(ap.Object(rej["object"])["id"]) != r.Base+"/quote_requests/2" {
 		t.Fatalf("Reject = %v", rej)
 	}
 
@@ -243,16 +244,16 @@ func TestQuoteHandshake(t *testing.T) {
 	}
 	eventually(t, "QuoteRequest sent", func() bool { return len(r.receivedOf("QuoteRequest")) == 1 })
 	qr := r.receivedOf("QuoteRequest")[0].Activity
-	if idOf(qr["object"]) != theirs.URI || str(objOf(qr["instrument"]), "id") != bq.URI || str(objOf(qr["instrument"]), "quote") != theirs.URI {
+	if ap.ID(qr["object"]) != theirs.URI || ap.Str(ap.Object(qr["instrument"]), "id") != bq.URI || ap.Str(ap.Object(qr["instrument"]), "quote") != theirs.URI {
 		t.Fatalf("QuoteRequest = %v", qr)
 	}
 	r.send(obj{"@context": asContext, "id": r.Base + "/accepts/1", "type": "Accept", "actor": alice.URI,
-		"object": obj{"id": str(qr, "id"), "type": "QuoteRequest", "actor": bob.URI, "object": theirs.URI, "instrument": bq.URI},
+		"object": obj{"id": ap.Str(qr, "id"), "type": "QuoteRequest", "actor": bob.URI, "object": theirs.URI, "instrument": bq.URI},
 		"result": r.Base + "/users/alice/stamps/1"}, key, sigCavage)
 	eventually(t, "Update with the stamp", func() bool {
 		for _, u := range r.receivedOf("Update") {
-			if o := objOf(u.Activity["object"]); str(o, "id") == bq.URI {
-				return idOf(o["quoteAuthorization"]) == r.Base+"/users/alice/stamps/1"
+			if o := ap.Object(u.Activity["object"]); ap.Str(o, "id") == bq.URI {
+				return ap.ID(o["quoteAuthorization"]) == r.Base+"/users/alice/stamps/1"
 			}
 		}
 		return false
@@ -317,8 +318,8 @@ func TestCustomEmoji(t *testing.T) {
 	}
 	eventually(t, "Create with Emoji tag", func() bool {
 		for _, c := range r.receivedOf("Create") {
-			for _, tag := range objsOf(objOf(c.Activity["object"])["tag"]) {
-				if typeOf(tag) == "Emoji" && str(tag, "name") == ":blob_pig:" && strings.HasPrefix(urlOf(objOf(tag["icon"])), la.base+"/media/") {
+			for _, tag := range ap.Objects(ap.Object(c.Activity["object"])["tag"]) {
+				if ap.Type(tag) == "Emoji" && ap.Str(tag, "name") == ":blob_pig:" && strings.HasPrefix(ap.URL(ap.Object(tag["icon"])), la.base+"/media/") {
 					return true
 				}
 			}
@@ -329,11 +330,11 @@ func TestCustomEmoji(t *testing.T) {
 	bob.DisplayName = "Bob :blob_pig:"
 	la.UpdateProfile(bob)
 	_, actor := r.signedGet(bob.URI, "")
-	if tags := objsOf(actor["tag"]); len(tags) != 1 || str(tags[0], "name") != ":blob_pig:" {
+	if tags := ap.Objects(actor["tag"]); len(tags) != 1 || ap.Str(tags[0], "name") != ":blob_pig:" {
 		t.Errorf("actor tags = %v", actor["tag"])
 	}
 	code, em := r.signedGet(la.base+"/emojis/blob_pig", "")
-	if code != 200 || typeOf(em) != "Emoji" {
+	if code != 200 || ap.Type(em) != "Emoji" {
 		t.Errorf("emoji object = %d %v", code, em)
 	}
 	c := &apiClient{t: t, base: la.base}
@@ -352,7 +353,7 @@ func TestRemoteQuotePolicy(t *testing.T) {
 		want string
 	}{
 		{obj{}, ""},
-		{policy([]any{asPublic}, nil), "public"},
+		{policy([]any{ap.Public}, nil), "public"},
 		{policy(nil, []any{"as:Public"}), "public"},
 		{policy([]any{a.FollowersURI}, nil), "followers"},
 		{policy([]any{a.URI}, nil), "nobody"},
@@ -371,8 +372,8 @@ func TestEditNotifications(t *testing.T) {
 	ctx := context.Background()
 	key := r.Base + "/users/alice#main-key"
 	nid := r.Base + "/notes/edited"
-	note := obj{"id": nid, "type": "Note", "attributedTo": alice.URI, "content": "<p>first</p>", "to": []any{asPublic}, "published": apTime(time.Now())}
-	r.send(obj{"@context": asContext, "id": nid + "/activity", "type": "Create", "actor": alice.URI, "to": []any{asPublic}, "object": note}, key, sigCavage)
+	note := obj{"id": nid, "type": "Note", "attributedTo": alice.URI, "content": "<p>first</p>", "to": []any{ap.Public}, "published": ap.Time(time.Now())}
+	r.send(obj{"@context": asContext, "id": nid + "/activity", "type": "Create", "actor": alice.URI, "to": []any{ap.Public}, "object": note}, key, sigCavage)
 	var theirs *Status
 	eventually(t, "note stored", func() bool { theirs, _ = la.StatusByURI(nid); return theirs != nil })
 	full, _ := la.loadStatus(bob, theirs.ID)

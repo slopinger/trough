@@ -30,6 +30,7 @@ import (
 
 	"golang.org/x/crypto/hkdf"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -335,7 +336,7 @@ func (app *App) pushNotification(accountID, notifID string) {
 				if errors.Is(err, errGone) {
 					app.db.Exec(`DELETE FROM push_subscriptions WHERE id=?`, s.id)
 				} else {
-					log.Printf("push to %s: %v", hostOf(s.endpoint), err)
+					log.Printf("push to %s: %v", ap.Host(s.endpoint), err)
 				}
 			}
 		}

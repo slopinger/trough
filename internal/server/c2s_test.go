@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -23,7 +24,7 @@ func TestC2S(t *testing.T) {
 		t.Helper()
 		b, _ := json.Marshal(act)
 		req, _ := http.NewRequest("POST", bob.Outbox, bytes.NewReader(b))
-		req.Header.Set("Content-Type", ldMimeType)
+		req.Header.Set("Content-Type", ap.LDMimeType)
 		if tok != "" {
 			req.Header.Set("Authorization", "Bearer "+tok)
 		}
@@ -38,7 +39,7 @@ func TestC2S(t *testing.T) {
 		t.Helper()
 		code, loc := post(token, act)
 		if code != 201 || loc == "" {
-			t.Fatalf("%s: %d (Location %q)", typeOf(act), code, loc)
+			t.Fatalf("%s: %d (Location %q)", ap.Type(act), code, loc)
 		}
 		return loc
 	}
@@ -56,7 +57,7 @@ func TestC2S(t *testing.T) {
 	}
 
 	// Create, with source text and public addressing on the activity
-	loc := ok(obj{"@context": asContext, "type": "Create", "to": []any{asPublic}, "cc": []any{bob.FollowersURI},
+	loc := ok(obj{"@context": asContext, "type": "Create", "to": []any{ap.Public}, "cc": []any{bob.FollowersURI},
 		"object": obj{"type": "Note", "content": "<p>ignored</p>", "source": obj{"content": "hello from a C2S client #c2s", "mediaType": "text/plain"}}})
 	st, err := la.StatusByURI(strings.TrimSuffix(loc, "/activity"))
 	if err != nil || st.Visibility != "public" || st.Source != "hello from a C2S client #c2s" {
@@ -75,14 +76,14 @@ func TestC2S(t *testing.T) {
 	// replies, likes, boosts and their undos on a remote post
 	theirs := &Status{ID: ulid.New(), URI: r.Base + "/users/alice/statuses/9", AccountID: alice.ID, Visibility: "public", Content: "<p>remote</p>", CreatedAt: time.Now()}
 	la.insertStatus(theirs)
-	loc = ok(obj{"type": "Note", "content": "a reply", "inReplyTo": theirs.URI, "to": []any{asPublic}})
+	loc = ok(obj{"type": "Note", "content": "a reply", "inReplyTo": theirs.URI, "to": []any{ap.Public}})
 	reply, _ := la.StatusByURI(strings.TrimSuffix(loc, "/activity"))
 	if reply.InReplyToID != theirs.ID {
 		t.Errorf("reply not threaded: %+v", reply)
 	}
 	like := ok(obj{"type": "Like", "object": theirs.URI})
 	eventually(t, "Like delivered", func() bool { return len(r.receivedOf("Like")) == 1 })
-	if idOf(r.receivedOf("Like")[0].Activity["id"]) != like {
+	if ap.ID(r.receivedOf("Like")[0].Activity["id"]) != like {
 		t.Errorf("Location %s is not the Like's id", like)
 	}
 	ok(obj{"type": "Undo", "object": like})
@@ -120,7 +121,7 @@ func TestC2S(t *testing.T) {
 	// reading the inbox
 	get := func(u, tok string) (int, obj) {
 		req, _ := http.NewRequest("GET", u, nil)
-		req.Header.Set("Accept", apMimeType)
+		req.Header.Set("Accept", ap.MimeType)
 		if tok != "" {
 			req.Header.Set("Authorization", "Bearer "+tok)
 		}
@@ -138,10 +139,10 @@ func TestC2S(t *testing.T) {
 		t.Errorf("anonymous inbox read: %d", code)
 	}
 	_, coll := get(bob.Inbox, token)
-	_, page := get(str(coll, "first"), token)
+	_, page := get(ap.Str(coll, "first"), token)
 	found := false
-	for _, it := range objsOf(page["orderedItems"]) {
-		if idOf(objOf(it["object"])["id"]) == theirs.URI {
+	for _, it := range ap.Objects(page["orderedItems"]) {
+		if ap.ID(ap.Object(it["object"])["id"]) == theirs.URI {
 			found = true
 		}
 	}
@@ -149,7 +150,7 @@ func TestC2S(t *testing.T) {
 		t.Errorf("alice's post not in bob's inbox: %v", page)
 	}
 	_, actor := get(bob.URI, "")
-	if str(objOf(actor["endpoints"]), "oauthTokenEndpoint") != la.base+"/oauth/token" {
+	if ap.Str(ap.Object(actor["endpoints"]), "oauthTokenEndpoint") != la.base+"/oauth/token" {
 		t.Errorf("actor endpoints = %v", actor["endpoints"])
 	}
 }
@@ -167,7 +168,7 @@ func TestC2SUploadMedia(t *testing.T) {
 	mw.Close()
 	_, actor := func() (int, obj) {
 		req, _ := http.NewRequest("GET", bob.URI, nil)
-		req.Header.Set("Accept", apMimeType)
+		req.Header.Set("Accept", ap.MimeType)
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			t.Fatal(err)
@@ -177,7 +178,7 @@ func TestC2SUploadMedia(t *testing.T) {
 		json.NewDecoder(resp.Body).Decode(&m)
 		return resp.StatusCode, m
 	}()
-	endpoint := str(objOf(actor["endpoints"]), "uploadMedia")
+	endpoint := ap.Str(ap.Object(actor["endpoints"]), "uploadMedia")
 	req, _ := http.NewRequest("POST", endpoint, &body)
 	req.Header.Set("Content-Type", mw.FormDataContentType())
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -189,13 +190,13 @@ func TestC2SUploadMedia(t *testing.T) {
 	json.NewDecoder(resp.Body).Decode(&media)
 	resp.Body.Close()
 	loc := resp.Header.Get("Location")
-	if resp.StatusCode != 201 || loc == "" || typeOf(media) != "Image" || str(media, "name") != "a tiny square" {
+	if resp.StatusCode != 201 || loc == "" || ap.Type(media) != "Image" || ap.Str(media, "name") != "a tiny square" {
 		t.Fatalf("upload: %d %q %v", resp.StatusCode, loc, media)
 	}
 	post := func(act obj) int {
 		b, _ := json.Marshal(act)
 		req, _ := http.NewRequest("POST", bob.Outbox, bytes.NewReader(b))
-		req.Header.Set("Content-Type", apMimeType)
+		req.Header.Set("Content-Type", ap.MimeType)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -204,15 +205,15 @@ func TestC2SUploadMedia(t *testing.T) {
 		resp.Body.Close()
 		return resp.StatusCode
 	}
-	if code := post(obj{"type": "Note", "content": "stolen", "to": []any{asPublic}, "attachment": []any{obj{"type": "Image", "url": "https://elsewhere.example/x.png"}}}); code != 400 {
+	if code := post(obj{"type": "Note", "content": "stolen", "to": []any{ap.Public}, "attachment": []any{obj{"type": "Image", "url": "https://elsewhere.example/x.png"}}}); code != 400 {
 		t.Errorf("foreign attachment: %d", code)
 	}
-	if code := post(obj{"type": "Note", "content": "look", "to": []any{asPublic}, "attachment": []any{obj{"type": "Image", "url": loc}}}); code != 201 {
+	if code := post(obj{"type": "Note", "content": "look", "to": []any{ap.Public}, "attachment": []any{obj{"type": "Image", "url": loc}}}); code != 201 {
 		t.Fatalf("post with attachment: %d", code)
 	}
 	eventually(t, "Create delivered", func() bool { return len(r.receivedOf("Create")) == 1 })
-	atts := objsOf(objOf(r.receivedOf("Create")[0].Activity["object"])["attachment"])
-	if len(atts) != 1 || str(atts[0], "name") != "a tiny square" {
+	atts := ap.Objects(ap.Object(r.receivedOf("Create")[0].Activity["object"])["attachment"])
+	if len(atts) != 1 || ap.Str(atts[0], "name") != "a tiny square" {
 		t.Fatalf("federated attachment = %v", atts)
 	}
 }

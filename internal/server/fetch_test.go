@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/httpsig"
 )
 
@@ -40,11 +41,11 @@ func TestFetchJSONResignsRedirect(t *testing.T) {
 		fmt.Fprint(w, `{"type":"Person","id":"https://remote.test/actor"}`)
 	}))
 	defer server.Close()
-	result, final, err := app.fetchJSON(context.Background(), server.URL+"/start", apMimeType)
+	result, final, err := app.fetchJSON(context.Background(), server.URL+"/start", ap.MimeType)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if str(result, "type") != "Person" || final != server.URL+"/target?version=2" {
+	if ap.Str(result, "type") != "Person" || final != server.URL+"/target?version=2" {
 		t.Fatalf("unexpected result: %v, %q", result, final)
 	}
 }
@@ -92,7 +93,7 @@ func TestFetchJSONRedirectLimit(t *testing.T) {
 		http.Redirect(w, r, "/again", http.StatusFound)
 	}))
 	defer server.Close()
-	_, _, err := app.fetchJSON(context.Background(), server.URL, apMimeType)
+	_, _, err := app.fetchJSON(context.Background(), server.URL, ap.MimeType)
 	if err == nil || !strings.Contains(err.Error(), "too many redirects") {
 		t.Fatalf("redirect loop was not rejected: %v", err)
 	}
@@ -126,7 +127,7 @@ func TestFetchJSONResignsCrossHostRedirect(t *testing.T) {
 		http.Redirect(w, r, destination.URL+"/actor?ref=origin", http.StatusFound)
 	}))
 	defer origin.Close()
-	_, final, err := app.fetchJSON(context.Background(), origin.URL+"/start", apMimeType)
+	_, final, err := app.fetchJSON(context.Background(), origin.URL+"/start", ap.MimeType)
 	if err != nil {
 		t.Fatal(err)
 	}

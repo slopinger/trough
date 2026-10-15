@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/httpsig"
 )
 
@@ -211,24 +212,24 @@ func (app *App) fetchJSON(ctx context.Context, raw string, accept string) (obj, 
 // fetchAP fetches an ActivityPub object and checks that it really lives at
 // the host it claims to (its id must be on the same host we fetched it from).
 func (app *App) fetchAP(ctx context.Context, iri string) (obj, error) {
-	m, final, err := app.fetchJSON(ctx, iri, apMimeType+", "+ldMimeType)
+	m, final, err := app.fetchJSON(ctx, iri, ap.MimeType+", "+ap.LDMimeType)
 	if err != nil {
 		return nil, err
 	}
-	id := str(m, "id")
+	id := ap.Str(m, "id")
 	if id == "" {
 		return nil, errors.New("object without id")
 	}
-	if !sameHost(id, final) {
-		if stripFragment(id) == stripFragment(iri) {
+	if !ap.SameHost(id, final) {
+		if ap.StripFragment(id) == ap.StripFragment(iri) {
 			return nil, errors.New("object id host mismatch")
 		}
 		// the server handed us something from elsewhere; fetch it from its origin once
-		m2, final2, err := app.fetchJSON(ctx, id, apMimeType+", "+ldMimeType)
+		m2, final2, err := app.fetchJSON(ctx, id, ap.MimeType+", "+ap.LDMimeType)
 		if err != nil {
 			return nil, err
 		}
-		if str(m2, "id") != id || !sameHost(id, final2) {
+		if ap.Str(m2, "id") != id || !ap.SameHost(id, final2) {
 			return nil, errors.New("object id host mismatch")
 		}
 		return m2, nil
@@ -245,7 +246,7 @@ const accountRefreshInterval = 24 * time.Hour
 // getAccount returns the account for an actor IRI, fetching (or refreshing
 // a stale copy of) it from the remote server as needed.
 func (app *App) getAccount(ctx context.Context, iri string) (*Account, error) {
-	iri = stripFragment(iri)
+	iri = ap.StripFragment(iri)
 	if iri == "" {
 		return nil, errNotFound
 	}
@@ -275,15 +276,15 @@ func (app *App) fetchAccount(ctx context.Context, iri string) (*Account, error) 
 
 // upsertActor stores a remote actor document.
 func (app *App) upsertActor(m obj) (*Account, error) {
-	id := str(m, "id")
-	if !actorTypes[typeOf(m)] {
-		return nil, fmt.Errorf("%s is not an actor (%s)", id, typeOf(m))
+	id := ap.Str(m, "id")
+	if !actorTypes[ap.Type(m)] {
+		return nil, fmt.Errorf("%s is not an actor (%s)", id, ap.Type(m))
 	}
 	if strings.HasPrefix(id, app.cfg.BaseURL()+"/") {
 		return nil, errors.New("refusing to store a remote copy of a local actor")
 	}
-	username := str(m, "preferredUsername")
-	inbox := str(m, "inbox")
+	username := ap.Str(m, "preferredUsername")
+	inbox := ap.Str(m, "inbox")
 	if id == "" || username == "" || inbox == "" {
 		return nil, errors.New("actor is missing id, preferredUsername or inbox")
 	}
@@ -291,51 +292,51 @@ func (app *App) upsertActor(m obj) (*Account, error) {
 		username = username[:200]
 	}
 	var keyID, keyPEM string
-	for _, k := range objsOf(m["publicKey"]) {
-		if owner := str(k, "owner"); owner != "" && owner != id {
+	for _, k := range ap.Objects(m["publicKey"]) {
+		if owner := ap.Str(k, "owner"); owner != "" && owner != id {
 			continue
 		}
-		keyID, keyPEM = str(k, "id"), str(k, "publicKeyPem")
+		keyID, keyPEM = ap.Str(k, "id"), ap.Str(k, "publicKeyPem")
 		break
 	}
 	acc, err := app.AccountByURI(id)
 	if err != nil {
-		acc = &Account{URI: id, Domain: hostOf(id)}
+		acc = &Account{URI: id, Domain: ap.Host(id)}
 	}
 	acc.Username = username
-	acc.URL = urlOf(m["url"])
+	acc.URL = ap.URL(m["url"])
 	if acc.URL == "" {
 		acc.URL = id
 	}
-	acc.DisplayName = truncateRunes(str(m, "name"), 200)
-	acc.Note = sanitizeHTML(str(m, "summary"))
-	acc.Avatar = urlOf(objOf(m["icon"]))
-	acc.Header = urlOf(objOf(m["image"]))
+	acc.DisplayName = truncateRunes(ap.Str(m, "name"), 200)
+	acc.Note = sanitizeHTML(ap.Str(m, "summary"))
+	acc.Avatar = ap.URL(ap.Object(m["icon"]))
+	acc.Header = ap.URL(ap.Object(m["image"]))
 	acc.Inbox = inbox
-	acc.SharedInbox = str(objOf(m["endpoints"]), "sharedInbox")
-	acc.Outbox = str(m, "outbox")
-	acc.FollowersURI = idOf(m["followers"])
-	acc.FollowingURI = idOf(m["following"])
+	acc.SharedInbox = ap.Str(ap.Object(m["endpoints"]), "sharedInbox")
+	acc.Outbox = ap.Str(m, "outbox")
+	acc.FollowersURI = ap.ID(m["followers"])
+	acc.FollowingURI = ap.ID(m["following"])
 	acc.PublicKeyID = keyID
 	acc.PublicKey = keyPEM
-	acc.ActorType = typeOf(m)
-	acc.Locked = boolOf(m, "manuallyApprovesFollowers")
+	acc.ActorType = ap.Type(m)
+	acc.Locked = ap.Bool(m, "manuallyApprovesFollowers")
 	acc.Fields = nil
-	for _, a := range objsOf(m["attachment"]) {
-		if typeOf(a) == "PropertyValue" && len(acc.Fields) < 8 {
-			acc.Fields = append(acc.Fields, Field{Name: truncateRunes(str(a, "name"), 100), Value: sanitizeHTML(str(a, "value"))})
+	for _, a := range ap.Objects(m["attachment"]) {
+		if ap.Type(a) == "PropertyValue" && len(acc.Fields) < 8 {
+			acc.Fields = append(acc.Fields, Field{Name: truncateRunes(ap.Str(a, "name"), 100), Value: sanitizeHTML(ap.Str(a, "value"))})
 		}
 	}
 	acc.Emojis = emojisOf(m)
-	acc.FeaturedURI = idOf(m["featured"])
-	acc.AlsoKnownAs = idsOf(m["alsoKnownAs"])
+	acc.FeaturedURI = ap.ID(m["featured"])
+	acc.AlsoKnownAs = ap.IDs(m["alsoKnownAs"])
 	acc.AttributionDomains = nil
-	for _, d := range idsOf(m["attributionDomains"]) {
+	for _, d := range ap.IDs(m["attributionDomains"]) {
 		if d, ok := normalizeDomain(d); ok && len(acc.AttributionDomains) < 10 {
 			acc.AttributionDomains = append(acc.AttributionDomains, d)
 		}
 	}
-	acc.MovedTo = idOf(m["movedTo"])
+	acc.MovedTo = ap.ID(m["movedTo"])
 	acc.FetchedAt = time.Now()
 	if err := app.saveAccount(acc); err != nil {
 		return nil, err
@@ -345,12 +346,12 @@ func (app *App) upsertActor(m obj) (*Account, error) {
 
 func emojisOf(m obj) []Emoji {
 	var out []Emoji
-	for _, t := range objsOf(m["tag"]) {
-		if typeOf(t) != "Emoji" {
+	for _, t := range ap.Objects(m["tag"]) {
+		if ap.Type(t) != "Emoji" {
 			continue
 		}
-		name := strings.Trim(str(t, "name"), ":")
-		u := urlOf(objOf(t["icon"]))
+		name := strings.Trim(ap.Str(t, "name"), ":")
+		u := ap.URL(ap.Object(t["icon"]))
 		if name != "" && u != "" && len(out) < 50 {
 			out = append(out, Emoji{Shortcode: name, URL: u})
 		}
@@ -364,7 +365,7 @@ func (app *App) accountForKey(ctx context.Context, keyID string, refresh bool) (
 		if acc, err := app.accountWhere(`a.public_key_id=?`, keyID); err == nil {
 			return acc, nil
 		}
-		if acc, err := app.AccountByURI(stripFragment(keyID)); err == nil && acc.PublicKeyID == keyID {
+		if acc, err := app.AccountByURI(ap.StripFragment(keyID)); err == nil && acc.PublicKeyID == keyID {
 			return acc, nil
 		}
 	}
@@ -373,22 +374,22 @@ func (app *App) accountForKey(ctx context.Context, keyID string, refresh bool) (
 		return nil, err
 	}
 	var actor obj
-	if actorTypes[typeOf(m)] && str(m, "inbox") != "" {
+	if actorTypes[ap.Type(m)] && ap.Str(m, "inbox") != "" {
 		actor = m
-	} else if actorTypes[typeOf(m)] {
+	} else if actorTypes[ap.Type(m)] {
 		// GoToSocial serves the key URL as a stub actor without inbox etc.;
 		// the full document lives at the actor id.
-		id := str(m, "id")
-		if id == "" || !sameHost(id, keyID) {
+		id := ap.Str(m, "id")
+		if id == "" || !ap.SameHost(id, keyID) {
 			return nil, errors.New("key stub points to a different host")
 		}
 		actor, err = app.fetchAP(ctx, id)
 		if err != nil {
 			return nil, err
 		}
-	} else if owner := str(m, "owner"); owner != "" {
+	} else if owner := ap.Str(m, "owner"); owner != "" {
 		// a standalone key document
-		if !sameHost(owner, keyID) {
+		if !ap.SameHost(owner, keyID) {
 			return nil, errors.New("key owner on a different host")
 		}
 		actor, err = app.fetchAP(ctx, owner)
@@ -402,7 +403,7 @@ func (app *App) accountForKey(ctx context.Context, keyID string, refresh bool) (
 	if err != nil {
 		return nil, err
 	}
-	if acc.PublicKeyID != keyID || !sameHost(acc.URI, keyID) {
+	if acc.PublicKeyID != keyID || !ap.SameHost(acc.URI, keyID) {
 		return nil, errors.New("key does not belong to the actor")
 	}
 	return acc, nil
@@ -419,7 +420,7 @@ func (app *App) verifyRequest(r *http.Request, body []byte) (*Account, error) {
 		if err != nil {
 			return nil, err
 		}
-		if app.domainBlocked(hostOf(p.KeyID)) {
+		if app.domainBlocked(ap.Host(p.KeyID)) {
 			return nil, errBlocked
 		}
 	} else {
@@ -427,7 +428,7 @@ func (app *App) verifyRequest(r *http.Request, body []byte) (*Account, error) {
 		if err != nil {
 			return nil, err
 		}
-		if app.domainBlocked(hostOf(p.KeyID)) {
+		if app.domainBlocked(ap.Host(p.KeyID)) {
 			return nil, errBlocked
 		}
 		ss, err = httpsig.CheckCavage(r, p, body)
@@ -450,7 +451,7 @@ func (app *App) verifyRequest(r *http.Request, body []byte) (*Account, error) {
 		return nil, errors.New("invalid signature")
 	}
 	if r.Header.Get("Signature-Input") != "" {
-		app.sawRFC9421(hostOf(p.KeyID))
+		app.sawRFC9421(ap.Host(p.KeyID))
 	}
 	return acc, nil
 }
@@ -466,11 +467,11 @@ func (app *App) webfinger(ctx context.Context, user, domain string) (string, err
 	if err != nil {
 		return "", err
 	}
-	for _, l := range objsOf(m["links"]) {
-		if str(l, "rel") == "self" {
-			t := str(l, "type")
-			if t == apMimeType || strings.HasPrefix(t, "application/ld+json") {
-				if h := str(l, "href"); h != "" {
+	for _, l := range ap.Objects(m["links"]) {
+		if ap.Str(l, "rel") == "self" {
+			t := ap.Str(l, "type")
+			if t == ap.MimeType || strings.HasPrefix(t, "application/ld+json") {
+				if h := ap.Str(l, "href"); h != "" {
 					return h, nil
 				}
 			}
@@ -520,6 +521,6 @@ func parseHandle(s string) (user, domain string, ok bool) {
 
 // FetchObject does a signed GET of an ActivityPub object as the instance actor.
 func (app *App) FetchObject(ctx context.Context, url string) (map[string]any, error) {
-	m, _, err := app.fetchJSON(ctx, url, apMimeType+", "+ldMimeType)
+	m, _, err := app.fetchJSON(ctx, url, ap.MimeType+", "+ap.LDMimeType)
 	return m, err
 }

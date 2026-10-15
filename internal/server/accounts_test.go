@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"git.freifick.net/slop/trough/internal/ap"
 )
 
 func TestIncomingMove(t *testing.T) {
@@ -23,14 +25,14 @@ func TestIncomingMove(t *testing.T) {
 	r.send(obj{"@context": asContext, "id": r.Base + "/moves/1", "type": "Move", "actor": alice.URI, "object": alice.URI, "target": r.Base + "/users/alice2"}, key, sigCavage)
 	eventually(t, "Follow sent to the new account", func() bool {
 		for _, f := range r.receivedOf("Follow") {
-			if idOf(f.Activity["object"]) == r.Base+"/users/alice2" {
+			if ap.ID(f.Activity["object"]) == r.Base+"/users/alice2" {
 				return true
 			}
 		}
 		return false
 	})
 	for _, f := range r.receivedOf("Follow") {
-		if idOf(f.Activity["object"]) == r.Base+"/users/mallory" {
+		if ap.ID(f.Activity["object"]) == r.Base+"/users/mallory" {
 			t.Fatal("followed a move target without an alias")
 		}
 	}
@@ -58,11 +60,11 @@ func TestOutgoingMoveNeedsAlias(t *testing.T) {
 	}
 	eventually(t, "Move delivered", func() bool { return len(r.receivedOf("Move")) == 1 })
 	mv := r.receivedOf("Move")[0]
-	if mv.SigErr != nil || idOf(mv.Activity["target"]) != r.Base+"/users/alice" || idOf(mv.Activity["object"]) != bob.URI {
+	if mv.SigErr != nil || ap.ID(mv.Activity["target"]) != r.Base+"/users/alice" || ap.ID(mv.Activity["object"]) != bob.URI {
 		t.Fatalf("Move = %v (%v)", mv.Activity, mv.SigErr)
 	}
 	_, actor := r.signedGet(bob.URI, "")
-	if str(actor, "movedTo") != r.Base+"/users/alice" {
+	if ap.Str(actor, "movedTo") != r.Base+"/users/alice" {
 		t.Errorf("actor movedTo = %v", actor["movedTo"])
 	}
 }

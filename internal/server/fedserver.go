@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"git.freifick.net/slop/trough/internal/ap"
 )
 
 // Federation-facing HTTP endpoints: WebFinger, NodeInfo, actors, objects
@@ -63,7 +65,7 @@ func (app *App) handleWebfinger(w http.ResponseWriter, r *http.Request) {
 		"subject": "acct:" + acc.Username + "@" + app.cfg.Host,
 		"aliases": []string{acc.URI, acc.URL},
 		"links": []obj{
-			{"rel": "self", "type": apMimeType, "href": acc.URI},
+			{"rel": "self", "type": ap.MimeType, "href": acc.URI},
 			{"rel": "http://webfinger.net/rel/profile-page", "type": "text/html", "href": acc.URL},
 			{"rel": "http://ostatus.org/schema/1.0/subscribe", "template": app.cfg.BaseURL() + "/authorize_interaction?uri={uri}"},
 		},

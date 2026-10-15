@@ -1,4 +1,7 @@
-package server
+// Package ap has helpers for loosely-typed ActivityStreams JSON: reading
+// properties that may be strings, objects or arrays, addressing and the
+// JSON-LD context trough sends.
+package ap
 
 import (
 	"net/url"
@@ -6,21 +9,22 @@ import (
 	"time"
 )
 
-// Helpers for poking at loosely-typed ActivityStreams JSON.
-
 type obj = map[string]any
 
+// The public collection and the media types of ActivityPub documents.
 const (
-	asPublic   = "https://www.w3.org/ns/activitystreams#Public"
-	apMimeType = "application/activity+json"
-	ldMimeType = `application/ld+json; profile="https://www.w3.org/ns/activitystreams"`
+	Public     = "https://www.w3.org/ns/activitystreams#Public"
+	MimeType   = "application/activity+json"
+	LDMimeType = `application/ld+json; profile="https://www.w3.org/ns/activitystreams"`
 )
 
-func isPublicIRI(s string) bool {
-	return s == asPublic || s == "as:Public" || s == "Public"
+// IsPublic reports whether s names the public collection, in any of its forms.
+func IsPublic(s string) bool {
+	return s == Public || s == "as:Public" || s == "Public"
 }
 
-func str(m obj, k string) string {
+// Str returns m[k] if it is a string, or the first string of an array.
+func Str(m obj, k string) string {
 	if m == nil {
 		return ""
 	}
@@ -38,49 +42,52 @@ func str(m obj, k string) string {
 	return ""
 }
 
-func boolOf(m obj, k string) bool {
+// Bool returns m[k] if it is a boolean.
+func Bool(m obj, k string) bool {
 	b, _ := m[k].(bool)
 	return b
 }
 
-// idOf returns the IRI of a value that is either a string, a Link (href) or
+// ID returns the IRI of a value that is either a string, a Link (href) or
 // an object (id).
-func idOf(v any) string {
+func ID(v any) string {
 	switch x := v.(type) {
 	case string:
 		return x
 	case obj:
-		if s := str(x, "id"); s != "" {
+		if s := Str(x, "id"); s != "" {
 			return s
 		}
-		return str(x, "href")
+		return Str(x, "href")
 	case []any:
 		if len(x) > 0 {
-			return idOf(x[0])
+			return ID(x[0])
 		}
 	}
 	return ""
 }
 
-func idsOf(v any) []string {
+// IDs returns the ids of v, which may be one IRI or object, or an array of them.
+func IDs(v any) []string {
 	var out []string
 	switch x := v.(type) {
 	case []any:
 		for _, e := range x {
-			if s := idOf(e); s != "" {
+			if s := ID(e); s != "" {
 				out = append(out, s)
 			}
 		}
 	case nil:
 	default:
-		if s := idOf(x); s != "" {
+		if s := ID(x); s != "" {
 			out = append(out, s)
 		}
 	}
 	return out
 }
 
-func objsOf(v any) []obj {
+// Objects returns the objects in v (one object or an array), skipping bare IRIs.
+func Objects(v any) []obj {
 	switch x := v.(type) {
 	case obj:
 		return []obj{x}
@@ -96,15 +103,17 @@ func objsOf(v any) []obj {
 	return nil
 }
 
-func objOf(v any) obj {
-	o := objsOf(v)
+// Object returns v as an object, or the first object of an array.
+func Object(v any) obj {
+	o := Objects(v)
 	if len(o) > 0 {
 		return o[0]
 	}
 	return nil
 }
 
-func typeOf(m obj) string {
+// Type returns the type of m (the first one if it has several).
+func Type(m obj) string {
 	switch t := m["type"].(type) {
 	case string:
 		return t
@@ -117,28 +126,28 @@ func typeOf(m obj) string {
 	return ""
 }
 
-// urlOf extracts a URL from url/href fields that may be strings, Links or
+// URL extracts a URL from url/href fields that may be strings, Links or
 // arrays of Links (prefers text/html links).
-func urlOf(v any) string {
+func URL(v any) string {
 	switch x := v.(type) {
 	case string:
 		return x
 	case obj:
-		if s := str(x, "href"); s != "" {
+		if s := Str(x, "href"); s != "" {
 			return s
 		}
-		if s := str(x, "url"); s != "" {
+		if s := Str(x, "url"); s != "" {
 			return s
 		}
-		return urlOf(x["url"])
+		return URL(x["url"])
 	case []any:
 		for _, e := range x {
-			if m, ok := e.(obj); ok && strings.HasPrefix(str(m, "mediaType"), "text/html") {
-				return urlOf(m)
+			if m, ok := e.(obj); ok && strings.HasPrefix(Str(m, "mediaType"), "text/html") {
+				return URL(m)
 			}
 		}
 		for _, e := range x {
-			if u := urlOf(e); u != "" {
+			if u := URL(e); u != "" {
 				return u
 			}
 		}
@@ -146,7 +155,8 @@ func urlOf(v any) string {
 	return ""
 }
 
-func hostOf(s string) string {
+// Host returns the lowercased host (with port) of an IRI.
+func Host(s string) string {
 	u, err := url.Parse(s)
 	if err != nil {
 		return ""
@@ -154,19 +164,22 @@ func hostOf(s string) string {
 	return strings.ToLower(u.Host)
 }
 
-func sameHost(a, b string) bool {
-	h := hostOf(a)
-	return h != "" && h == hostOf(b)
+// SameHost reports whether two IRIs have the same, non-empty host.
+func SameHost(a, b string) bool {
+	h := Host(a)
+	return h != "" && h == Host(b)
 }
 
-func stripFragment(s string) string {
+// StripFragment removes the #fragment of an IRI.
+func StripFragment(s string) string {
 	if i := strings.IndexByte(s, '#'); i >= 0 {
 		return s[:i]
 	}
 	return s
 }
 
-func parseTime(s string) time.Time {
+// ParseTime parses an xsd:dateTime, tolerating common variants.
+func ParseTime(s string) time.Time {
 	for _, layout := range []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05Z0700", "2006-01-02T15:04:05"} {
 		if t, err := time.Parse(layout, s); err == nil {
 			return t
@@ -175,9 +188,11 @@ func parseTime(s string) time.Time {
 	return time.Time{}
 }
 
-func apTime(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05Z") }
+// Time formats t the way ActivityPub servers expect.
+func Time(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05Z") }
 
-var apContext = []any{
+// Context is the JSON-LD @context of everything trough sends.
+var Context = []any{
 	"https://www.w3.org/ns/activitystreams",
 	"https://w3id.org/security/v1",
 	obj{
@@ -209,28 +224,28 @@ var apContext = []any{
 	},
 }
 
-// recipientsOf returns to+cc(+bto/bcc/audience) of an activity or object.
-func recipientsOf(m obj) []string {
+// Recipients returns to+cc(+bto/bcc/audience) of an activity or object.
+func Recipients(m obj) []string {
 	var out []string
 	for _, k := range []string{"to", "cc", "bto", "bcc", "audience"} {
-		out = append(out, idsOf(m[k])...)
+		out = append(out, IDs(m[k])...)
 	}
 	return out
 }
 
-// visibilityFrom derives Mastodon-style visibility from addressing.
-func visibilityFrom(m obj, followersURI string) string {
-	for _, r := range idsOf(m["to"]) {
-		if isPublicIRI(r) {
+// Visibility derives Mastodon-style visibility from addressing.
+func Visibility(m obj, followersURI string) string {
+	for _, r := range IDs(m["to"]) {
+		if IsPublic(r) {
 			return "public"
 		}
 	}
-	for _, r := range recipientsOf(m) {
-		if isPublicIRI(r) {
+	for _, r := range Recipients(m) {
+		if IsPublic(r) {
 			return "unlisted"
 		}
 	}
-	for _, r := range recipientsOf(m) {
+	for _, r := range Recipients(m) {
 		if r != "" && (r == followersURI || strings.HasSuffix(r, "/followers")) {
 			return "private"
 		}

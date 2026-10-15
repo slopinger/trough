@@ -79,7 +79,7 @@ type keywordAttr struct {
 // keywordAttrs reads keywords_attributes, as JSON objects or Rails-style
 // form fields (keywords_attributes[][keyword] or keywords_attributes[0][keyword]).
 func keywordAttrs(p *apiParams) []keywordAttr {
-	boolOf := func(v any) *bool {
+	attrBool := func(v any) *bool {
 		var b bool
 		switch x := v.(type) {
 		case bool:
@@ -93,7 +93,7 @@ func keywordAttrs(p *apiParams) []keywordAttr {
 		}
 		return &b
 	}
-	str := func(v any) string {
+	attrStr := func(v any) string {
 		switch x := v.(type) {
 		case string:
 			return x
@@ -103,8 +103,8 @@ func keywordAttrs(p *apiParams) []keywordAttr {
 		return ""
 	}
 	fromMap := func(m map[string]any) keywordAttr {
-		a := keywordAttr{ID: str(m["id"]), Keyword: str(m["keyword"]), WholeWord: boolOf(m["whole_word"])}
-		if d := boolOf(m["_destroy"]); d != nil {
+		a := keywordAttr{ID: attrStr(m["id"]), Keyword: attrStr(m["keyword"]), WholeWord: attrBool(m["whole_word"])}
+		if d := attrBool(m["_destroy"]); d != nil {
 			a.Destroy = *d
 		}
 		return a
@@ -149,10 +149,10 @@ func keywordAttrs(p *apiParams) []keywordAttr {
 				a.ID = ids[i]
 			}
 			if i < len(whole) {
-				a.WholeWord = boolOf(whole[i])
+				a.WholeWord = attrBool(whole[i])
 			}
 			if i < len(destroy) {
-				a.Destroy = *boolOf(destroy[i])
+				a.Destroy = *attrBool(destroy[i])
 			}
 			out = append(out, a)
 		}

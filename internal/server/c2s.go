@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -65,7 +66,7 @@ func (app *App) handleC2SOutbox(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, errNotFound):
 		http.Error(w, "object not found", http.StatusNotFound)
 	case errors.Is(err, errC2SUnsupported):
-		http.Error(w, err.Error()+": "+typeOf(act), http.StatusUnprocessableEntity)
+		http.Error(w, err.Error()+": "+ap.Type(act), http.StatusUnprocessableEntity)
 	case err != nil:
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	default:
@@ -77,26 +78,26 @@ func (app *App) handleC2SOutbox(w http.ResponseWriter, r *http.Request) {
 // c2sActivity performs one client activity and returns the id of the
 // activity that was created.
 func (app *App) c2sActivity(ctx context.Context, me *Account, act obj) (string, error) {
-	switch typeOf(act) {
+	switch ap.Type(act) {
 	case "Note", "Article", "Question":
 		// a bare object is wrapped in a Create (AP §6.2.1)
 		return app.c2sCreate(ctx, me, act, act)
 	case "Create":
-		return app.c2sCreate(ctx, me, act, objOf(act["object"]))
+		return app.c2sCreate(ctx, me, act, ap.Object(act["object"]))
 	case "Update":
-		return app.c2sUpdate(ctx, me, objOf(act["object"]))
+		return app.c2sUpdate(ctx, me, ap.Object(act["object"]))
 	case "Delete":
-		st, err := app.c2sOwnStatus(me, idOf(act["object"]))
+		st, err := app.c2sOwnStatus(me, ap.ID(act["object"]))
 		if err != nil {
 			return "", err
 		}
 		return st.URI + "#delete", app.DeleteStatus(me, st)
 	case "Like", "Announce":
-		st, err := app.c2sStatus(ctx, me, idOf(act["object"]))
+		st, err := app.c2sStatus(ctx, me, ap.ID(act["object"]))
 		if err != nil {
 			return "", err
 		}
-		if typeOf(act) == "Like" {
+		if ap.Type(act) == "Like" {
 			if err := app.Like(me, st); err != nil {
 				return "", err
 			}
@@ -111,14 +112,14 @@ func (app *App) c2sActivity(ctx context.Context, me *Account, act obj) (string, 
 		app.db.QueryRow(`SELECT uri FROM statuses WHERE account_id=? AND boost_of_id=?`, me.ID, st.ID).Scan(&uri)
 		return uri, nil
 	case "Follow", "Block":
-		target, err := app.getAccount(ctx, idOf(act["object"]))
+		target, err := app.getAccount(ctx, ap.ID(act["object"]))
 		if err != nil {
 			return "", errNotFound
 		}
 		if target.ID == me.ID {
 			return "", errors.New("that's you")
 		}
-		if typeOf(act) == "Block" {
+		if ap.Type(act) == "Block" {
 			return me.URI + "#blocks/" + target.ID, app.Block(me, target)
 		}
 		if err := app.Follow(me, target); err != nil {
@@ -134,7 +135,7 @@ func (app *App) c2sActivity(ctx context.Context, me *Account, act obj) (string, 
 }
 
 func (app *App) c2sCreate(ctx context.Context, me *Account, act, note obj) (string, error) {
-	switch typeOf(note) {
+	switch ap.Type(note) {
 	case "Note", "Article":
 	default:
 		return "", errC2SUnsupported
@@ -143,18 +144,18 @@ func (app *App) c2sCreate(ctx context.Context, me *Account, act, note obj) (stri
 	addr := obj{}
 	for _, k := range []string{"to", "cc"} {
 		var ids []any
-		for _, id := range append(idsOf(act[k]), idsOf(note[k])...) {
+		for _, id := range append(ap.IDs(act[k]), ap.IDs(note[k])...) {
 			ids = append(ids, id)
 		}
 		addr[k] = ids
 	}
 	in := PostInput{
 		Text:       c2sText(note),
-		Spoiler:    str(note, "summary"),
+		Spoiler:    ap.Str(note, "summary"),
 		Visibility: c2sVisibility(addr, me),
 	}
 	in.Sensitive, _ = note["sensitive"].(bool)
-	if irt := idOf(note["inReplyTo"]); irt != "" {
+	if irt := ap.ID(note["inReplyTo"]); irt != "" {
 		parent, err := app.c2sStatus(ctx, me, irt)
 		if err != nil {
 			return "", err
@@ -162,11 +163,11 @@ func (app *App) c2sCreate(ctx context.Context, me *Account, act, note obj) (stri
 		in.InReplyTo = parent.ID
 	}
 	in.Text = app.c2sMentions(ctx, me, in.Text, addr, note)
-	for _, a := range append(objsOf(note["attachment"]), objsOf(note["image"])...) {
+	for _, a := range append(ap.Objects(note["attachment"]), ap.Objects(note["image"])...) {
 		var id string
-		u := idOf(a)
+		u := ap.ID(a)
 		if u == "" {
-			u = idOf(a["url"])
+			u = ap.ID(a["url"])
 		}
 		if app.db.QueryRow(`SELECT id FROM attachments WHERE account_id=? AND status_id IS NULL AND (url=? OR url=?)`,
 			me.ID, u, strings.TrimPrefix(u, app.cfg.BaseURL())).Scan(&id) != nil {
@@ -182,17 +183,17 @@ func (app *App) c2sCreate(ctx context.Context, me *Account, act, note obj) (stri
 }
 
 func (app *App) c2sUpdate(ctx context.Context, me *Account, note obj) (string, error) {
-	switch typeOf(note) {
+	switch ap.Type(note) {
 	case "Note", "Article":
 	default:
 		return "", errC2SUnsupported
 	}
-	st, err := app.c2sOwnStatus(me, idOf(note))
+	st, err := app.c2sOwnStatus(me, ap.ID(note))
 	if err != nil {
 		return "", err
 	}
 	sensitive, _ := note["sensitive"].(bool)
-	st, err = app.EditStatus(ctx, me, st, c2sText(note), str(note, "summary"), sensitive)
+	st, err = app.EditStatus(ctx, me, st, c2sText(note), ap.Str(note, "summary"), sensitive)
 	if err != nil {
 		return "", err
 	}
@@ -200,9 +201,9 @@ func (app *App) c2sUpdate(ctx context.Context, me *Account, note obj) (string, e
 }
 
 func (app *App) c2sUndo(ctx context.Context, me *Account, o any) (string, error) {
-	id := idOf(o)
-	inner := objOf(o)
-	typ, target := typeOf(inner), idOf(inner["object"])
+	id := ap.ID(o)
+	inner := ap.Object(o)
+	typ, target := ap.Type(inner), ap.ID(inner["object"])
 	if typ == "" || target == "" {
 		// a bare id: one of our likes, boosts or follows
 		var x string
@@ -268,12 +269,12 @@ func (app *App) c2sOwnStatus(me *Account, iri string) (*Status, error) {
 
 // c2sText prefers the plain source the client wrote over its HTML.
 func c2sText(note obj) string {
-	if src := objOf(note["source"]); src != nil {
-		if mt := str(src, "mediaType"); mt == "" || strings.HasPrefix(mt, "text/plain") || strings.HasPrefix(mt, "text/markdown") {
-			return str(src, "content")
+	if src := ap.Object(note["source"]); src != nil {
+		if mt := ap.Str(src, "mediaType"); mt == "" || strings.HasPrefix(mt, "text/plain") || strings.HasPrefix(mt, "text/markdown") {
+			return ap.Str(src, "content")
 		}
 	}
-	c := str(note, "content")
+	c := ap.Str(note, "content")
 	if strings.ContainsAny(c, "<>") {
 		return plainText(c)
 	}
@@ -282,17 +283,17 @@ func c2sText(note obj) string {
 
 func c2sVisibility(addr obj, me *Account) string {
 	has := func(k, want string) bool {
-		for _, id := range idsOf(addr[k]) {
-			if id == want || (want == asPublic && (id == "as:Public" || id == "Public")) {
+		for _, id := range ap.IDs(addr[k]) {
+			if id == want || (want == ap.Public && (id == "as:Public" || id == "Public")) {
 				return true
 			}
 		}
 		return false
 	}
 	switch {
-	case has("to", asPublic):
+	case has("to", ap.Public):
 		return "public"
-	case has("cc", asPublic):
+	case has("cc", ap.Public):
 		return "unlisted"
 	case has("to", me.FollowersURI) || has("cc", me.FollowersURI):
 		return "private"
@@ -305,17 +306,17 @@ func c2sVisibility(addr obj, me *Account) string {
 func (app *App) c2sMentions(ctx context.Context, me *Account, text string, addr, note obj) string {
 	var iris []string
 	for _, k := range []string{"to", "cc"} {
-		iris = append(iris, idsOf(addr[k])...)
+		iris = append(iris, ap.IDs(addr[k])...)
 	}
-	for _, t := range objsOf(note["tag"]) {
-		if typeOf(t) == "Mention" {
-			iris = append(iris, str(t, "href"))
+	for _, t := range ap.Objects(note["tag"]) {
+		if ap.Type(t) == "Mention" {
+			iris = append(iris, ap.Str(t, "href"))
 		}
 	}
 	seen := map[string]bool{}
 	var missing []string
 	for _, iri := range iris {
-		if iri == "" || seen[iri] || iri == asPublic || iri == me.FollowersURI || strings.HasSuffix(iri, "/followers") {
+		if iri == "" || seen[iri] || iri == ap.Public || iri == me.FollowersURI || strings.HasSuffix(iri, "/followers") {
 			continue
 		}
 		seen[iri] = true
@@ -387,9 +388,9 @@ func (app *App) handleC2SUploadMedia(w http.ResponseWriter, r *http.Request) {
 	}
 	var shell obj
 	json.Unmarshal([]byte(r.FormValue("object")), &shell)
-	alt := str(shell, "name")
+	alt := ap.Str(shell, "name")
 	if alt == "" {
-		alt = str(shell, "summary")
+		alt = ap.Str(shell, "summary")
 	}
 	fh, err := r.MultipartForm.File["file"][0].Open()
 	if err != nil {
@@ -416,7 +417,7 @@ func (app *App) handleC2SUploadMedia(w http.ResponseWriter, r *http.Request) {
 		m["width"], m["height"] = at.Width, at.Height
 	}
 	w.Header().Set("Location", u)
-	w.Header().Set("Content-Type", apMimeType)
+	w.Header().Set("Content-Type", ap.MimeType)
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(withContext(m))
 }

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -129,10 +130,10 @@ func (app *App) moveLocalFollowers(old, target *Account) {
 
 // inMove handles a remote account announcing it moved.
 func (app *App) inMove(ctx context.Context, actor *Account, act obj) error {
-	if idOf(act["object"]) != actor.URI {
+	if ap.ID(act["object"]) != actor.URI {
 		return errors.New("move of another actor")
 	}
-	targetIRI := idOf(act["target"])
+	targetIRI := ap.ID(act["target"])
 	if targetIRI == "" || targetIRI == actor.URI {
 		return nil
 	}

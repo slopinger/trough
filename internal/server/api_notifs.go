@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
 
@@ -99,7 +100,7 @@ func (app *App) groupedResponse(me *Account, ns []*Notification, grouped map[str
 	}
 	// counts cover the whole group, not just this page
 	for _, g := range index {
-		if where, args, ok := groupWhere(str(g, "group_key")); ok && !strings.HasPrefix(str(g, "group_key"), "ungrouped-") {
+		if where, args, ok := groupWhere(ap.Str(g, "group_key")); ok && !strings.HasPrefix(ap.Str(g, "group_key"), "ungrouped-") {
 			g["notifications_count"] = app.countInt(`SELECT COUNT(*) FROM notifications n WHERE n.account_id=? AND `+where, append([]any{me.ID}, args...)...)
 		}
 	}

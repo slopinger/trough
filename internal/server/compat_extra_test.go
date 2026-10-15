@@ -8,6 +8,8 @@ import (
 	"path"
 	"strings"
 	"testing"
+
+	"git.freifick.net/slop/trough/internal/ap"
 )
 
 // groupActor returns a Lemmy-style community actor.
@@ -64,9 +66,9 @@ func TestCompatLemmyCommunity(t *testing.T) {
 
 	page := mustJSON(t, r.expand(lemmyPage))
 	create := obj{"id": r.Base + "/activities/create/1", "type": "Create", "actor": r.Base + "/u/alice",
-		"to": []any{asPublic}, "cc": []any{group.URI}, "object": page, "audience": group.URI}
+		"to": []any{ap.Public}, "cc": []any{group.URI}, "object": page, "audience": group.URI}
 	announce := obj{"@context": asContext, "id": r.Base + "/activities/announce/1", "type": "Announce", "actor": group.URI,
-		"to": []any{asPublic}, "cc": []any{group.URI + "/followers"}, "object": create}
+		"to": []any{ap.Public}, "cc": []any{group.URI + "/followers"}, "object": create}
 	if code := r.send(announce, gkey, sigCavage); code != 202 {
 		t.Fatalf("announce rejected: %d", code)
 	}
@@ -86,7 +88,7 @@ func TestCompatLemmyCommunity(t *testing.T) {
 	// a comment, announced the same way
 	r.put("/comment/1", `{"type": "Note", "id": "{{R}}/comment/1", "attributedTo": "{{R}}/u/alice", "to": ["https://www.w3.org/ns/activitystreams#Public"], "cc": ["{{R}}/c/cats"], "content": "<p>first!</p>", "inReplyTo": "{{R}}/post/1", "published": "2026-01-01T12:05:00Z", "audience": "{{R}}/c/cats"}`)
 	note := mustJSON(t, r.expand(r.docs["/comment/1"]))
-	r.send(obj{"@context": asContext, "id": r.Base + "/activities/announce/2", "type": "Announce", "actor": group.URI, "to": []any{asPublic},
+	r.send(obj{"@context": asContext, "id": r.Base + "/activities/announce/2", "type": "Announce", "actor": group.URI, "to": []any{ap.Public},
 		"object": obj{"id": r.Base + "/activities/create/2", "type": "Create", "actor": r.Base + "/u/alice", "object": note}}, gkey, sigCavage)
 	eventually(t, "comment stored in thread", func() bool {
 		c, err := la.StatusByURI(r.Base + "/comment/1")
@@ -94,7 +96,7 @@ func TestCompatLemmyCommunity(t *testing.T) {
 	})
 	// the community relays a deletion
 	r.put("/comment/1", "GONE")
-	r.send(obj{"@context": asContext, "id": r.Base + "/activities/announce/3", "type": "Announce", "actor": group.URI, "to": []any{asPublic},
+	r.send(obj{"@context": asContext, "id": r.Base + "/activities/announce/3", "type": "Announce", "actor": group.URI, "to": []any{ap.Public},
 		"object": obj{"id": r.Base + "/activities/delete/1", "type": "Delete", "actor": r.Base + "/u/alice", "object": r.Base + "/comment/1"}}, gkey, sigCavage)
 	eventually(t, "relayed delete applied", func() bool { _, err := la.StatusByURI(r.Base + "/comment/1"); return err != nil })
 }
@@ -187,7 +189,7 @@ func TestCompatAuthorizedFetch(t *testing.T) {
 	pub, _ := la.PostStatus(context.Background(), bob, PostInput{Text: "public", Visibility: "public"})
 	priv, _ := la.PostStatus(context.Background(), bob, PostInput{Text: "followers only", Visibility: "private"})
 
-	if code, m := r.signedGet(pub.URI, ""); code != 200 || str(m, "id") != pub.URI {
+	if code, m := r.signedGet(pub.URI, ""); code != 200 || ap.Str(m, "id") != pub.URI {
 		t.Errorf("unsigned fetch of public post: %d", code)
 	}
 	if code, _ := r.signedGet(priv.URI, ""); code != 404 {
@@ -196,11 +198,11 @@ func TestCompatAuthorizedFetch(t *testing.T) {
 	if code, _ := r.signedGet(priv.URI, r.Base+"/users/eve#main-key"); code != 404 {
 		t.Errorf("non-follower fetch of private post: %d, want 404", code)
 	}
-	if code, m := r.signedGet(priv.URI, r.Base+"/users/alice#main-key"); code != 200 || str(m, "content") == "" {
+	if code, m := r.signedGet(priv.URI, r.Base+"/users/alice#main-key"); code != 200 || ap.Str(m, "content") == "" {
 		t.Errorf("follower fetch of private post: %d", code)
 	}
 	// the HTML URL serves ActivityPub too (Mastodon's search pastes those)
-	if code, m := r.signedGet(pub.URL, ""); code != 200 || str(m, "id") != pub.URI {
+	if code, m := r.signedGet(pub.URL, ""); code != 200 || ap.Str(m, "id") != pub.URI {
 		t.Errorf("fetch of html url: %d", code)
 	}
 }
@@ -224,20 +226,20 @@ func TestCompatOurDocuments(t *testing.T) {
 	}
 	// WebFinger
 	code, wf, h := get(la.base+"/.well-known/webfinger?resource=acct:bob@"+la.host(), "application/jrd+json")
-	if code != 200 || !strings.HasPrefix(h.Get("Content-Type"), "application/jrd+json") || str(wf, "subject") != "acct:bob@"+la.host() {
+	if code != 200 || !strings.HasPrefix(h.Get("Content-Type"), "application/jrd+json") || ap.Str(wf, "subject") != "acct:bob@"+la.host() {
 		t.Fatalf("webfinger: %d %v", code, wf)
 	}
 	self := ""
-	for _, l := range objsOf(wf["links"]) {
-		if str(l, "rel") == "self" && str(l, "type") == apMimeType {
-			self = str(l, "href")
+	for _, l := range ap.Objects(wf["links"]) {
+		if ap.Str(l, "rel") == "self" && ap.Str(l, "type") == ap.MimeType {
+			self = ap.Str(l, "href")
 		}
 	}
 	if self != bob.URI {
 		t.Fatalf("webfinger self link = %q", self)
 	}
 	// actor, with both accept headers servers use
-	for _, accept := range []string{apMimeType, ldMimeType} {
+	for _, accept := range []string{ap.MimeType, ap.LDMimeType} {
 		code, actor, h := get(bob.URI, accept)
 		if code != 200 || !strings.Contains(h.Get("Content-Type"), "activity+json") {
 			t.Fatalf("actor with %s: %d %s", accept, code, h.Get("Content-Type"))
@@ -247,8 +249,8 @@ func TestCompatOurDocuments(t *testing.T) {
 				t.Errorf("actor lacks %s", k)
 			}
 		}
-		pk := objOf(actor["publicKey"])
-		if str(pk, "owner") != bob.URI || !strings.HasPrefix(str(pk, "id"), bob.URI) {
+		pk := ap.Object(actor["publicKey"])
+		if ap.Str(pk, "owner") != bob.URI || !strings.HasPrefix(ap.Str(pk, "id"), bob.URI) {
 			t.Errorf("bad publicKey: %v", pk)
 		}
 		ctx, _ := actor["@context"].([]any)
@@ -279,41 +281,41 @@ func TestCompatOurDocuments(t *testing.T) {
 	}
 	// NodeInfo
 	code, ni, _ := get(la.base+"/.well-known/nodeinfo", "application/json")
-	if code != 200 || len(objsOf(ni["links"])) == 0 {
+	if code != 200 || len(ap.Objects(ni["links"])) == 0 {
 		t.Fatalf("nodeinfo index: %d", code)
 	}
-	code, n2, _ := get(str(objsOf(ni["links"])[0], "href"), "application/json")
-	if code != 200 || str(objOf(n2["software"]), "name") != SoftwareName {
+	code, n2, _ := get(ap.Str(ap.Objects(ni["links"])[0], "href"), "application/json")
+	if code != 200 || ap.Str(ap.Object(n2["software"]), "name") != SoftwareName {
 		t.Fatalf("nodeinfo: %d %v", code, n2)
 	}
 	// outbox paging
 	for i := 0; i < 3; i++ {
 		la.PostStatus(context.Background(), bob, PostInput{Text: "post", Visibility: "public"})
 	}
-	code, ob, _ := get(bob.URI+"/outbox", apMimeType)
-	if code != 200 || typeOf(ob) != "OrderedCollection" || ob["totalItems"].(float64) != 3 {
+	code, ob, _ := get(bob.URI+"/outbox", ap.MimeType)
+	if code != 200 || ap.Type(ob) != "OrderedCollection" || ob["totalItems"].(float64) != 3 {
 		t.Fatalf("outbox: %d %v", code, ob)
 	}
-	code, page, _ := get(str(ob, "first"), apMimeType)
+	code, page, _ := get(ap.Str(ob, "first"), ap.MimeType)
 	items, _ := page["orderedItems"].([]any)
-	if code != 200 || len(items) != 3 || typeOf(objOf(items[0])) != "Create" {
+	if code != 200 || len(items) != 3 || ap.Type(ap.Object(items[0])) != "Create" {
 		t.Fatalf("outbox page: %d %v", code, page)
 	}
 	// replies: an embedded first page (GoToSocial needs one) whose next link
 	// is fetchable
-	note := objOf(objOf(items[2])["object"])
-	reply, _ := la.PostStatus(context.Background(), bob, PostInput{Text: "reply", Visibility: "public", InReplyTo: path.Base(str(note, "id"))})
-	replies := objOf(note["replies"])
-	first := objOf(replies["first"])
-	if typeOf(first) != "CollectionPage" || str(first, "partOf") != str(replies, "id") {
+	note := ap.Object(ap.Object(items[2])["object"])
+	reply, _ := la.PostStatus(context.Background(), bob, PostInput{Text: "reply", Visibility: "public", InReplyTo: path.Base(ap.Str(note, "id"))})
+	replies := ap.Object(note["replies"])
+	first := ap.Object(replies["first"])
+	if ap.Type(first) != "CollectionPage" || ap.Str(first, "partOf") != ap.Str(replies, "id") {
 		t.Fatalf("replies = %v", replies)
 	}
 	priv, _ := la.PostStatus(context.Background(), bob, PostInput{Text: "secret", Visibility: "private"})
 	if privFull, _ := la.loadStatus(bob, priv.ID); la.noteJSON(privFull)["replies"] != nil {
 		t.Error("followers-only post links a replies collection that 404s")
 	}
-	code, rp, _ := get(str(first, "next"), apMimeType)
-	if ri, _ := rp["items"].([]any); code != 200 || typeOf(rp) != "CollectionPage" || len(ri) != 1 || ri[0] != reply.URI {
+	code, rp, _ := get(ap.Str(first, "next"), ap.MimeType)
+	if ri, _ := rp["items"].([]any); code != 200 || ap.Type(rp) != "CollectionPage" || len(ri) != 1 || ri[0] != reply.URI {
 		t.Fatalf("replies page %v: %d %v", replies, code, rp)
 	}
 }

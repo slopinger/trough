@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"git.freifick.net/slop/trough/internal/ap"
 	"git.freifick.net/slop/trough/internal/httpsig"
 	"git.freifick.net/slop/trough/internal/ulid"
 )
@@ -80,15 +81,15 @@ func TestVisibilityFrom(t *testing.T) {
 		m    obj
 		want string
 	}{
-		{obj{"to": []any{asPublic}, "cc": []any{f}}, "public"},
-		{obj{"to": []any{f}, "cc": []any{asPublic}}, "unlisted"},
+		{obj{"to": []any{ap.Public}, "cc": []any{f}}, "public"},
+		{obj{"to": []any{f}, "cc": []any{ap.Public}}, "unlisted"},
 		{obj{"to": []any{f}}, "private"},
 		{obj{"to": []any{"https://x.test/users/b"}}, "direct"},
 		{obj{"to": "as:Public"}, "public"},
 	}
 	for _, c := range cases {
-		if got := visibilityFrom(c.m, f); got != c.want {
-			t.Errorf("visibilityFrom(%v) = %s, want %s", c.m, got, c.want)
+		if got := ap.Visibility(c.m, f); got != c.want {
+			t.Errorf("ap.Visibility(%v) = %s, want %s", c.m, got, c.want)
 		}
 	}
 }
@@ -159,7 +160,7 @@ func TestULIDOrder(t *testing.T) {
 	if len(a) != 26 || len(b) != 26 {
 		t.Fatal("bad id length")
 	}
-	old := ulid.At(parseTime("2020-01-01T00:00:00Z"))
+	old := ulid.At(ap.ParseTime("2020-01-01T00:00:00Z"))
 	if !(old < a) {
 		t.Fatal("ids do not sort by time")
 	}
