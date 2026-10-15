@@ -1,3 +1,4 @@
+{{define "head"}}{{if .Tag}}<link rel="alternate" type="application/rss+xml" title="#{{.Tag}}" href="/tags/{{.Tag}}.rss">{{end}}{{end}}
 {{define "content"}}
 <div class="pagehead"><h2 class="pagetitle">{{.Heading}}</h2>
 {{if and .Tag .Me}}<form method="post" action="/tags/{{.Tag}}/{{if .TagFollowed}}unfollow{{else}}follow{{end}}"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn small{{if not .TagFollowed}} primary{{end}}" title="{{if .TagFollowed}}Stop showing these posts in Home{{else}}Show public posts with this hashtag in your Home timeline{{end}}">{{if .TagFollowed}}Unfollow #{{.Tag}}{{else}}Follow #{{.Tag}}{{end}}</button></form>{{end}}</div>

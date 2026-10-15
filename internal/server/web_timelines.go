@@ -82,6 +82,10 @@ func (app *App) handleFederated(w http.ResponseWriter, r *http.Request, p *Page)
 
 func (app *App) handleTag(w http.ResponseWriter, r *http.Request, p *Page) {
 	tag := strings.ToLower(strings.TrimPrefix(r.PathValue("tag"), "#"))
+	if t, ok := strings.CutSuffix(tag, ".rss"); ok {
+		app.handleTagRSS(w, r, t)
+		return
+	}
 	if wantsAP(r) {
 		http.NotFound(w, r)
 		return

@@ -1,5 +1,6 @@
 {{define "head"}}<meta name="description" content="{{plain .Account.Note}}">{{if .Account.IsLocal}}
-<link rel="alternate" type="application/activity+json" href="{{.Account.URI}}">{{end}}{{end}}
+<link rel="alternate" type="application/activity+json" href="{{.Account.URI}}">
+<link rel="alternate" type="application/rss+xml" title="Posts by {{handle .Account}}" href="{{.Account.Path}}.rss">{{end}}{{end}}
 {{define "content"}}
 {{template "profilehead" .}}
 <nav class="tabs">

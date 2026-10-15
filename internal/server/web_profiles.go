@@ -9,6 +9,12 @@ import (
 
 func (app *App) handleProfileOrStatus(w http.ResponseWriter, r *http.Request, p *Page) {
 	at := r.PathValue("at")
+	if name, ok := strings.CutSuffix(at, ".rss"); ok && r.PathValue("id") == "" && strings.HasPrefix(name, "@") {
+		if acc, err := app.LocalAccount(strings.TrimPrefix(name, "@")); err == nil && !acc.Suspended {
+			app.handleProfileRSS(w, r, acc)
+			return
+		}
+	}
 	if !strings.HasPrefix(at, "@") {
 		app.notFound(w, p)
 		return

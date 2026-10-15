@@ -36,6 +36,7 @@ Files are grouped by prefix:
 | `announcements.go` | server rules and announcements |
 | `domainblocks.go` | servers users block for themselves |
 | `suggestions.go` | who to follow, familiar followers |
+| `rss.go` | RSS feeds of profiles and hashtags |
 | `ai.go`, `translate.go` | AI drafting and translation |
 | `fed_server.go` | federation endpoints: WebFinger, NodeInfo, actors, collections, objects |
 | `fed_inbox.go`, `fed_remote.go` | incoming activities, storing remote posts, backfill, URL resolution |
