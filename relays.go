@@ -113,7 +113,7 @@ func (app *App) relayAccept(actor *Account, followURI string, accepted bool) boo
 }
 
 func (app *App) relayInboxes() []string {
-	rows, err := app.db.Query(`SELECT inbox FROM relays WHERE accepted=1`)
+	rows, err := app.db.Query(`SELECT DISTINCT inbox FROM relays WHERE accepted=1`)
 	if err != nil {
 		return nil
 	}

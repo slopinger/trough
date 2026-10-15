@@ -385,6 +385,21 @@ CREATE TABLE signature_styles (
 	style TEXT NOT NULL,
 	updated_at INTEGER NOT NULL
 );
+`, `
+-- several relays can share one inbox (fedi.buzz tag relays)
+CREATE TABLE relays_new (
+	id TEXT PRIMARY KEY,
+	inbox TEXT NOT NULL,
+	actor_uri TEXT NOT NULL DEFAULT '',
+	follow_uri TEXT NOT NULL,
+	style TEXT NOT NULL DEFAULT 'mastodon',
+	accepted INTEGER NOT NULL DEFAULT 0,
+	created_at INTEGER NOT NULL,
+	UNIQUE (inbox, actor_uri)
+);
+INSERT INTO relays_new SELECT id, inbox, actor_uri, follow_uri, style, accepted, created_at FROM relays;
+DROP TABLE relays;
+ALTER TABLE relays_new RENAME TO relays;
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

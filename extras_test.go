@@ -137,14 +137,17 @@ func TestFollowedTagsAndLists(t *testing.T) {
 	}
 }
 
-// LitePub/fedi.buzz-style relays are added by their actor URL through the
-// admin page; the Follow goes to the actor and the page lists the actor.
+// fedi.buzz-style tag relays are added by their actor URL through the admin
+// page. Several share one inbox: each gets its own Follow, the page lists the
+// actors, and our public posts reach the shared inbox once.
 func TestLitePubRelayViaAdmin(t *testing.T) {
 	la := startLiveApp(t)
-	la.CreateLocalUser("boss", "password123", true)
+	boss, _ := la.CreateLocalUser("boss", "password123", true)
 	r := newRemote(t, la)
-	r.put("/tag/cats", strings.NewReplacer(`"{{R}}/actor"`, `"{{R}}/tag/cats"`, `"{{R}}/actor#main-key"`, `"{{R}}/tag/cats#main-key"`, `"type": "Application"`, `"type": "Service"`,
-		`"inbox": "{{R}}/inbox"`, `"inbox": "{{R}}/tag/cats", "endpoints": {"sharedInbox": "{{R}}/instance/relay"}`).Replace(relayActor))
+	for _, tag := range []string{"cats", "dogs"} {
+		r.put("/tag/"+tag, strings.NewReplacer(`"{{R}}/actor"`, `"{{R}}/tag/`+tag+`"`, `"{{R}}/actor#main-key"`, `"{{R}}/tag/`+tag+`#main-key"`, `"type": "Application"`, `"type": "Service"`,
+			`"inbox": "{{R}}/inbox"`, `"inbox": "{{R}}/tag/`+tag+`", "endpoints": {"sharedInbox": "{{R}}/instance/relay"}`).Replace(relayActor))
+	}
 	jar, _ := cookiejar.New(nil)
 	c := &http.Client{Jar: jar}
 	post := func(path string, form url.Values) string {
@@ -164,13 +167,25 @@ func TestLitePubRelayViaAdmin(t *testing.T) {
 	page, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	csrf := strings.SplitN(strings.SplitN(string(page), `name="csrf" value="`, 2)[1], `"`, 2)[0]
-	page2 := post("/admin/relays", url.Values{"csrf": {csrf}, "url": {r.Base + "/tag/cats"}})
-	eventually(t, "Follow delivered", func() bool { return len(r.receivedOf("Follow")) == 1 })
-	f := r.receivedOf("Follow")[0]
-	if f.SigErr != nil || idOf(f.Activity["object"]) != r.Base+"/tag/cats" || f.Path != "/instance/relay" {
-		t.Fatalf("follow to %s = %v (%v)", f.Path, f.Activity, f.SigErr)
+	post("/admin/relays", url.Values{"csrf": {csrf}, "url": {r.Base + "/tag/cats"}})
+	page2 := post("/admin/relays", url.Values{"csrf": {csrf}, "url": {r.Base + "/tag/dogs"}})
+	eventually(t, "Follows delivered", func() bool { return len(r.receivedOf("Follow")) == 2 })
+	for i, tag := range []string{"cats", "dogs"} {
+		f := r.receivedOf("Follow")[i]
+		if f.SigErr != nil || idOf(f.Activity["object"]) != r.Base+"/tag/"+tag || f.Path != "/instance/relay" {
+			t.Fatalf("follow to %s = %v (%v)", f.Path, f.Activity, f.SigErr)
+		}
+		if !strings.Contains(page2, r.Base+"/tag/"+tag+"</td>") {
+			t.Errorf("admin page doesn't list the %s relay", tag)
+		}
+		key := r.Base + "/tag/" + tag + "#main-key"
+		r.send(obj{"@context": asContext, "id": r.Base + "/accepts/" + tag, "type": "Accept", "actor": r.Base + "/tag/" + tag, "object": f.Activity["id"]}, key, sigCavage)
 	}
-	if !strings.Contains(page2, r.Base+"/tag/cats</td>") {
-		t.Error("admin page doesn't list the relay actor")
+	eventually(t, "both relays accepted", func() bool { rs := la.relays(); return len(rs) == 2 && rs[0].Accepted && rs[1].Accepted })
+	la.PostStatus(context.Background(), boss, PostInput{Text: "hello #cats and #dogs", Visibility: "public"})
+	eventually(t, "post sent to the relay", func() bool { return len(r.receivedOf("Create")) >= 1 })
+	time.Sleep(300 * time.Millisecond)
+	if n := len(r.receivedOf("Create")); n != 1 {
+		t.Errorf("shared relay inbox got the post %d times", n)
 	}
 }
