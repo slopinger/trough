@@ -27,6 +27,9 @@ func (app *App) apiUpdateCredentials(w http.ResponseWriter, r *http.Request, c *
 	if p.Has("locked") {
 		me.Locked = p.Bool("locked")
 	}
+	if p.Has("discoverable") {
+		me.Discoverable = p.Bool("discoverable")
+	}
 	if p.Has("bot") {
 		if p.Bool("bot") {
 			me.ActorType = "Service"

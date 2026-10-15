@@ -337,6 +337,7 @@ func (app *App) upsertActor(m obj) (*Account, error) {
 		}
 	}
 	acc.MovedTo = ap.ID(m["movedTo"])
+	acc.Discoverable = ap.Bool(m, "discoverable")
 	acc.FetchedAt = time.Now()
 	if err := app.saveAccount(acc); err != nil {
 		return nil, err

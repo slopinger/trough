@@ -504,6 +504,9 @@ CREATE TABLE featured_tags (
 	created_at INTEGER NOT NULL,
 	UNIQUE (account_id, tag)
 );
+`, `
+ALTER TABLE accounts ADD COLUMN discoverable INTEGER NOT NULL DEFAULT 0;
+UPDATE accounts SET discoverable=1 WHERE domain='' AND actor_type != 'Application';
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

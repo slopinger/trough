@@ -1,0 +1,13 @@
+{{define "content"}}
+<div class="pagehead"><h2 class="pagetitle">Profile directory</h2></div>
+<nav class="tabs">
+  <a href="/directory?order=active&amp;scope={{.Query}}" class="{{if eq .Tab "active"}}active{{end}}">Recently active</a>
+  <a href="/directory?order=new&amp;scope={{.Query}}" class="{{if eq .Tab "new"}}active{{end}}">New</a>
+</nav>
+<nav class="tabs">
+  <a href="/directory?order={{.Tab}}&amp;scope=local" class="{{if eq .Query "local"}}active{{end}}">From {{.Host}}</a>
+  <a href="/directory?order={{.Tab}}&amp;scope=all" class="{{if eq .Query "all"}}active{{end}}">Everyone known here</a>
+</nav>
+{{$p := .}}{{range .Accounts}}{{template "accountrow" (dict "A" . "P" $p)}}{{else}}<p class="empty">Nobody is listed yet. People can opt in under Settings → Profile.</p>{{end}}
+{{if .NextURL}}<a class="more" href="{{.NextURL}}">Show more</a>{{end}}
+{{end}}

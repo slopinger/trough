@@ -85,6 +85,9 @@
 - Link previews (OpenGraph cards), fetched in the background
 - RSS feeds of local profiles (`/@name.rss`, public posts without replies and boosts) and hashtags
   (`/tags/name.rss`), with media as `media:content`; pages link them for feed readers
+- Profile directory (`/directory`, `/api/v1/directory` with `order=active|new`, `local`, paging) of accounts
+  that opted in (Settings → "List me in the profile directory", the actor's `discoverable`; remote accounts
+  keep their own server's flag)
 - Who to follow (Explore → People, `/api/v2/suggestions` with dismissing): accounts followed by people you
   follow, then popular ones here; profiles show which people you follow follow them
   (`/api/v1/accounts/familiar_followers`)

@@ -77,7 +77,7 @@ func (app *App) apiAccountDepth(a *Account, depth int) obj {
 		"display_name":    a.DisplayName,
 		"locked":          a.Locked,
 		"bot":             a.IsBot(),
-		"discoverable":    true,
+		"discoverable":    a.Discoverable,
 		"indexable":       false,
 		"group":           a.ActorType == "Group",
 		"created_at":      apiTime(a.CreatedAt.UTC().Truncate(24 * time.Hour)),
@@ -114,7 +114,7 @@ func (app *App) apiCredentialAccount(a *Account) obj {
 	priv := "public"
 	m["source"] = obj{"privacy": priv, "sensitive": false, "language": "", "note": a.NoteSource, "fields": fields,
 		"follow_requests_count": app.followRequestCount(a.ID), "quote_policy": app.defaultQuotePolicy(a.ID),
-		"attribution_domains": nonNil(a.AttributionDomains)}
+		"attribution_domains": nonNil(a.AttributionDomains), "discoverable": a.Discoverable}
 	m["role"] = obj{"id": "0", "name": map[bool]string{true: "Admin", false: ""}[app.isAdmin(a.ID)], "permissions": "0", "color": "", "highlighted": false}
 	return m
 }

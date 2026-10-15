@@ -39,6 +39,7 @@ Files are grouped by prefix:
 | `rss.go` | RSS feeds of profiles and hashtags |
 | `csvio.go` | CSV export and import (Mastodon formats) |
 | `featuredtags.go` | featured hashtags |
+| `directory.go` | profile directory |
 | `ai.go`, `translate.go` | AI drafting and translation |
 | `fed_server.go` | federation endpoints: WebFinger, NodeInfo, actors, collections, objects |
 | `fed_inbox.go`, `fed_remote.go` | incoming activities, storing remote posts, backfill, URL resolution |

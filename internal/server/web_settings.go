@@ -68,6 +68,7 @@ func (app *App) handleSettingsProfile(w http.ResponseWriter, r *http.Request, p 
 	me.NoteSource = truncateRunes(strings.TrimSpace(r.FormValue("note")), 2000)
 	me.Note = app.formatBio(r.Context(), me.NoteSource)
 	me.Locked = r.FormValue("locked") != ""
+	me.Discoverable = r.FormValue("discoverable") != ""
 	if r.FormValue("bot") != "" {
 		me.ActorType = "Service"
 	} else {

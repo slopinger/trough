@@ -256,6 +256,7 @@ func (app *App) CreateLocalUser(username, password string, admin bool) (*Account
 	acc := &Account{
 		ID:           ulid.New(),
 		Username:     username,
+		Discoverable: true,
 		URI:          uri,
 		URL:          app.cfg.BaseURL() + "/@" + username,
 		Inbox:        uri + "/inbox",

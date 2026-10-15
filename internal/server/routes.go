@@ -64,6 +64,7 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("GET /federated", auth(app.handleFederated))
 	mux.HandleFunc("GET /tags/{tag}", pub(app.handleTag))
 	mux.HandleFunc("GET /explore", pub(app.handleExplore))
+	mux.HandleFunc("GET /directory", pub(app.handleDirectory))
 	mux.HandleFunc("POST /tags/{tag}/feature", auth(app.handleTagFeature))
 	mux.HandleFunc("POST /tags/{tag}/unfeature", auth(app.handleTagFeature))
 	mux.HandleFunc("GET /{at}/{id}/{tag}", pub(app.handleProfileOrStatus)) // /@name/tagged/tag
@@ -201,10 +202,7 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	h("GET /api/v1/trends/tags", pub(app.apiTrendTags))
 	h("GET /api/v1/trends/statuses", pub(app.apiTrendStatuses))
 	h("GET /api/v1/trends/links", pub(app.apiTrendLinks))
-	h("GET /api/v1/directory", pub(func(w http.ResponseWriter, r *http.Request, c *apiCtx) {
-		accs, _ := app.accountsQuery(`SELECT ` + accountCols + ` FROM accounts a JOIN users u ON u.account_id=a.id ORDER BY u.last_seen DESC LIMIT 40`)
-		app.writeAccounts(w, accs)
-	}))
+	h("GET /api/v1/directory", pub(app.apiDirectory))
 	h("GET /api/v1/preferences", read(app.apiPreferences))
 	h("GET /api/v1/markers", read(app.apiGetMarkers))
 	h("POST /api/v1/markers", write(app.apiSetMarkers))

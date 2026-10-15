@@ -17,6 +17,7 @@
 {{range .Suggestions}}<div class="suggestion">{{if eq .Source "friends_of_friends"}}<span class="muted small">Followed by people you follow</span>{{else}}<span class="muted small">Popular here</span>{{end}}
 {{template "accountrow" (dict "A" .Account "P" $p "Actions" (actions "follow" "Follow" "primary small" "dismiss_suggestion" "Hide" "small"))}}</div>
 {{else}}<p class="empty">No suggestions yet. Follow a few people and their follows show up here.</p>{{end}}
+<a class="more" href="/directory">Browse the profile directory</a>
 {{else if eq .Tab "links"}}
 {{range .TrendLinks}}
 <a class="trend" href="{{.Card.URL}}" target="_blank" rel="noopener noreferrer nofollow">
