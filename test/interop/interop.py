@@ -220,6 +220,17 @@ def main():
     print("10. profile updates")
     t.call("PATCH", "/api/v1/accounts/update_credentials", {"note": f"bio {stamp}"})
     wait("profile update on remote", lambda: f"bio {stamp}" in g.get(f"/api/v1/accounts/{bob_on_g['id']}")["note"])
+    # featured hashtags travel in the actor's featuredTags collection, which Mastodon syncs
+    tag = f"interop{stamp}"
+    t.post("/api/v1/featured_tags", {"name": tag})
+    featured = lambda: any(f["name"].lower() == tag for f in g.get(f"/api/v1/accounts/{bob_on_g['id']}/featured_tags"))
+    if api_version >= 7:
+        wait("featured hashtag shown on remote", featured)
+    else:
+        try:
+            wait("featured hashtag shown on remote", featured, timeout=10)
+        except AssertionError as e:
+            print("  WARN (remote side, featured hashtags not synced):", e)
 
     print("11. unfollow both ways")
     t.post(f"/api/v1/accounts/{gal_on_t['id']}/unfollow")
