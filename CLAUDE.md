@@ -9,6 +9,9 @@ Keep these notes and README up to date whenever code behavior, commands or opera
   federation via the real web UI; it removes processes/data on exit. It never uses live credentials.
 - `python3 test/run-gotosocial.py` federates with a disposable real GoToSocial (Nix) behind a throwaway
   local-CA Caddy (trough runs `-insecure -scheme https`); needs `caddy`, takes ~1 minute.
+  `python3 test/run-mastodon.py` (optionally `AUTHORIZED_FETCH=true`) does the same with a real Mastodon
+  in Docker, inside a private loopback-only network namespace so Caddy can use port 443. Both drive
+  `test/interop.py`; shared setup is in `test/interop_env.py`.
 - `compat_*_test.go` is the ActivityPub compatibility suite: a live instance against a fake remote that
   speaks like Mastodon, GoToSocial, Misskey, Pleroma, Pixelfed, Friendica, WordPress, Fedify (RFC 9421),
   Lemmy and PeerTube, cross-checking signatures with go-fed/httpsig. Add a flavor/fixture when fixing an

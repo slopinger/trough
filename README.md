@@ -167,6 +167,14 @@ profile updates and unfollows, in both directions. It takes about a minute and n
 Known GoToSocial 0.22.1 issue: deleting a remote post that already has replies fails on its side
 (`NOT NULL constraint failed: statuses.thread_id` while stubbing), so that one check only warns.
 
+`python3 test/run-mastodon.py` runs the same scenario against a disposable **real Mastodon** (4.7.3 by
+default, `MASTODON_IMAGE` picks another image) with PostgreSQL, Redis, the web app and Sidekiq in Docker.
+Mastodon only federates with servers on port 443, so the whole test lives in a private network namespace
+(a `--network none` container that the others join, and the script re-runs itself in it with `nsenter`):
+there the throwaway Caddy serves `https://localhost` (Mastodon) and `https://127.0.0.1` (trough), and
+nothing is reachable from outside. `AUTHORIZED_FETCH=true` runs it against Mastodon's secure mode, where
+every fetch must be signed. It needs docker and sudo and takes about two minutes after the image pull.
+
 To test two instances you started yourself, use `python3 test/federation.py <alice-pw> <bob-pw>`.
 It defaults to ports 8801/8802; `TROUGH_TEST_A` and `TROUGH_TEST_B` override the base URLs.
 The passwords can instead come from `TROUGH_TEST_ALICE_PASSWORD` and `TROUGH_TEST_BOB_PASSWORD`.
