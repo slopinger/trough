@@ -29,6 +29,10 @@
   comes from its own origin and is only kept if it answers the post it was listed under. While it runs, the
   context API sends Mastodon 4.4's `Mastodon-Async-Refresh` header and `/api/v1_alpha/async_refreshes/:id` reports it
 - SSRF protection: remote fetches never connect to loopback/private/link-local addresses
+- Inbox forwarding: replies, edits and deletions that a server forwards for someone else's post (as Mastodon
+  does for replies to its users) are accepted without trusting their content: new posts are fetched from their
+  origin and kept if they answer a post here or mention someone here, edits are refetched, and deletions only
+  apply once the origin says the post is gone
 - Remote HTML is sanitized (bluemonday); custom emoji, polls (read-only), content warnings,
   sensitive media, Articles and other object types are displayed
 - Groups: Lemmy communities and similar groups that relay posts as `Announce{Create}` show up as boosts by

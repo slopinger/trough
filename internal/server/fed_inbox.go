@@ -15,8 +15,9 @@ import (
 )
 
 type inboxJob struct {
-	signer   *Account
-	activity obj
+	signer    *Account
+	activity  obj
+	forwarded bool // signed by another server than the actor's: trust nothing in it
 }
 
 // handleInbox serves POST /inbox and /users/{name}/inbox.
@@ -58,17 +59,23 @@ func (app *App) handleInbox(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "signature verification failed", http.StatusUnauthorized)
 		return
 	}
+	forwarded := false
 	if signer.URI != ap.StripFragment(actorIRI) && !app.isRelay(signer) {
-		log.Printf("inbox: signer %s does not match actor %s", signer.URI, actorIRI)
-		http.Error(w, "signer does not match actor", http.StatusUnauthorized)
-		return
+		switch ap.Type(act) {
+		case "Create", "Update", "Delete": // inbox forwarding, see inForwarded
+			forwarded = true
+		default:
+			log.Printf("inbox: signer %s does not match actor %s", signer.URI, actorIRI)
+			http.Error(w, "signer does not match actor", http.StatusUnauthorized)
+			return
+		}
 	}
 	if signer.Suspended && !app.liftsOwnSuspension(signer, act) {
 		w.WriteHeader(http.StatusAccepted)
 		return
 	}
 	select {
-	case app.inboxQueue <- inboxJob{signer, act}:
+	case app.inboxQueue <- inboxJob{signer, act, forwarded}:
 		w.WriteHeader(http.StatusAccepted)
 	default:
 		http.Error(w, "busy", http.StatusServiceUnavailable)
@@ -82,7 +89,11 @@ func (app *App) inboxWorker(ctx context.Context) {
 			return
 		case job := <-app.inboxQueue:
 			jctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-			if err := app.processActivity(jctx, job.signer, job.activity); err != nil {
+			process := app.processActivity
+			if job.forwarded {
+				process = func(ctx context.Context, _ *Account, act obj) error { return app.inForwarded(ctx, act) }
+			}
+			if err := process(jctx, job.signer, job.activity); err != nil {
 				log.Printf("inbox: %s %s from %s: %v", ap.Type(job.activity), ap.Str(job.activity, "id"), job.signer.URI, err)
 			}
 			cancel()
@@ -615,4 +626,52 @@ func pollText(p *Poll) string {
 		b.WriteString(o.Name + "\n")
 	}
 	return b.String()
+}
+
+// inForwarded handles activities a server forwarded on behalf of one of
+// another server's actors: Mastodon forwards replies, and their edits and
+// deletions, to the followers of the person replied to. The forwarder can't
+// sign for the author, so nothing in the activity is trusted; like relayed
+// posts, the post is fetched from its origin. New posts are only kept if
+// they concern us: replies to a post we have, or mentions of a local user.
+func (app *App) inForwarded(ctx context.Context, act obj) error {
+	iri := ap.ID(act["object"])
+	if iri == "" || app.isLocalIRI(iri) || !ap.SameHost(iri, ap.ID(act["actor"])) {
+		return nil
+	}
+	if ap.Type(act) != "Create" {
+		return app.inRelayed(ctx, act) // Update refreshes from the origin, Delete checks it's gone there
+	}
+	if _, err := app.StatusByURI(iri); err == nil {
+		return nil
+	}
+	note, err := app.fetchAP(ctx, iri)
+	if err != nil {
+		return err
+	}
+	if ap.Str(note, "id") != iri || !app.concernsUs(note) {
+		return nil
+	}
+	st, err := app.storeFetchedNote(ctx, note, 1)
+	if err == nil && st.Visibility != "public" && st.Visibility != "unlisted" {
+		return app.purgeStatus(st.ID) // only public posts are forwarded
+	}
+	return err
+}
+
+// concernsUs reports whether a remote post answers a post we have or
+// mentions someone here.
+func (app *App) concernsUs(note obj) bool {
+	if parent := ap.ID(note["inReplyTo"]); parent != "" {
+		if _, err := app.StatusByURI(parent); err == nil {
+			return true
+		}
+	}
+	tags, _ := note["tag"].([]any)
+	for _, t := range tags {
+		if m, ok := t.(obj); ok && ap.Type(m) == "Mention" && app.isLocalIRI(ap.Str(m, "href")) {
+			return true
+		}
+	}
+	return false
 }

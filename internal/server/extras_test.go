@@ -66,13 +66,26 @@ func TestRelays(t *testing.T) {
 		t.Errorf("relay got %d Creates, want 1 (public only)", n)
 	}
 
-	// someone who isn't a relay can't forward other people's activities
+	// someone who isn't a relay can't make us take other people's posts on
+	// their word: forwarded posts are fetched from their origin (which
+	// doesn't have this one)
 	r2 := newRemote(t, la)
 	r2.put("/users/mallory", strings.NewReplacer("users/alice", "users/mallory", `"preferredUsername": "alice"`, `"preferredUsername": "mallory"`).Replace(mastodonActor))
-	if code := r2.send(obj{"@context": asContext, "id": r.Base + "/forged", "type": "Create", "actor": r.Base + "/users/carol",
+	r2.send(obj{"@context": asContext, "id": r.Base + "/forged", "type": "Create", "actor": r.Base + "/users/carol",
 		"object": obj{"id": r.Base + "/users/carol/statuses/3", "type": "Note", "attributedTo": r.Base + "/users/carol", "content": "forged"}},
-		r2.Base+"/users/mallory#main-key", sigCavage); code != 401 {
-		t.Errorf("forwarded activity from a non-relay: %d, want 401", code)
+		r2.Base+"/users/mallory#main-key", sigCavage)
+	eventually(t, "the forwarded post to be looked up at its origin", func() bool {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		for _, g := range r.gets {
+			if g.URL.Path == "/users/carol/statuses/3" {
+				return true
+			}
+		}
+		return false
+	})
+	if _, err := la.StatusByURI(r.Base + "/users/carol/statuses/3"); err == nil {
+		t.Error("a forged forwarded post was stored")
 	}
 	// unsubscribe
 	la.RemoveRelay(la.relays()[0].ID)
