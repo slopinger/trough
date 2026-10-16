@@ -111,6 +111,14 @@ func (app *App) showProfile(w http.ResponseWriter, r *http.Request, p *Page, acc
 	app.profileCommon(p, acc)
 	p.Tab = r.URL.Query().Get("tab")
 	p.FeaturedTags = app.featuredTags(acc)
+	if p.Tab == "featured" {
+		p.Title = "Featured by " + acc.Name() + " (@" + acc.Username + "@" + app.accountHost(acc) + ")"
+		if p.Me != nil && p.Me.ID == acc.ID {
+			p.Section = "profile"
+		}
+		app.render(w, "profile", p)
+		return
+	}
 	var sts []*Status
 	var err error
 	if tag := normalizeTag(r.PathValue("tag")); tag != "" { // /@name/tagged/tag

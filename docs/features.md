@@ -105,6 +105,8 @@
 - Featured hashtags on profiles (up to 10, with post counts, linking to `/@name/tagged/tag`; "Feature on
   profile" on hashtag pages, `/api/v1/featured_tags`, `/api/v1/tags/:name/feature`), federated as the
   actor's `featuredTags` collection like Mastodon's
+- A profile "Featured" tab (`?tab=featured`, shown when something is featured) listing featured hashtags
+  with post counts and the accounts the user recommends
 - Featured accounts on profiles (Mastodon endorsements, not federated, like on Mastodon); attribution
   domains (`attributionDomains`) for websites that credit you with `fediverse:creator`
 - Blocking whole servers for yourself (Settings, a profile's "Block server" button, `/api/v1/domain_blocks`):

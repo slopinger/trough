@@ -3,13 +3,23 @@
 <link rel="alternate" type="application/rss+xml" title="Posts by {{handle .Account}}" href="{{.Account.Path}}.rss">{{end}}{{end}}
 {{define "content"}}
 {{template "profilehead" .}}
-{{if .FeaturedTags}}<nav class="featured-tags" aria-label="Featured hashtags">{{range .FeaturedTags}}<a href="{{$.Account.Path}}/tagged/{{.Name}}" class="{{if eq $.Tag .Name}}active{{end}}"><b>#{{.Name}}</b><small>{{.StatusesCount}} {{if eq .StatusesCount 1}}post{{else}}posts{{end}}{{if not .LastStatusAt.IsZero}} · {{date .LastStatusAt}}{{end}}</small></a>{{end}}</nav>{{end}}
+{{if and .Tag .FeaturedTags}}<nav class="featured-tags" aria-label="Featured hashtags">{{range .FeaturedTags}}<a href="{{$.Account.Path}}/tagged/{{.Name}}" class="{{if eq $.Tag .Name}}active{{end}}"><b>#{{.Name}}</b><small>{{.StatusesCount}} {{if eq .StatusesCount 1}}post{{else}}posts{{end}}{{if not .LastStatusAt.IsZero}} · {{date .LastStatusAt}}{{end}}</small></a>{{end}}</nav>{{end}}
 <nav class="tabs">
   <a href="{{.Account.Path}}" class="{{if eq .Tab ""}}active{{end}}">Posts</a>
   <a href="{{.Account.Path}}?tab=replies" class="{{if eq .Tab "replies"}}active{{end}}">Posts &amp; replies</a>
   <a href="{{.Account.Path}}?tab=media" class="{{if eq .Tab "media"}}active{{end}}">Media</a>
+  {{if or .FeaturedTags .Featured (eq .Tab "featured")}}<a href="{{.Account.Path}}?tab=featured" class="{{if eq .Tab "featured"}}active{{end}}">Featured</a>{{end}}
   {{if .Tag}}<a href="{{.Account.Path}}/tagged/{{.Tag}}" class="active">#{{.Tag}}</a>{{end}}
 </nav>
-{{$p := .}}{{range .Pinned}}{{template "status" (dict "S" . "P" $p "Pinned" true)}}{{end}}
+{{$p := .}}{{if eq .Tab "featured"}}
+{{if .FeaturedTags}}<h3 class="section-title">Hashtags</h3>
+{{range .FeaturedTags}}<a class="trend" href="{{$p.Account.Path}}/tagged/{{.Name}}"><span class="trend-main"><b>#{{.Name}}</b><small>{{.StatusesCount}} {{if eq .StatusesCount 1}}post{{else}}posts{{end}}{{if not .LastStatusAt.IsZero}} · last used {{ago .LastStatusAt}}{{end}}</small></span></a>
+{{end}}{{end}}
+{{if .Featured}}<h3 class="section-title">Accounts {{name .Account}} recommends</h3>
+{{range .Featured}}{{template "accountrow" (dict "A" . "P" $p)}}{{end}}{{end}}
+{{if not (or .FeaturedTags .Featured)}}<div class="empty">Nothing featured yet.{{if and .Me (eq .Me.ID .Account.ID)}} Feature hashtags on <a href="/followed_tags">your followed hashtags</a> or a hashtag's page, and accounts with the Feature button on their profile.{{end}}</div>{{end}}
+{{else}}
+{{range .Pinned}}{{template "status" (dict "S" . "P" $p "Pinned" true)}}{{end}}
 {{template "statuslist" .}}
+{{end}}
 {{end}}

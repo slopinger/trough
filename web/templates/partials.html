@@ -254,7 +254,7 @@
     <a href="{{$a.URL}}" target="_blank" rel="noopener noreferrer">{{template "icon" "external"}} full profile on {{hostOf $a.URI}}</a>
     {{end}}
   </div>
-  {{if .Featured}}<div class="featured"><span class="muted">Featured</span>{{range .Featured}}<a href="{{.Path}}" title="{{name .}} {{handle .}}"><img src="{{template "avatarsrc" .}}" alt="{{name .}}" width="32" height="32" loading="lazy"></a>{{end}}</div>{{end}}
+  {{if .Featured}}<div class="featured"><a class="muted" href="{{.Account.Path}}?tab=featured">Featured</a>{{range .Featured}}<a href="{{.Path}}" title="{{name .}} {{handle .}}"><img src="{{template "avatarsrc" .}}" alt="{{name .}}" width="32" height="32" loading="lazy"></a>{{end}}</div>{{end}}
 </section>{{end}}
 
 {{define "statuslist"}}{{$p := .}}

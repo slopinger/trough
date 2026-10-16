@@ -55,7 +55,7 @@ func TestFeaturedTags(t *testing.T) {
 	if !strings.Contains(string(body), `"name":"#dogs"`) || !strings.Contains(string(body), `"type":"Hashtag"`) {
 		t.Fatalf("collection = %s", body)
 	}
-	for path, want := range map[string]string{"/@ann": "/@ann/tagged/dogs", "/@ann/tagged/cats": "more"} {
+	for path, want := range map[string]string{"/@ann?tab=featured": "/@ann/tagged/dogs", "/@ann/tagged/cats": "more"} {
 		resp, err := http.Get(la.base + path)
 		if err != nil {
 			t.Fatal(err)
@@ -104,5 +104,45 @@ func TestFollowedTagsPage(t *testing.T) {
 	}
 	if !strings.Contains(get("/settings"), `href="/followed_tags"`) {
 		t.Error("settings don't link to the page")
+	}
+}
+
+func TestProfileFeaturedTab(t *testing.T) {
+	la := startLiveApp(t)
+	bob, _ := la.CreateLocalUser("bob", "password123", false)
+	cat, _ := la.CreateLocalUser("cat", "password123", false)
+	get := func(path string) string {
+		t.Helper()
+		resp, err := http.Get(la.base + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		b, _ := io.ReadAll(resp.Body)
+		return string(b)
+	}
+	if page := get("/@bob"); strings.Contains(page, "?tab=featured") {
+		t.Error("Featured tab without anything featured")
+	}
+	if page := get("/@bob?tab=featured"); !strings.Contains(page, "Nothing featured yet") {
+		t.Error("no empty state")
+	}
+	la.PostStatus(context.Background(), bob, PostInput{Text: "my #garden today", Visibility: "public"})
+	la.FeatureTag(bob, "garden")
+	la.Endorse(bob, cat)
+	page := get("/@bob?tab=featured")
+	for _, want := range []string{`href="/@bob/tagged/garden"`, "1 post", "Accounts bob recommends", `href="/@cat"`} {
+		if !strings.Contains(page, want) {
+			t.Errorf("featured tab lacks %q", want)
+		}
+	}
+	if strings.Contains(page, "my #garden today") {
+		t.Error("featured tab lists posts")
+	}
+	if page := get("/@bob"); !strings.Contains(page, "?tab=featured") || strings.Contains(page, `class="featured-tags"`) {
+		t.Error("posts tab: Featured tab link missing or hashtag chips still there")
+	}
+	if page := get("/@bob/tagged/garden"); !strings.Contains(page, `class="featured-tags"`) {
+		t.Error("tagged view lost its hashtag chips")
 	}
 }
