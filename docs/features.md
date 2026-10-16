@@ -206,6 +206,9 @@
 - Image viewer: attached images open large with their description; arrow keys go through a post's images
 - Browser notifications (Settings, per browser): the web UI subscribes through the browser's push service with the
   server's VAPID key; a service worker at `/sw.js` shows them and opens the post when clicked
+- Embedding posts on other websites (post menu → Embed, like Mastodon): local public and unlisted posts have
+  a frameable `/s/:id/embed` page; the code to paste includes `/embed.js`, which fits the iframe to the post.
+  `/api/oembed?url=…` and a discovery link on post pages let sites that speak oEmbed embed them by URL
 - A privacy policy (`/privacy-policy`, linked in the footer and on About; `/api/v1/instance/privacy_policy`):
   admins write it on `/admin` (headings, paragraphs and lists as plain text); until then a default describes
   what trough stores and shares

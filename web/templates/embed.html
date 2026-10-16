@@ -1,0 +1,24 @@
+{{define "layout"}}{{$s := .Status}}<!doctype html>
+<html lang="{{or $s.Language "en"}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · {{.Instance}}</title>
+<link rel="stylesheet" href="{{static "style.css"}}">
+<meta name="color-scheme" content="light dark">
+<script src="{{static "app.js"}}" defer></script>
+</head>
+<body class="embed">
+<article class="embed-card">
+  <header class="embed-head">
+    <a href="{{$s.Account.URL}}" class="avatar"><img src="{{template "avatarsrc" $s.Account}}" alt="" width="40" height="40"></a>
+    <a href="{{$s.Account.URL}}" class="embed-who"><b>{{name $s.Account}}</b><span class="muted small">{{handle $s.Account}}</span></a>
+  </header>
+  {{if $s.Spoiler}}<details class="cw"><summary><span class="cwtext">{{spoiler $s}}</span> <span class="cwbtn">show more</span></summary>{{template "statusbody" (dict "S" $s "P" .)}}</details>
+  {{else}}{{template "statusbody" (dict "S" $s "P" .)}}{{end}}
+  {{if $s.Attachments}}{{if $s.Sensitive}}<details class="sensitive"><summary>{{template "icon" "image"}} Sensitive media — click to show</summary>{{template "media" $s}}</details>{{else}}{{template "media" $s}}{{end}}{{end}}
+  <footer class="embed-foot muted small"><a href="{{$s.URL}}">{{fulltime $s.CreatedAt}}</a><span>{{.Instance}}</span></footer>
+</article>
+</body>
+</html>{{end}}
+{{define "content"}}{{end}}

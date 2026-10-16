@@ -46,6 +46,7 @@ Files are grouped by prefix:
 | `cleanup.go` | automated deletion of old posts |
 | `sessions.go` | logged-in browsers in Settings |
 | `privacy.go` | the privacy policy page and its default text |
+| `embed.go` | embedding posts on other websites (iframe page, oEmbed, `/embed.js`) |
 | `twofactor.go` | two-factor authentication (TOTP, recovery codes) |
 | `accountdelete.go` | deleting your own account |
 | `archive.go` | archive download (zip) |

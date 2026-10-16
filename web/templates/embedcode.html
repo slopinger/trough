@@ -1,0 +1,10 @@
+{{define "content"}}
+<section class="card">
+  <h2>Embed this post</h2>
+  <p class="muted small">Paste this code into a website to show the post there. The post is loaded from {{.Host}}, so edits and deletions show up on the website too.</p>
+  <textarea class="embed-code" rows="5" readonly aria-label="Embed code">{{.EmbedCode}}</textarea>
+  <p><button type="button" class="btn small copy-link" data-url="{{.EmbedCode}}">Copy code</button> <a class="btn small" href="{{.Status.Path}}">Back to the post</a></p>
+  <h3>Preview</h3>
+  <iframe src="{{.Status.Path}}/embed" class="trough-embed embed-preview" width="400" height="300" title="Preview"></iframe>
+</section>
+{{end}}

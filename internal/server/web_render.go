@@ -165,6 +165,7 @@ func (app *App) templateFuncs() template.FuncMap {
 		"languages":    func() any { return postLanguages },
 		"postLanguage": app.postLanguage,
 		"cleanupAges":  func() any { return cleanupAges },
+		"oembedLink":   app.oembedLink,
 		"hideMedia":    func(p *Page, s *Status) bool { return p.Prefs.hideMedia(s) },
 		"clampint":     func(v, hi int) int { return min(v, hi) },
 		"percent": func(v int, p *Poll) int {

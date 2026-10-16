@@ -58,6 +58,7 @@
           <form method="post" action="/accounts/{{$o.AccountID}}/mute"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button>{{template "icon" "mute"}} Mute {{handle $o.Account}}</button></form>
           <a href="/report?account={{$o.AccountID}}&amp;status={{$o.ID}}">{{template "icon" "flag"}} Report…</a>
         {{end}}
+        {{if and $o.Local (eq $o.Visibility "public" "unlisted")}}<a href="{{$o.Path}}/embed_code">{{template "icon" "external"}} Embed</a>{{end}}
         {{if and $p.AI $o.Content (ne $o.Language "en")}}<a class="translate-link" data-id="{{$o.ID}}" href="{{$o.Path}}?translate=en">{{template "icon" "globe"}} Translate</a>{{end}}
         <form method="post" action="/statuses/{{$o.ID}}/{{if convMuted $o $p.Me}}unmute{{else}}mute{{end}}"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button>{{template "icon" "bell"}} {{if convMuted $o $p.Me}}Unmute conversation{{else}}Mute conversation{{end}}</button></form>
         <button type="button" class="copy-link" data-url="{{if $o.Local}}{{$o.URL}}{{else}}{{$o.URI}}{{end}}">{{template "icon" "link"}} Copy link</button>

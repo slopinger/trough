@@ -99,6 +99,7 @@ type Page struct {
 	PolicyUpdated   time.Time
 	PolicyDefault   bool
 	PolicySource    string // admin: the policy text being edited
+	EmbedCode       string // embedding a post
 	sessID          string // the viewer's session
 	CleanupCount    int    // posts it would delete now
 	Theme, TextSize string // appearance: auto/light/dark, normal/large

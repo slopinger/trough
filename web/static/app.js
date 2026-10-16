@@ -848,4 +848,24 @@
       })
       .catch(function () { box.classList.remove("translating"); });
   });
+
+  // embedded posts: tell the page around the iframe how tall the post is,
+  // and open links outside the frame
+  if (document.body.classList.contains("embed") && window.parent !== window) {
+    document.querySelectorAll("a[href]").forEach(function (a) { a.target = "_blank"; a.rel = "noopener"; });
+    var sendHeight = function () {
+      window.parent.postMessage({ type: "trough:height", height: document.documentElement.scrollHeight }, "*");
+    };
+    window.addEventListener("load", sendHeight);
+    if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.body);
+    sendHeight();
+  }
+  // the embed preview here fits itself the same way (what /embed.js does elsewhere)
+  window.addEventListener("message", function (ev) {
+    var d = ev.data;
+    if (ev.origin !== location.origin || !d || d.type !== "trough:height" || typeof d.height !== "number") return;
+    document.querySelectorAll("iframe.trough-embed").forEach(function (f) {
+      if (f.contentWindow === ev.source) f.height = String(Math.min(Math.max(Math.ceil(d.height), 50), 5000));
+    });
+  });
 })();

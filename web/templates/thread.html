@@ -1,6 +1,7 @@
 {{define "head"}}{{if .Status}}<meta name="description" content="{{plain .Status.Content}}">
 <meta property="og:title" content="{{.Status.Account.Name}} ({{handle .Status.Account}})">
-<meta property="og:description" content="{{plain .Status.Content}}">{{end}}{{end}}
+<meta property="og:description" content="{{plain .Status.Content}}">
+{{with oembedLink .Status}}<link rel="alternate" type="application/json+oembed" href="{{.}}" title="oEmbed">{{end}}{{end}}{{end}}
 {{define "content"}}{{$p := .}}
 <div class="thread">
 {{range .Ancestors}}{{template "status" (dict "S" . "P" $p)}}{{end}}
