@@ -100,6 +100,7 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("POST /settings/webpush", auth(app.handleWebPush))
 	mux.HandleFunc("POST /settings/appearance", auth(app.handleAppearance))
 	mux.HandleFunc("POST /settings/preferences", auth(app.handlePreferences))
+	mux.HandleFunc("POST /settings/cleanup", auth(app.handleCleanupSettings))
 	mux.HandleFunc("GET /interact", pub(app.handleInteractPage))
 	mux.HandleFunc("POST /interact", pub(app.handleRemoteInteract))
 	mux.HandleFunc("GET /sw.js", app.handleServiceWorker)

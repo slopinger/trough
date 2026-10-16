@@ -565,6 +565,20 @@ ALTER TABLE users ADD COLUMN expand_media TEXT NOT NULL DEFAULT 'default';
 ALTER TABLE users ADD COLUMN expand_spoilers INTEGER NOT NULL DEFAULT 0;
 `, `
 ALTER TABLE accounts ADD COLUMN hide_collections INTEGER NOT NULL DEFAULT 0;
+`, `
+CREATE TABLE cleanup_policies (
+	account_id TEXT PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+	enabled INTEGER NOT NULL DEFAULT 0,
+	min_age INTEGER NOT NULL DEFAULT 1209600,
+	keep_direct INTEGER NOT NULL DEFAULT 1,
+	keep_pinned INTEGER NOT NULL DEFAULT 1,
+	keep_polls INTEGER NOT NULL DEFAULT 0,
+	keep_media INTEGER NOT NULL DEFAULT 0,
+	keep_self_fav INTEGER NOT NULL DEFAULT 1,
+	keep_self_bookmark INTEGER NOT NULL DEFAULT 1,
+	min_favs INTEGER NOT NULL DEFAULT 0,
+	min_boosts INTEGER NOT NULL DEFAULT 0
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

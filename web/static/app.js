@@ -11,6 +11,11 @@
       ev.preventDefault();
       return;
     }
+    if (form.classList.contains("cleanup-form") && form.elements.enabled.checked &&
+        !window.confirm("Your posts older than " + form.elements.min_age.selectedOptions[0].text + " will be deleted for good, here and on other servers. Save?")) {
+      ev.preventDefault();
+      return;
+    }
     if (form.classList.contains("confirm")) {
       if (!window.confirm(form.dataset.confirm || "Are you sure?")) {
         ev.preventDefault();

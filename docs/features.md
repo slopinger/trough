@@ -206,6 +206,10 @@
 - Image viewer: attached images open large with their description; arrow keys go through a post's images
 - Browser notifications (Settings, per browser): the web UI subscribes through the browser's push service with the
   server's VAPID key; a service worker at `/sw.js` shows them and opens the post when clicked
+- Automated post deletion (Settings, like Mastodon's): your posts older than 1 week to 2 years are deleted
+  (federated, 20 every ten minutes; old boosts are undone), except pinned posts, DMs, posts you favourited or
+  bookmarked, polls, posts with media or posts favourited/boosted at least N times, as chosen; the card says
+  how many posts are due
 - Posting and reading preferences (Settings, like Mastodon's): default visibility (replies stay at least as
   private as their parent), default language, always marking media as sensitive, showing or hiding all media
   and expanding content warnings; clients see them in `/api/v1/preferences` and the credential account's

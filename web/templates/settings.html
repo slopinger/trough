@@ -167,6 +167,27 @@
   </form>
   <p class="muted small">Imports add to what you have here. Importing lists also follows the people on them.</p>
 </section>
+<section class="card" id="cleanup">
+  <h3>Delete old posts automatically</h3>
+  <p class="muted small">Once your posts reach the age you choose, they are deleted here and on other servers, a few every ten minutes. Deleted posts can't be brought back: download your archive first if you want to keep a copy.</p>
+  <form method="post" action="/settings/cleanup" class="policy-form cleanup-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label class="check"><input type="checkbox" name="enabled"{{if .Cleanup.Enabled}} checked{{end}}> Delete my old posts</label>
+    <label>Delete posts older than <select name="min_age">{{range cleanupAges}}
+      <option value="{{.Seconds}}"{{if eq .Seconds $.Cleanup.MinAge}} selected{{end}}>{{.Label}}</option>{{end}}</select></label>
+    <span class="muted small">Except:</span>
+    <label class="check"><input type="checkbox" name="keep_pinned"{{if .Cleanup.KeepPinned}} checked{{end}}> Pinned posts</label>
+    <label class="check"><input type="checkbox" name="keep_direct"{{if .Cleanup.KeepDirect}} checked{{end}}> Direct messages</label>
+    <label class="check"><input type="checkbox" name="keep_self_fav"{{if .Cleanup.KeepSelfFav}} checked{{end}}> Posts I favourited</label>
+    <label class="check"><input type="checkbox" name="keep_self_bookmark"{{if .Cleanup.KeepSelfBM}} checked{{end}}> Posts I bookmarked</label>
+    <label class="check"><input type="checkbox" name="keep_polls"{{if .Cleanup.KeepPolls}} checked{{end}}> Polls</label>
+    <label class="check"><input type="checkbox" name="keep_media"{{if .Cleanup.KeepMedia}} checked{{end}}> Posts with media</label>
+    <label>Posts favourited at least <input type="number" name="min_favs" min="0" max="100000" class="num" value="{{if .Cleanup.MinFavs}}{{.Cleanup.MinFavs}}{{end}}" placeholder="–" aria-label="times favourited"></label>
+    <label>Posts boosted at least <input type="number" name="min_boosts" min="0" max="100000" class="num" value="{{if .Cleanup.MinBoosts}}{{.Cleanup.MinBoosts}}{{end}}" placeholder="–" aria-label="times boosted"></label>
+    <p class="muted small">{{if .Cleanup.Enabled}}{{.CleanupCount}} of your posts are due to be deleted.{{else}}With these settings, {{.CleanupCount}} of your posts would be deleted.{{end}} Boosts count as posts too.</p>
+    <button class="btn">Save</button>
+  </form>
+</section>
 <section class="card" id="account">
   <h3>Moving accounts</h3>
   {{if .MovedTo}}<p class="flash">This account is marked as moved to <a href="{{.MovedTo.Path}}">{{handle .MovedTo}}</a>.</p>

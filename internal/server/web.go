@@ -91,9 +91,11 @@ type Page struct {
 	Requests2       []*NotificationRequest // filtered notification requests
 	PendingRequests int
 	NotifPolicy     NotificationPolicy
-	VapidKey        string // settings: for browser notifications
-	Theme, TextSize string // appearance: auto/light/dark, normal/large
-	Prefs           Prefs  // posting and reading preferences of the viewer
+	VapidKey        string        // settings: for browser notifications
+	Cleanup         CleanupPolicy // settings: automated post deletion
+	CleanupCount    int           // posts it would delete now
+	Theme, TextSize string        // appearance: auto/light/dark, normal/large
+	Prefs           Prefs         // posting and reading preferences of the viewer
 	FeaturedTags    []FeaturedTag
 	FollowedTags    []string
 	FollowedTagRows []FollowedTag

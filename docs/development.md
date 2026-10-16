@@ -43,6 +43,7 @@ Files are grouped by prefix:
 | `verify.go` | profile link verification (`rel="me"`) |
 | `replies.go` | fetching the replies of remote threads |
 | `prefs.go` | posting and reading preferences |
+| `cleanup.go` | automated deletion of old posts |
 | `twofactor.go` | two-factor authentication (TOTP, recovery codes) |
 | `accountdelete.go` | deleting your own account |
 | `archive.go` | archive download (zip) |

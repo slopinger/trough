@@ -117,6 +117,9 @@ func (app *App) Start(ctx context.Context) {
 				app.closeEndedPolls()
 				app.resendPendingFollows(now)
 				app.expireMutes(now)
+				if now.Minute()%10 == 0 {
+					app.cleanupStatuses(now)
+				}
 			}
 		}
 	}()
