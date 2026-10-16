@@ -9,5 +9,11 @@ fedi.freifick.net {
 		max_size 90MB
 	}
 	reverse_proxy 127.0.0.1:8790
-	log
+	# access logs (client IPs) only for about a week, not in the system journal
+	log {
+		output file /var/log/caddy/fedi.freifick.net.log {
+			roll_interval 24h
+			roll_keep_for 168h
+		}
+	}
 }

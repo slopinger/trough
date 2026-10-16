@@ -29,6 +29,9 @@ online backup API.
 `troughctl` (runs admin commands as the service user), the hardened `trough.service` (user `trough`, data in
 `/var/lib/trough`, config in `/etc/trough.env`) and the Caddy site config from `deploy/`, then restarts
 the service. The AI key lives in the root-only `/etc/trough-secrets.env`, which `trough.service` loads.
+The Caddy config is validated as the `caddy` user (it opens the site's log file) and the previous one is put
+back if it is invalid. Caddy keeps the site's access log in `/var/log/caddy/fedi.freifick.net.log`, rotated
+daily and deleted after 7 days, instead of in the system journal.
 
 ```sh
 troughctl user create someone          # new account, prints the password
