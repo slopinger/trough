@@ -47,6 +47,7 @@ Files are grouped by prefix:
 | `autocomplete.go` | compose suggestions for the web UI |
 | `convmute.go` | muted conversations |
 | `webpush.go` | browser notifications for the web UI (service worker in `web/static/sw.js`) |
+| `remoteinteract.go` | following and interacting from other servers (visitors) |
 | `ai.go`, `translate.go` | AI drafting and translation |
 | `fed_server.go` | federation endpoints: WebFinger, NodeInfo, actors, collections, objects |
 | `fed_inbox.go`, `fed_remote.go` | incoming activities, storing remote posts, backfill, URL resolution |

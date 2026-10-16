@@ -1,0 +1,13 @@
+{{define "content"}}
+<section class="card narrow">
+  <h2>Interact from your server</h2>
+  <p>Follow, like, boost or reply from your own fediverse account (Mastodon, GoToSocial, Misskey, …). Enter your address and we'll send you to your server to finish there.</p>
+  <form method="post" action="/interact" class="stack">
+    <input type="hidden" name="uri" value="{{.Query}}">
+    <input type="hidden" name="back" value="{{.NextURL}}">
+    <label>Your address <input name="handle" placeholder="you@mastodon.social" autocomplete="username" required autofocus></label>
+    <button class="btn primary">Continue on my server</button>
+  </form>
+  <p class="muted small">Have an account here? <a href="/login?next={{.NextURL}}">Log in</a>.</p>
+</section>
+{{end}}

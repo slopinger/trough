@@ -123,6 +123,9 @@
   Home), and relay subscriptions (Mastodon `/inbox` style and LitePub actor style) on `/admin` to fill the
   federated timeline; relayed posts are always fetched from their origin
 - Like, boost, reply and delete; likes and boosts update in place with JS, or via plain forms without it
+- Following and interacting from other servers: visitors enter their own address on `/interact` (the Follow button
+  on local profiles, Reply on posts) and are sent to their server's subscribe page (WebFinger's OStatus subscribe
+  template, else Mastodon's `/authorize_interaction`)
 - Profiles with header, avatar, bio, profile fields, locked accounts and bot flag; follow, unfollow and block
 - Notification filters (Mastodon 4.3 policy: people you don't follow, who don't follow you, new accounts, private
   mentions from strangers; each show, filter or ignore; stranger DMs are filtered by default): filtered

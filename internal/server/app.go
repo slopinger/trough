@@ -41,6 +41,7 @@ type App struct {
 	inboxQueue  chan inboxJob
 	deliverKick chan struct{}
 	logins      *rateLimiter
+	interacts   *rateLimiter // remote follow lookups by visitors
 	aiLimit     *rateLimiter
 	aiBaseURL   string // chat completions base URL override (tests)
 	aiHTTP      *http.Client
@@ -59,6 +60,7 @@ func NewApp(cfg *Config) (*App, error) {
 		inboxQueue:  make(chan inboxJob, 1000),
 		deliverKick: make(chan struct{}, 1),
 		logins:      newRateLimiter(10, 15*time.Minute),
+		interacts:   newRateLimiter(20, 15*time.Minute),
 		aiLimit:     newRateLimiter(aiRequestsPerHour, time.Hour),
 		aiHTTP:      &http.Client{Timeout: 4 * time.Minute},
 	}
