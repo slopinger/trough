@@ -73,6 +73,7 @@ type Page struct {
 	OAuth           *authorizeReq
 	Lists           []List
 	Conversations   []*conversation // direct messages page
+	FilteredDMs     int             // conversations waiting as filtered notifications
 	List            *List
 	Relays          []Relay
 	Tag             string

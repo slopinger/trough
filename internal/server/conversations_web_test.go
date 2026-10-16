@@ -74,3 +74,43 @@ func TestWebConversations(t *testing.T) {
 		t.Error("unknown conversation redirected")
 	}
 }
+
+func TestFilteredConversations(t *testing.T) {
+	la := startLiveApp(t)
+	bob, _ := la.CreateLocalUser("bob", "password123", false)
+	dan, _ := la.CreateLocalUser("dan", "password123", false)
+	eve, _ := la.CreateLocalUser("eve", "password123", false)
+	ctx := context.Background()
+	// strangers' private mentions are filtered by default
+	la.PostStatus(ctx, dan, PostInput{Text: "@bob buy my oinkcoin", Visibility: "direct"})
+	la.PostStatus(ctx, eve, PostInput{Text: "@bob hi, we met at the trough meetup", Visibility: "direct"})
+	web := webClient(t, la, "bob", "password123")
+	page := func() string {
+		t.Helper()
+		resp, err := web.Get(la.base + "/conversations")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		b, _ := io.ReadAll(resp.Body)
+		return string(b)
+	}
+	p := page()
+	if strings.Contains(p, "oinkcoin") || strings.Contains(p, "meetup") || !strings.Contains(p, "2 conversations from people you may not know wait") {
+		t.Fatal("filtered DMs are listed")
+	}
+	if la.unreadConversations(bob) != 0 {
+		t.Error("badge counts filtered DMs")
+	}
+	la.acceptNotificationRequest(bob, eve.ID)
+	if la.unreadConversations(bob) != 1 {
+		t.Error("accepted DM isn't counted right away")
+	}
+	la.dismissNotificationRequest(bob, dan.ID)
+	if p = page(); !strings.Contains(p, "meetup") || strings.Contains(p, "oinkcoin") || strings.Contains(p, "may not know") {
+		t.Error("accepting should show eve's DM, dismissing should hide dan's")
+	}
+	if la.unreadConversations(bob) != 1 {
+		t.Error("accepted DM isn't counted")
+	}
+}

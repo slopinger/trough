@@ -1,6 +1,7 @@
 {{define "content"}}{{$p := .}}
 <h2 class="pagetitle">Direct messages</h2>
 {{template "compose" (dict "C" .Compose "P" .)}}
+{{if .FilteredDMs}}<p class="flash">{{.FilteredDMs}} {{if eq .FilteredDMs 1}}conversation{{else}}conversations{{end}} from people you may not know {{if eq .FilteredDMs 1}}waits{{else}}wait{{end}} under <a href="/notifications/requests">filtered notifications</a>. Accept them there to see them here.</p>{{end}}
 {{range .Conversations}}<div class="conv{{if .Unread}} unread{{end}}">
   <a class="conv-main" href="/conversations/{{.RootID}}">
     <span class="conv-avatars">{{range $i, $a := .Participants}}{{if lt $i 3}}<img src="{{template "avatarsrc" $a}}" alt="" width="36" height="36" loading="lazy">{{end}}{{end}}</span>

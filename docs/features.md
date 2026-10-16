@@ -87,7 +87,9 @@
 - A Favourites page (`/favourites`) with the posts you starred, like Mastodon's
 - A Direct messages page (`/conversations`): your DM threads with their participants, the last message and
   unread state, a compose box set to "Mentioned people only"; opening one marks it read, Hide hides it until a
-  new message arrives (the same state as `/api/v1/conversations`); the sidebar's Messages link counts unread threads
+  new message arrives (the same state as `/api/v1/conversations`); the sidebar's Messages link counts unread threads;
+  DMs from strangers held back by the notification filter wait under Filtered notifications instead (accepting
+  shows them here, dismissing hides them)
 - A post's boost and favourite counts (under the post on its own page) open the lists of who boosted or
   favourited it (`/s/:id/boosts`, `/s/:id/favourites`)
 - Edit your posts (with an edit history page that marks the words added and removed in each edit), pin up to 5 to your profile (featured collection, `Add`/`Remove`), bookmarks

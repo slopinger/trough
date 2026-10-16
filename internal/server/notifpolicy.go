@@ -131,11 +131,17 @@ func (app *App) notificationRequests(me *Account, fromID string) []*Notification
 
 func (app *App) acceptNotificationRequest(me *Account, fromID string) {
 	app.db.Exec(`UPDATE notifications SET filtered=0 WHERE account_id=? AND from_account_id=? AND filtered=1`, me.ID, fromID)
+	forgetUnreadDMs(me.ID)
 	app.db.Exec(`INSERT OR IGNORE INTO notification_accepts (account_id, from_account_id, created_at) SELECT ?, id, ? FROM accounts WHERE id=?`,
 		me.ID, time.Now().Unix(), fromID)
 }
 
 func (app *App) dismissNotificationRequest(me *Account, fromID string) {
+	for _, c := range app.conversations(me) {
+		if c.Filtered && c.Last.AccountID == fromID {
+			app.markConversation(me, c, "hidden_id")
+		}
+	}
 	app.db.Exec(`DELETE FROM notifications WHERE account_id=? AND from_account_id=? AND filtered=1`, me.ID, fromID)
 }
 

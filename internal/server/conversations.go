@@ -20,6 +20,7 @@ type conversation struct {
 	Last         *Status
 	Participants []*Account // without the viewer
 	Unread       bool
+	Filtered     bool // the last message waits as a filtered notification (a stranger's DM)
 }
 
 func (app *App) conversations(me *Account) []*conversation {
@@ -64,8 +65,18 @@ func (app *App) conversations(me *Account) []*conversation {
 			}
 		}
 	}
+	filtered := map[string]bool{}
+	if rows, err := app.db.Query(`SELECT status_id FROM notifications WHERE account_id=? AND filtered=1 AND type='mention'`, me.ID); err == nil {
+		for rows.Next() {
+			var id string
+			rows.Scan(&id)
+			filtered[id] = true
+		}
+		rows.Close()
+	}
 	shown := out[:0]
 	for _, c := range out {
+		c.Filtered = filtered[c.Last.ID]
 		m := marks[c.RootID]
 		if c.Last.ID <= m[1] {
 			continue
@@ -91,6 +102,13 @@ type dmUnread struct {
 	n   int
 }
 
+// forgetUnreadDMs drops the cached count when what it depends on changed.
+func forgetUnreadDMs(accountID string) {
+	dmUnreadMu.Lock()
+	delete(dmUnreadCache, accountID)
+	dmUnreadMu.Unlock()
+}
+
 func (app *App) unreadConversations(me *Account) int {
 	var count int
 	var last string
@@ -108,7 +126,7 @@ func (app *App) unreadConversations(me *Account) int {
 	}
 	n := 0
 	for _, cv := range app.conversations(me) {
-		if cv.Unread {
+		if cv.Unread && !cv.Filtered {
 			n++
 		}
 	}
@@ -168,9 +186,7 @@ func (app *App) findConversation(me *Account, id string) *conversation {
 func (app *App) markConversation(me *Account, c *conversation, column string) {
 	app.db.Exec(`INSERT INTO conversation_marks (account_id, root_id, `+column+`) VALUES (?,?,?)
 		ON CONFLICT (account_id, root_id) DO UPDATE SET `+column+`=excluded.`+column, me.ID, c.RootID, c.Last.ID)
-	dmUnreadMu.Lock()
-	delete(dmUnreadCache, me.ID)
-	dmUnreadMu.Unlock()
+	forgetUnreadDMs(me.ID)
 }
 
 // POST /api/v1/conversations/:id/read
@@ -200,9 +216,13 @@ func (app *App) apiConversationDelete(w http.ResponseWriter, r *http.Request, c 
 
 func (app *App) handleConversations(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Title, p.Section, p.Heading = "Direct messages", "conversations", "Direct messages"
-	all := app.conversations(p.Me)
-	if len(all) > 50 {
-		all = all[:50]
+	var all []*conversation
+	for _, cv := range app.conversations(p.Me) {
+		if cv.Filtered { // they wait under Notifications → Filtered
+			p.FilteredDMs++
+		} else if len(all) < 50 {
+			all = append(all, cv)
+		}
 	}
 	p.Conversations = all
 	p.Compose = &Compose{Visibility: "direct"}
