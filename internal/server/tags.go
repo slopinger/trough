@@ -112,3 +112,54 @@ func (app *App) apiTagAction(w http.ResponseWriter, r *http.Request, c *apiCtx) 
 	}
 	apiJSON(w, 200, app.apiTag(t, r.PathValue("action") != "unfollow"))
 }
+
+// FollowedTag is a row on the followed hashtags page.
+type FollowedTag struct {
+	Name       string
+	History    []TagDay
+	LastUsed   time.Time
+	FollowedAt time.Time
+	Featured   bool
+}
+
+func (app *App) followedTagRows(me *Account) []FollowedTag {
+	rows, err := app.db.Query(`SELECT f.tag, f.created_at,
+		(SELECT COALESCE(MAX(s.created_at),0) FROM status_tags t JOIN statuses s ON s.id=t.status_id WHERE t.tag=f.tag AND s.visibility='public'),
+		EXISTS(SELECT 1 FROM featured_tags ft WHERE ft.account_id=f.account_id AND ft.tag=f.tag)
+		FROM followed_tags f WHERE f.account_id=? ORDER BY f.tag`, me.ID)
+	if err != nil {
+		return nil
+	}
+	var out []FollowedTag
+	for rows.Next() {
+		var t FollowedTag
+		var at, last int64
+		rows.Scan(&t.Name, &at, &last, &t.Featured)
+		t.FollowedAt = time.Unix(at, 0)
+		if last > 0 {
+			t.LastUsed = time.Unix(last, 0)
+		}
+		out = append(out, t)
+	}
+	rows.Close()
+	for i := range out {
+		out[i].History = app.tagHistory(out[i].Name)
+	}
+	return out
+}
+
+func (app *App) handleFollowedTags(w http.ResponseWriter, r *http.Request, p *Page) {
+	if r.Method == http.MethodPost {
+		tag := normalizeTag(r.FormValue("tag"))
+		if err := app.FollowTag(p.Me, tag); err != nil {
+			setFlash(w, "That isn't a hashtag.")
+		} else {
+			setFlash(w, "Following #"+tag+". Public posts with it now show up in Home.")
+		}
+		http.Redirect(w, r, "/followed_tags", http.StatusSeeOther)
+		return
+	}
+	p.Title, p.Section = "Followed hashtags", "tags"
+	p.FollowedTagRows = app.followedTagRows(p.Me)
+	app.render(w, "followedtags", p)
+}

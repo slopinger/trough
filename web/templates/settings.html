@@ -64,8 +64,8 @@
 </section>
 <section class="card">
   <h3>Followed hashtags</h3>
-  {{range .FollowedTags}}<div class="inline-form"><a href="/tags/{{.}}">#{{.}}</a><form method="post" action="/tags/{{.}}/unfollow"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small">Unfollow</button></form></div>
-  {{else}}<p class="muted small">Follow a hashtag from its page to see public posts with it in your Home timeline.</p>{{end}}
+  <p class="muted small">{{if .FollowedTags}}You follow {{range $i, $t := .FollowedTags}}{{if $i}}, {{end}}<a href="/tags/{{$t}}">#{{$t}}</a>{{end}}.{{else}}Follow a hashtag to see public posts with it in your Home timeline.{{end}}
+  <a href="/followed_tags">Manage followed hashtags</a></p>
 </section>
 <section class="card">
   <h3>Muted accounts</h3>

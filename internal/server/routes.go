@@ -121,6 +121,8 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("GET /lists/{id}", auth(app.handleList))
 	mux.HandleFunc("POST /lists/{id}/{action}", auth(app.handleListAction))
 	mux.HandleFunc("POST /tags/{tag}/{action}", auth(app.handleTagFollow))
+	mux.HandleFunc("GET /followed_tags", auth(app.handleFollowedTags))
+	mux.HandleFunc("POST /followed_tags", auth(app.handleFollowedTags))
 	mux.HandleFunc("POST /admin/relays", admin(app.handleAdminRelay))
 	mux.HandleFunc("POST /admin/emoji", admin(app.handleAdminEmoji))
 	mux.HandleFunc("GET /emojis/{code}", app.handleEmojiObject)

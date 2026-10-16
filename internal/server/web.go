@@ -89,6 +89,7 @@ type Page struct {
 	Theme, TextSize string // appearance: auto/light/dark, normal/large
 	FeaturedTags    []FeaturedTag
 	FollowedTags    []string
+	FollowedTagRows []FollowedTag
 	BlockedDomains  []string
 	Import          *importState // settings: the running or last CSV import
 	History         []HistoryEntry

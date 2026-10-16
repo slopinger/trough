@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -64,5 +65,44 @@ func TestFeaturedTags(t *testing.T) {
 		if resp.StatusCode != 200 || !strings.Contains(string(b), want) {
 			t.Fatalf("%s: %d, missing %q", path, resp.StatusCode, want)
 		}
+	}
+}
+
+func TestFollowedTagsPage(t *testing.T) {
+	la := startLiveApp(t)
+	bob, _ := la.CreateLocalUser("bob", "password123", false)
+	la.PostStatus(context.Background(), bob, PostInput{Text: "morning #coffee", Visibility: "public"})
+	web := webClient(t, la, "bob", "password123")
+	get := func(path string) string {
+		t.Helper()
+		resp, err := web.Get(la.base + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		b, _ := io.ReadAll(resp.Body)
+		return string(b)
+	}
+	page := get("/followed_tags")
+	csrf := strings.SplitN(strings.SplitN(page, `name="csrf" value="`, 2)[1], `"`, 2)[0]
+	for _, tag := range []string{"#Coffee", "gardening", "not a tag"} {
+		resp, err := web.PostForm(la.base+"/followed_tags", url.Values{"csrf": {csrf}, "tag": {tag}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+	}
+	if got := la.followedTags(bob); len(got) != 2 || got[0] != "coffee" || got[1] != "gardening" {
+		t.Fatalf("followed = %v", got)
+	}
+	la.FeatureTag(bob, "coffee")
+	page = get("/followed_tags")
+	for _, want := range []string{"#coffee", "1 posts this week", "featured on your profile", "Unfeature", "#gardening", "no posts seen yet", `action="/tags/gardening/unfollow"`} {
+		if !strings.Contains(page, want) {
+			t.Errorf("page lacks %q", want)
+		}
+	}
+	if !strings.Contains(get("/settings"), `href="/followed_tags"`) {
+		t.Error("settings don't link to the page")
 	}
 }

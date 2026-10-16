@@ -130,7 +130,7 @@
   accounts that moved here
 - Sign-ups: closed, invite links or open (admin setting); live "new posts" banner and notification badge
 - Lists (with replies policy and "hide from Home"), followed hashtags (public posts with them show up in
-  Home), and relay subscriptions (Mastodon `/inbox` style and LitePub actor style) on `/admin` to fill the
+  Home; managed on `/followed_tags` with this week's activity, last use and a profile-feature toggle), and relay subscriptions (Mastodon `/inbox` style and LitePub actor style) on `/admin` to fill the
   federated timeline; relayed posts are always fetched from their origin
 - Like, boost, reply and delete; likes and boosts update in place with JS, or via plain forms without it
 - Following and interacting from other servers: visitors enter their own address on `/interact` (the Follow button

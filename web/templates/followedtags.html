@@ -1,0 +1,19 @@
+{{define "content"}}{{$p := .}}
+<div class="pagehead"><h2 class="pagetitle">Followed hashtags</h2></div>
+<p class="muted small">Public posts with these hashtags show up in your Home timeline. Featured ones are also shown on your profile.</p>
+<form method="post" action="/followed_tags" class="inline-form tagfollow-form">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <input name="tag" placeholder="#hashtag" required maxlength="100" aria-label="Hashtag to follow" autocapitalize="off" spellcheck="false">
+  <button class="btn primary">Follow</button>
+</form>
+{{range .FollowedTagRows}}
+<div class="trend followed-tag">
+  <a class="trend-main" href="/tags/{{.Name}}"><b>#{{.Name}}</b><small>{{tagUses .History}} posts this week{{if .LastUsed.IsZero}} · no posts seen yet{{else}} · last used {{ago .LastUsed}}{{end}}{{if .Featured}} · featured on your profile{{end}}</small></a>
+  <svg class="spark" viewBox="0 0 60 24" aria-hidden="true"><polyline points="{{sparkline .History}}"/></svg>
+  <div class="row-actions">
+    <form method="post" action="/tags/{{.Name}}/{{if .Featured}}unfeature{{else}}feature{{end}}"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><input type="hidden" name="next" value="/followed_tags"><button class="btn small" title="{{if .Featured}}Remove from your profile{{else}}Show on your profile{{end}}">{{if .Featured}}Unfeature{{else}}Feature{{end}}</button></form>
+    <form method="post" action="/tags/{{.Name}}/unfollow"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><input type="hidden" name="next" value="/followed_tags"><button class="btn small">Unfollow</button></form>
+  </div>
+</div>
+{{else}}<div class="empty">You don't follow any hashtags yet. Add one above, or use the Follow button on a hashtag's page.</div>{{end}}
+{{end}}
