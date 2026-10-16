@@ -213,6 +213,7 @@ legend { color: var(--muted); padding: 0 4px; }
 .tbl th, .tbl td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; overflow-wrap: anywhere; }
 .tbl th { color: var(--muted); font-weight: 600; }
 .tbl form { margin: 0; }
+.tbl .btn { white-space: nowrap; }
 .facts { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .hero { padding: 24px 20px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 20px; }
 .hero h1 { margin: 0 0 8px; }

@@ -44,6 +44,7 @@ Files are grouped by prefix:
 | `replies.go` | fetching the replies of remote threads |
 | `prefs.go` | posting and reading preferences |
 | `cleanup.go` | automated deletion of old posts |
+| `sessions.go` | logged-in browsers in Settings |
 | `twofactor.go` | two-factor authentication (TOTP, recovery codes) |
 | `accountdelete.go` | deleting your own account |
 | `archive.go` | archive download (zip) |

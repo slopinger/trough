@@ -206,6 +206,8 @@
 - Image viewer: attached images open large with their description; arrow keys go through a post's images
 - Browser notifications (Settings, per browser): the web UI subscribes through the browser's push service with the
   server's VAPID key; a service worker at `/sw.js` shows them and opens the post when clicked
+- Logged-in browsers (Settings): each browser session with its browser and system (from the user agent; no IP
+  addresses are stored), when it logged in and was last used, logging out single ones or all others
 - Automated post deletion (Settings, like Mastodon's): your posts older than 1 week to 2 years are deleted
   (federated, 20 every ten minutes; old boosts are undone), except pinned posts, DMs, posts you favourited or
   bookmarked, polls, posts with media or posts favourited/boosted at least N times, as chosen; the card says

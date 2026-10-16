@@ -218,6 +218,14 @@
     <td><form method="post" action="/settings/apps/{{.TokenID}}/revoke" class="confirm" data-confirm="Revoke access for {{.Name}}?"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small">Revoke</button></form></td></tr>{{end}}</table>
   {{else}}<p class="muted small">No apps connected.</p>{{end}}
 </section>
+<section class="card" id="sessions">
+  <h3>Logged-in browsers</h3>
+  <table class="tbl"><tr><th>Browser</th><th>Logged in</th><th>Last used</th><th></th></tr>
+  {{range .Sessions}}<tr><td>{{.Browser}}</td><td>{{ago .Created}}</td><td>{{if .Current}}now{{else}}{{ago .LastUsed}}{{end}}</td>
+    <td>{{if .Current}}<span class="muted small">This browser</span>{{else}}<form method="post" action="/settings/sessions/{{.ID}}/revoke"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small">Log out</button></form>{{end}}</td></tr>{{end}}</table>
+  {{if gt (len .Sessions) 1}}<form method="post" action="/settings/sessions/others/revoke" class="confirm" data-confirm="Log out all other browsers?"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn small">Log out everywhere else</button></form>{{end}}
+  <p class="muted small">Apps are listed above and revoked separately.</p>
+</section>
 <section class="card">
   <h3>Your fediverse address</h3>
   <p>People on other servers can find and follow you as <code>{{handle $a}}</code>.</p>

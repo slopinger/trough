@@ -579,6 +579,8 @@ CREATE TABLE cleanup_policies (
 	min_favs INTEGER NOT NULL DEFAULT 0,
 	min_boosts INTEGER NOT NULL DEFAULT 0
 );
+`, `
+ALTER TABLE sessions ADD COLUMN last_used INTEGER NOT NULL DEFAULT 0;
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

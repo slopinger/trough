@@ -93,6 +93,8 @@ type Page struct {
 	NotifPolicy     NotificationPolicy
 	VapidKey        string        // settings: for browser notifications
 	Cleanup         CleanupPolicy // settings: automated post deletion
+	Sessions        []WebSession  // settings: logged-in browsers
+	sessID          string        // the viewer's session
 	CleanupCount    int           // posts it would delete now
 	Theme, TextSize string        // appearance: auto/light/dark, normal/large
 	Prefs           Prefs         // posting and reading preferences of the viewer
@@ -180,6 +182,7 @@ func (app *App) web(requireLogin bool, h handler) http.HandlerFunc {
 				if acc, err := app.AccountByID(accID); err == nil && !acc.Suspended {
 					p.Me = acc
 					p.CSRF = csrf
+					p.sessID = sessID
 					p.Admin = app.isAdmin(acc.ID)
 					p.Unread = app.unreadNotifications(acc.ID)
 					p.Requests = app.followRequestCount(acc.ID)
@@ -191,6 +194,7 @@ func (app *App) web(requireLogin bool, h handler) http.HandlerFunc {
 					app.db.QueryRow(`SELECT theme, text_size FROM users WHERE account_id=?`, acc.ID).Scan(&p.Theme, &p.TextSize)
 					now := time.Now().Unix()
 					app.db.Exec(`UPDATE users SET last_seen=? WHERE account_id=? AND last_seen < ?`, now, acc.ID, now-3600)
+					app.db.Exec(`UPDATE sessions SET last_used=? WHERE id=? AND last_used < ?`, now, sessID, now-3600)
 				}
 			}
 		}
