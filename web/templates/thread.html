@@ -7,5 +7,6 @@
 {{template "status" (dict "S" .Status "P" $p "Focus" true)}}
 {{if .Compose}}{{template "compose" (dict "C" .Compose "P" $p)}}{{end}}
 {{range .Descendants}}{{template "status" (dict "S" . "P" $p "Depth" .Depth)}}{{end}}
+{{if .FetchingReplies}}<p class="fetching-replies muted small">Looking for more replies on {{hostOf .Status.URI}}… <a href="{{.Status.Path}}">reload</a> in a few seconds to see them.</p>{{end}}
 </div>
 {{end}}

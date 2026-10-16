@@ -41,6 +41,7 @@ Files are grouped by prefix:
 | `featuredtags.go` | featured hashtags |
 | `directory.go` | profile directory |
 | `verify.go` | profile link verification (`rel="me"`) |
+| `replies.go` | fetching the replies of remote threads |
 | `twofactor.go` | two-factor authentication (TOTP, recovery codes) |
 | `accountdelete.go` | deleting your own account |
 | `archive.go` | archive download (zip) |

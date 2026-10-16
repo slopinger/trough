@@ -225,6 +225,9 @@ func (app *App) apiContext(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 		}
 		cancel()
 	}
+	if c.Me != nil {
+		app.fetchRepliesLater(st)
+	}
 	anc, desc := app.thread(c.Me, st)
 	anc, desc = app.applyFilters(c.Me, anc, "thread"), app.applyFilters(c.Me, desc, "thread")
 	apiJSON(w, 200, obj{"ancestors": app.apiStatuses(c.Me, anc), "descendants": app.apiStatuses(c.Me, desc)})

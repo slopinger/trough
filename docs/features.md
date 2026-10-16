@@ -23,7 +23,10 @@
 - Persistent delivery queue with exponential backoff (about 3 days of retries)
 - Only stores what's relevant: posts by people someone here follows, posts that mention or address local
   users, and replies to known posts. Thread parents are fetched on demand, and recent posts are backfilled
-  from the outbox when you follow someone or open their profile.
+  from the outbox when you follow someone or open their profile. Opening a remote thread (signed in, web or
+  `/api/v1/statuses/:id/context`) fetches the replies its server lists in the `replies` collection in the
+  background, like Mastodon 4.4: three levels deep, at most 60 posts, once per thread every 15 minutes; each reply
+  comes from its own origin and is only kept if it answers the post it was listed under
 - SSRF protection: remote fetches never connect to loopback/private/link-local addresses
 - Remote HTML is sanitized (bluemonday); custom emoji, polls (read-only), content warnings,
   sensitive media, Articles and other object types are displayed

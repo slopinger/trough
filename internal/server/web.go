@@ -77,6 +77,7 @@ type Page struct {
 	TrendTags       []TrendTag
 	TrendLinks      []TrendLink
 	LinkCard        *LinkCard // the link a /links page is about
+	FetchingReplies bool      // thread: replies are being fetched from the post's server
 	Suggestions     []Suggestion
 	Familiar        []*Account // people the viewer follows who follow this profile
 	TagFollowed     bool
@@ -93,7 +94,7 @@ type Page struct {
 	FollowedTagRows []FollowedTag
 	BlockedDomains  []string
 	MuteNotes       map[string]string // settings: how long each mute lasts
-	Import          *importState // settings: the running or last CSV import
+	Import          *importState      // settings: the running or last CSV import
 	History         []HistoryEntry
 	CustomEmojis    []CustomEmoji
 	Scheduled       []*ScheduledStatus

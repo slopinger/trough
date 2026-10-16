@@ -658,3 +658,4 @@ article.status.kbd-focus { outline: 2px solid var(--accent); outline-offset: 2px
 .fields > div.verified dt { background: color-mix(in srgb, var(--accent) 16%, var(--panel-2)); color: var(--accent); }
 .fields .verified .ico { width: 15px; height: 15px; color: var(--accent); vertical-align: -2px; }
 .fieldrow.verified input:last-child { border-color: var(--accent); }
+.fetching-replies { text-align: center; margin: 12px 0; }
