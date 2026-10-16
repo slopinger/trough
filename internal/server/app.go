@@ -113,8 +113,9 @@ func (app *App) Start(ctx context.Context) {
 			select {
 			case <-ctx.Done():
 				return
-			case <-t.C:
+			case now := <-t.C:
 				app.closeEndedPolls()
+				app.resendPendingFollows(now)
 			}
 		}
 	}()

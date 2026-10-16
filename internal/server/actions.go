@@ -336,10 +336,7 @@ func (app *App) Follow(me, target *Account) error {
 	}
 	if rel.Following || rel.Requested {
 		if rel.Requested && !target.IsLocal() {
-			// resend in case it got lost
-			var uri string
-			app.db.QueryRow(`SELECT uri FROM follows WHERE account_id=? AND target_id=?`, me.ID, target.ID).Scan(&uri)
-			app.enqueue(me, []string{target.Inbox}, followActivity(uri, me, target))
+			app.resendFollow(me, target) // in case it got lost
 		}
 		return nil
 	}
@@ -360,6 +357,49 @@ func (app *App) Follow(me, target *Account) error {
 	}
 	app.enqueue(me, []string{target.Inbox}, followActivity(uri, me, target))
 	return nil
+}
+
+// resendPendingFollows sends follow requests to remote accounts once more when they are
+// still unanswered after three minutes (called every minute, so each request is resent
+// once; see resendFollow). Some servers lose the first activities from a host they have never seen: Lemmy
+// 0.19 only starts sending to a new instance up to a minute after first contact and skips
+// what was queued before, so the Accept for the very first follow never arrives.
+func (app *App) resendPendingFollows(now time.Time) {
+	rows, err := app.db.Query(`SELECT f.account_id, f.target_id FROM follows f
+		JOIN accounts a ON a.id=f.account_id JOIN accounts t ON t.id=f.target_id
+		WHERE f.accepted=0 AND a.domain='' AND t.domain!='' AND f.created_at > ? AND f.created_at <= ?`,
+		now.Add(-4*time.Minute).Unix(), now.Add(-3*time.Minute).Unix())
+	if err != nil {
+		return
+	}
+	type pending struct{ me, target string }
+	var list []pending
+	for rows.Next() {
+		var p pending
+		if rows.Scan(&p.me, &p.target) == nil {
+			list = append(list, p)
+		}
+	}
+	rows.Close()
+	for _, p := range list {
+		me, err1 := app.AccountByID(p.me)
+		target, err2 := app.AccountByID(p.target)
+		if err1 == nil && err2 == nil {
+			app.resendFollow(me, target)
+		}
+	}
+}
+
+// resendFollow sends a pending follow request again under a new id, which becomes the
+// follow's URI: servers like Lemmy drop activities whose id they have seen before, and
+// Mastodon updates a pending request's URI the same way when a newer Follow arrives.
+func (app *App) resendFollow(me, target *Account) {
+	uri := me.URI + "#follows/" + ulid.New()
+	res, err := app.db.Exec(`UPDATE follows SET uri=? WHERE account_id=? AND target_id=? AND accepted=0`, uri, me.ID, target.ID)
+	if n, _ := res.RowsAffected(); err != nil || n == 0 {
+		return
+	}
+	app.enqueue(me, []string{target.Inbox}, followActivity(uri, me, target))
 }
 
 func (app *App) Unfollow(me, target *Account) error {

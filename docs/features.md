@@ -30,6 +30,8 @@
 - Groups: Lemmy communities and similar groups that relay posts as `Announce{Create}` show up as boosts by
   the group; relayed activities are always re-fetched from their origin. PeerTube videos (channel +
   account authors, Markdown descriptions, thumbnails) and Lemmy link posts display properly.
+- Follow requests to remote accounts that are still unanswered after three minutes are sent once more under a
+  new id (Lemmy 0.19 loses the Accept for the first follow from a server it has never seen)
 - Tested for compatibility ([development.md](development.md#tests)) with Mastodon, GoToSocial, Misskey/Sharkey, Pleroma/Akkoma,
   Pixelfed, Friendica, WordPress, Fedify, Lemmy and PeerTube payloads and signature styles
 

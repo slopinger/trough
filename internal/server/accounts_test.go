@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"git.freifick.net/slop/trough/internal/ap"
 )
@@ -114,4 +115,36 @@ func TestSignupModes(t *testing.T) {
 	if _, err := la.LocalAccount("grace"); err != nil {
 		t.Error("account not created")
 	}
+}
+
+func TestUnansweredFollowIsResentOnce(t *testing.T) {
+	la, r, bob, _ := featureFixture(t) // bob already follows alice (accepted)
+	r.put("/users/carol", strings.NewReplacer("users/alice", "users/carol", `"preferredUsername": "alice"`, `"preferredUsername": "carol"`).Replace(mastodonActor))
+	carol, err := la.getAccount(context.Background(), r.Base+"/users/carol")
+	if err != nil {
+		t.Fatal(err)
+	}
+	la.db.Exec(`UPDATE follows SET created_at=? WHERE account_id=?`, time.Now().Add(-200*time.Second).Unix(), bob.ID)
+	if err := la.Follow(bob, carol); err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, "Follow delivered", func() bool { return len(r.receivedOf("Follow")) == 1 })
+	first := r.receivedOf("Follow")[0].Activity["id"]
+	start := time.Now()
+	for _, after := range []time.Duration{time.Minute, 2 * time.Minute, 3*time.Minute + 30*time.Second, 4*time.Minute + 30*time.Second} {
+		la.resendPendingFollows(start.Add(after))
+	}
+	eventually(t, "Follow resent", func() bool { return len(r.receivedOf("Follow")) >= 2 })
+	time.Sleep(300 * time.Millisecond)
+	follows := r.receivedOf("Follow")
+	if len(follows) != 2 || ap.ID(follows[1].Activity["object"]) != carol.URI {
+		t.Fatalf("expected the Follow to carol once more (and not the accepted one to alice), got %d", len(follows))
+	}
+	second := follows[1].Activity["id"].(string)
+	if second == first {
+		t.Fatal("resent Follow reuses the old id; Lemmy drops it as a duplicate")
+	}
+	// the Accept answers the new id
+	r.send(obj{"@context": asContext, "id": r.Base + "/accepts/1", "type": "Accept", "actor": carol.URI, "object": second}, r.Base+"/users/carol#main-key", sigCavage)
+	eventually(t, "follow accepted", func() bool { return la.relationship(bob.ID, carol.ID).Following })
 }
