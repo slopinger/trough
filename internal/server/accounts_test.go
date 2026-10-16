@@ -148,3 +148,14 @@ func TestUnansweredFollowIsResentOnce(t *testing.T) {
 	r.send(obj{"@context": asContext, "id": r.Base + "/accepts/1", "type": "Accept", "actor": carol.URI, "object": second}, r.Base+"/users/carol#main-key", sigCavage)
 	eventually(t, "follow accepted", func() bool { return la.relationship(bob.ID, carol.ID).Following })
 }
+
+// ListUsers feeds the admin user list and `trough user list`.
+func TestListUsers(t *testing.T) {
+	la := startLiveApp(t)
+	la.CreateLocalUser("bob", "password123", true)
+	la.CreateLocalUser("cat", "password123", false)
+	users, err := la.ListUsers()
+	if err != nil || len(users) != 2 || users[0].Account.Username != "bob" || !users[0].Admin || users[1].Admin {
+		t.Fatalf("ListUsers = %v, %v", users, err)
+	}
+}

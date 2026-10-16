@@ -197,7 +197,7 @@ func (app *App) ListUsers() ([]*User, error) {
 		var created, fetched, seen int64
 		if err := rows.Scan(&a.ID, &a.Username, &a.Domain, &a.URI, &a.URL, &a.DisplayName, &a.Note, &a.NoteSource, &a.Avatar, &a.Header,
 			&a.Inbox, &a.SharedInbox, &a.Outbox, &a.FollowersURI, &a.FollowingURI, &a.PublicKeyID, &a.PublicKey, &a.PrivateKey,
-			&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &u.Admin, &seen); err != nil {
+			&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &a.Discoverable, &u.Admin, &seen); err != nil {
 			return nil, err
 		}
 		a.CreatedAt = time.Unix(created, 0)
