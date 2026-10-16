@@ -476,7 +476,7 @@ type Relationship struct {
 	Endorsed                                                                   bool // featured on my profile
 	DomainBlocking                                                             bool // I blocked their server (set by the web UI)
 	MutingNotifications                                                        bool
-	ShowingReblogs, Notifying                                                  bool // options of my follow
+	ShowingReblogs, Notifying                                                  bool      // options of my follow
 	MuteExpiresAt                                                              time.Time // zero: muted indefinitely
 }
 
