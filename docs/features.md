@@ -113,7 +113,10 @@
 - Muting a conversation (post menu, `POST /api/v1/statuses/:id/mute`): no more notifications about replies, likes
   or boosts in that thread
 - Mutes, keyword filters (collapse, hide media or hide; through the API also grouped, per context and expiring), blocks; reports with optional anonymous forwarding (`Flag`)
-  and incoming reports for admins
+  and incoming reports for admins. Admins review them on `/admin/reports` with the reported posts shown in full
+  and how often the account was reported before; resolving can delete the reported posts (federated for local
+  ones), suspend a remote account (reversible; posts hidden, its activities ignored, follows end) or block its
+  server, with a note for other admins. Resolved reports keep who did what.
 - Archive download (Settings, once an hour): a zip in Mastodon's archive layout with actor.json, outbox.json (all
   your posts and boosts, private ones included), likes.json, bookmarks.json, avatar, header and uploaded media
 - Import and export (Settings) of follows, lists, blocks, mutes, blocked servers and bookmarks as CSV files in

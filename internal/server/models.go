@@ -168,7 +168,7 @@ func (app *App) saveAccount(a *Account) error {
 		shared_inbox=excluded.shared_inbox, outbox=excluded.outbox, followers_uri=excluded.followers_uri,
 		following_uri=excluded.following_uri, public_key_id=excluded.public_key_id, public_key=excluded.public_key,
 		actor_type=excluded.actor_type, locked=excluded.locked, fields=excluded.fields, emojis=excluded.emojis,
-		fetched_at=excluded.fetched_at, suspended=excluded.suspended, featured_uri=excluded.featured_uri,
+		fetched_at=excluded.fetched_at, suspended=MAX(accounts.suspended, excluded.suspended), featured_uri=excluded.featured_uri,
 		also_known_as=excluded.also_known_as, moved_to=excluded.moved_to, attribution_domains=excluded.attribution_domains, discoverable=excluded.discoverable`,
 		a.ID, a.Username, a.Domain, a.URI, a.URL, a.DisplayName, a.Note, a.NoteSource, a.Avatar, a.Header,
 		a.Inbox, a.SharedInbox, a.Outbox, a.FollowersURI, a.FollowingURI, a.PublicKeyID, a.PublicKey, a.PrivateKey,

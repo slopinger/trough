@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -123,10 +124,37 @@ func (app *App) handleAdminInvite(w http.ResponseWriter, r *http.Request, p *Pag
 	http.Redirect(w, r, "/admin#registrations", http.StatusSeeOther)
 }
 
-func (app *App) handleResolveReport(w http.ResponseWriter, r *http.Request, p *Page) {
-	app.db.Exec(`UPDATE reports SET resolved_at=? WHERE id=?`, time.Now().Unix(), r.PathValue("id"))
-	setFlash(w, "Report marked as resolved.")
-	http.Redirect(w, r, "/admin#reports", http.StatusSeeOther)
+func (app *App) handleAdminReports(w http.ResponseWriter, r *http.Request, p *Page) {
+	p.Title, p.Section = "Reports", "admin"
+	if p.Tab = r.URL.Query().Get("tab"); p.Tab == "resolved" {
+		p.Reports = app.resolvedReports()
+	} else {
+		p.Tab, p.Reports = "", app.openReports()
+	}
+	p.Stats = map[string]int{"open": app.countInt(`SELECT COUNT(*) FROM reports WHERE resolved_at=0`)}
+	app.render(w, "reports", p)
+}
+
+func (app *App) handleReportAction(w http.ResponseWriter, r *http.Request, p *Page) {
+	msg, err := app.ResolveReport(p.Me, r.PathValue("id"), r.FormValue("action"), strings.TrimSpace(r.FormValue("note")))
+	if err != nil {
+		msg = "Couldn't do that: " + err.Error()
+	}
+	setFlash(w, msg)
+	http.Redirect(w, r, "/admin/reports", http.StatusSeeOther)
+}
+
+func (app *App) handleUnsuspend(w http.ResponseWriter, r *http.Request, p *Page) {
+	a, err := app.AccountByID(r.PathValue("id"))
+	if err == nil {
+		err = app.UnsuspendAccount(a)
+	}
+	if err != nil {
+		setFlash(w, "Couldn't lift the suspension: "+err.Error())
+	} else {
+		setFlash(w, "Lifted the suspension of "+a.Acct()+". Follows that ended stay ended.")
+	}
+	http.Redirect(w, r, "/admin/reports?tab=resolved", http.StatusSeeOther)
 }
 
 func (app *App) handleAdminAI(w http.ResponseWriter, r *http.Request, p *Page) {
@@ -164,20 +192,29 @@ func (app *App) handleAdminDomainBlock(w http.ResponseWriter, r *http.Request, p
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		return
 	}
-	if domain == "" || strings.ContainsAny(domain, " /@") || domain == app.cfg.Host {
+	if err := app.BlockServer(domain, r.FormValue("reason")); err != nil {
 		setFlash(w, "Invalid domain.")
 		http.Redirect(w, r, "/admin", http.StatusSeeOther)
 		return
 	}
+	setFlash(w, "Blocked "+domain+".")
+	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+}
+
+// BlockServer blocks a server (admin domain block) and its subdomains: their accounts are suspended,
+// follows in both directions dropped and pending deliveries to them cancelled.
+func (app *App) BlockServer(domain, reason string) error {
+	if domain == "" || strings.ContainsAny(domain, " /@") || domain == app.cfg.Host {
+		return errors.New("invalid domain")
+	}
 	app.db.Exec(`INSERT INTO domain_blocks (domain, reason, created_at) VALUES (?,?,?) ON CONFLICT(domain) DO UPDATE SET reason=excluded.reason`,
-		domain, truncateRunes(r.FormValue("reason"), 500), time.Now().Unix())
+		domain, truncateRunes(reason, 500), time.Now().Unix())
 	match := []any{domain, "%." + domain}
 	app.db.Exec(`UPDATE accounts SET suspended=1 WHERE domain=? OR domain LIKE ?`, match...)
 	app.db.Exec(`DELETE FROM follows WHERE account_id IN (SELECT id FROM accounts WHERE domain=? OR domain LIKE ?)
 		OR target_id IN (SELECT id FROM accounts WHERE domain=? OR domain LIKE ?)`, domain, "%."+domain, domain, "%."+domain)
 	app.db.Exec(`DELETE FROM deliveries WHERE inbox LIKE ? OR inbox LIKE ?`, "https://"+domain+"/%", "https://%."+domain+"/%")
-	setFlash(w, "Blocked "+domain+".")
-	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+	return nil
 }
 
 // SetAdmin grants or revokes admin rights of a local account.

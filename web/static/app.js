@@ -6,6 +6,11 @@
   // like / boost without reloading
   document.addEventListener("submit", function (ev) {
     var form = ev.target;
+    var sub = ev.submitter;
+    if (sub && sub.dataset && sub.dataset.confirm && !window.confirm(sub.dataset.confirm)) { // per-button confirmation
+      ev.preventDefault();
+      return;
+    }
     if (form.classList.contains("confirm")) {
       if (!window.confirm(form.dataset.confirm || "Are you sure?")) {
         ev.preventDefault();

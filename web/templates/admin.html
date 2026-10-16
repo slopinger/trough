@@ -96,18 +96,8 @@
 </section>
 <section class="card" id="reports">
   <h3>Reports</h3>
-  {{$p := .}}{{range .Reports}}
-  <div class="report">
-    <p><a href="{{.Reporter.Path}}">{{handle .Reporter}}</a>{{if .Remote}} (another server){{end}} reported <a href="{{.Target.Path}}"><b>{{handle .Target}}</b></a>
-      <span class="muted small">· {{ago .CreatedAt}}{{if .Forwarded}} · forwarded to {{.Target.Domain}}{{end}}</span></p>
-    {{if .Comment}}<blockquote class="prewrap">{{.Comment}}</blockquote>{{end}}
-    {{range .Statuses}}<a class="nquote" href="{{.Path}}">{{plain .Content}}</a>{{end}}
-    <div class="row-actions">
-      <form method="post" action="/admin/reports/{{.ID}}/resolve"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button class="btn small">Mark resolved</button></form>
-      {{if not .Target.IsLocal}}<form method="post" action="/admin/domain_blocks" class="confirm" data-confirm="Block the whole server {{.Target.Domain}}?"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><input type="hidden" name="domain" value="{{.Target.Domain}}"><input type="hidden" name="reason" value="reported"><button class="btn small danger-outline">Block {{.Target.Domain}}</button></form>{{end}}
-    </div>
-  </div>
-  {{else}}<p class="muted small">No open reports.</p>{{end}}
+  {{$p := .}}{{if .Reports}}<p><b>{{len .Reports}} open {{if eq (len .Reports) 1}}report{{else}}reports{{end}}</b>, the newest from {{handle (index .Reports 0).Reporter}} about {{handle (index .Reports 0).Target}} ({{ago (index .Reports 0).CreatedAt}}).</p>
+  <a class="btn primary small" href="/admin/reports">Review reports</a>{{else}}<p class="muted small">No open reports. <a href="/admin/reports?tab=resolved">Resolved reports</a></p>{{end}}
 </section>
 <section class="card">
   <h3>AI writing</h3>

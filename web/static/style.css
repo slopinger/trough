@@ -479,6 +479,14 @@ details.menu > summary::-webkit-details-marker { display: none; }
 .boostedby.pinned .ico { color: var(--accent); }
 details.filtered > summary { cursor: pointer; color: var(--muted); padding: 6px 0; list-style: none; display: flex; gap: 10px; align-items: center; }
 details.filtered > summary::-webkit-details-marker { display: none; }
+.report-card .report-head { margin-top: 0; }
+.report-card blockquote { margin: 8px 0; padding-left: 10px; border-left: 3px solid var(--line); }
+.report-statuses { border-left: 3px solid var(--danger); padding-left: 10px; margin: 10px 0; }
+.report-statuses article { margin-bottom: 8px; }
+.report-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.report-actions textarea { width: 100%; }
+.report-actions .row-actions { margin-left: 0; flex-wrap: wrap; }
+.report-outcome { margin: 10px 0 4px; }
 .report { border-top: 1px solid var(--line); padding: 10px 0; }
 .report:first-of-type { border-top: 0; }
 .report blockquote { margin: 6px 0; padding-left: 10px; border-left: 3px solid var(--line); }

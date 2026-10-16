@@ -502,6 +502,9 @@ type Report struct {
 	Statuses            []*Status
 	Forwarded, Remote   bool
 	CreatedAt, Resolved time.Time
+	Action, Note        string   // what the admin did (see reportActions) and their private note
+	ResolvedBy          *Account // nil while open
+	Earlier             int      // other reports about the same account
 }
 
 // FileReport stores a report by a local user and optionally forwards it to
@@ -590,47 +593,6 @@ func (app *App) inFlag(actor *Account, act obj) error {
 		app.notifyAdmins(actor.ID, "report")
 	}
 	return err
-}
-
-func (app *App) openReports() []*Report {
-	rows, err := app.db.Query(`SELECT id, account_id, target_id, status_ids, comment, forwarded, created_at FROM reports WHERE resolved_at=0 ORDER BY created_at DESC LIMIT 50`)
-	if err != nil {
-		return nil
-	}
-	type raw struct {
-		r                  *Report
-		from, target, sids string
-	}
-	var list []raw
-	for rows.Next() {
-		r := &Report{}
-		var x raw
-		var created int64
-		rows.Scan(&r.ID, &x.from, &x.target, &x.sids, &r.Comment, &r.Forwarded, &created)
-		r.CreatedAt = time.Unix(created, 0)
-		x.r = r
-		list = append(list, x)
-	}
-	rows.Close()
-	var out []*Report
-	for _, x := range list {
-		x.r.Reporter, _ = app.AccountByID(x.from)
-		x.r.Target, _ = app.AccountByID(x.target)
-		var ids []string
-		jsonUnmarshal([]byte(x.sids), &ids)
-		if len(ids) > 0 {
-			// admins see reported posts whatever their visibility
-			q, args := inClause(`SELECT `+statusCols+` FROM statuses s WHERE s.id IN (%s)`, ids)
-			if sts, err := app.scanStatuses(q, args...); err == nil {
-				x.r.Statuses, _ = app.hydrate(nil, sts)
-			}
-		}
-		if x.r.Reporter != nil && x.r.Target != nil {
-			x.r.Remote = !x.r.Reporter.IsLocal()
-			out = append(out, x.r)
-		}
-	}
-	return out
 }
 
 // ---- edit history ----

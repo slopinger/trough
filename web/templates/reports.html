@@ -1,0 +1,33 @@
+{{define "content"}}{{$p := .}}
+<h2 class="pagetitle">Reports</h2>
+<nav class="tabs">
+  <a href="/admin/reports" class="{{if eq .Tab ""}}active{{end}}">Open{{with index .Stats "open"}} ({{.}}){{end}}</a>
+  <a href="/admin/reports?tab=resolved" class="{{if eq .Tab "resolved"}}active{{end}}">Resolved</a>
+</nav>
+{{range .Reports}}{{$r := .}}
+<section class="card report-card" id="r-{{.ID}}">
+  <p class="report-head"><a href="{{.Reporter.Path}}">{{handle .Reporter}}</a>{{if .Remote}} <span class="muted">(from another server)</span>{{end}} reported
+    <a href="{{.Target.Path}}"><b>{{handle .Target}}</b></a>{{if .Target.Suspended}} <span class="badge">suspended</span>{{end}}
+    <span class="muted small">· {{ago .CreatedAt}}{{if .Forwarded}} · forwarded to {{.Target.Domain}}{{end}}{{if .Earlier}} · {{.Earlier}} other {{if eq .Earlier 1}}report{{else}}reports{{end}} about this account{{end}}</span></p>
+  {{if .Comment}}<blockquote class="prewrap">{{.Comment}}</blockquote>{{else}}<p class="muted small">No comment.</p>{{end}}
+  {{if .Statuses}}<div class="report-statuses">{{range .Statuses}}{{template "status" (dict "S" . "P" $p)}}{{end}}</div>
+  {{else}}<p class="muted small">No posts attached{{if eq $p.Tab "resolved"}} (or they were deleted){{end}}.</p>{{end}}
+  {{if .Resolved.IsZero}}
+  <form method="post" action="/admin/reports/{{.ID}}" class="report-actions">
+    <input type="hidden" name="csrf" value="{{$p.CSRF}}">
+    <label>Note for other admins (optional) <textarea name="note" rows="2" maxlength="2000" placeholder="What you decided and why"></textarea></label>
+    <div class="row-actions">
+      <button class="btn small" name="action" value="none">Resolve, no action</button>
+      {{if .Statuses}}<button class="btn small danger-outline" name="action" value="delete" data-confirm="Delete the {{len .Statuses}} reported {{if eq (len .Statuses) 1}}post{{else}}posts{{end}}?{{if .Target.IsLocal}} The deletion is sent to other servers too.{{end}}">Delete {{if eq (len .Statuses) 1}}post{{else}}{{len .Statuses}} posts{{end}}</button>{{end}}
+      {{if not .Target.IsLocal}}{{if not .Target.Suspended}}<button class="btn small danger-outline" name="action" value="suspend" data-confirm="Suspend {{handle .Target}}? Their posts disappear here and follows in both directions end.">Suspend account</button>{{end}}
+      <button class="btn small danger-outline" name="action" value="block" data-confirm="Block the whole server {{.Target.Domain}}?">Block {{.Target.Domain}}</button>{{end}}
+    </div>
+  </form>
+  {{else}}
+  <p class="report-outcome"><b>{{.ActionLabel}}</b>{{if .ResolvedBy}} by <a href="{{.ResolvedBy.Path}}">{{handle .ResolvedBy}}</a>{{end}} <span class="muted small">· {{ago .Resolved}}</span></p>
+  {{if .Note}}<blockquote class="prewrap small">{{.Note}}</blockquote>{{end}}
+  {{if and .Target.Suspended (not .Target.IsLocal)}}<form method="post" action="/admin/accounts/{{.Target.ID}}/unsuspend" class="confirm" data-confirm="Lift the suspension of {{handle .Target}}?"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button class="btn small">Lift suspension</button></form>{{end}}
+  {{end}}
+</section>
+{{else}}<div class="empty">{{if eq .Tab "resolved"}}No resolved reports yet.{{else}}No open reports. Nice and quiet.{{end}}</div>{{end}}
+{{end}}

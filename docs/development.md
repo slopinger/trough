@@ -47,6 +47,7 @@ Files are grouped by prefix:
 | `autocomplete.go` | compose suggestions for the web UI |
 | `convmute.go` | muted conversations |
 | `webpush.go` | browser notifications for the web UI (service worker in `web/static/sw.js`) |
+| `moderation.go` | report review and actions (delete posts, suspend remote accounts, block servers) |
 | `statussearch.go` | post search with Mastodon-style operators (web and API) |
 | `remoteinteract.go` | following and interacting from other servers (visitors) |
 | `ai.go`, `translate.go` | AI drafting and translation |

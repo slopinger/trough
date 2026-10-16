@@ -542,6 +542,10 @@ ALTER TABLE users ADD COLUMN text_size TEXT NOT NULL DEFAULT 'normal';
 `, `
 ALTER TABLE attachments ADD COLUMN preview_url TEXT NOT NULL DEFAULT '';
 ALTER TABLE attachments ADD COLUMN preview_file TEXT NOT NULL DEFAULT '';
+`, `
+ALTER TABLE reports ADD COLUMN action_taken TEXT NOT NULL DEFAULT '';
+ALTER TABLE reports ADD COLUMN resolved_by TEXT NOT NULL DEFAULT '';
+ALTER TABLE reports ADD COLUMN note TEXT NOT NULL DEFAULT '';
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {
