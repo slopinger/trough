@@ -370,6 +370,26 @@ func (app *App) handleReport(w http.ResponseWriter, r *http.Request, p *Page) {
 	http.Redirect(w, r, acc.Path(), http.StatusSeeOther)
 }
 
+// handleInteractions lists who favourited or boosted a post
+// (/s/:id/favourites and /s/:id/boosts), linked from its counts.
+func (app *App) handleInteractions(w http.ResponseWriter, r *http.Request, p *Page) {
+	st, err := app.loadStatus(p.Me, r.PathValue("id"))
+	if err != nil || st.IsBoost() {
+		app.notFound(w, p)
+		return
+	}
+	q := `SELECT ` + accountCols + ` FROM likes l JOIN accounts a ON a.id=l.account_id WHERE l.status_id=? AND a.suspended=0 ORDER BY l.created_at DESC LIMIT 80`
+	p.Tab = "favourites"
+	if strings.HasSuffix(r.URL.Path, "/boosts") {
+		q = `SELECT ` + accountCols + ` FROM statuses b JOIN accounts a ON a.id=b.account_id WHERE b.boost_of_id=? AND a.suspended=0 ORDER BY b.id DESC LIMIT 80`
+		p.Tab = "boosts"
+	}
+	p.Accounts, _ = app.accountsQuery(q, st.ID)
+	p.Status = st
+	p.Title = "Interactions with " + st.Account.Name() + "'s post"
+	app.render(w, "interactions", p)
+}
+
 func (app *App) handleHistory(w http.ResponseWriter, r *http.Request, p *Page) {
 	st, err := app.loadStatus(p.Me, r.PathValue("id"))
 	if err != nil || st.IsBoost() {

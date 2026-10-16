@@ -1,0 +1,10 @@
+{{define "content"}}{{$p := .}}
+<div class="pagehead"><h2 class="pagetitle">{{if eq .Tab "boosts"}}Boosted by{{else}}Favourited by{{end}}</h2><a class="btn small" href="{{.Status.Path}}">Back to the post</a></div>
+{{template "status" (dict "S" .Status "P" $p)}}
+<nav class="tabs">
+  <a href="/s/{{.Status.ID}}/boosts" class="{{if eq .Tab "boosts"}}active{{end}}">Boosts</a>
+  <a href="/s/{{.Status.ID}}/favourites" class="{{if eq .Tab "favourites"}}active{{end}}">Favourites</a>
+</nav>
+{{if not .Status.Local}}<div class="empty">Only interactions known to this server are shown.</div>{{end}}
+{{range .Accounts}}{{template "accountrow" (dict "A" . "P" $p)}}{{else}}<div class="empty">Nobody yet.</div>{{end}}
+{{end}}

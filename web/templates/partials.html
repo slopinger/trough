@@ -23,6 +23,7 @@
   <details class="cw"><summary><span class="cwtext">{{spoiler $o}}</span> <span class="cwbtn">show more</span></summary>{{template "statusbody" (dict "S" $o "P" $p)}}</details>
   {{else}}{{template "statusbody" (dict "S" $o "P" $p)}}{{end}}
   {{if $s.FilteredBy}}</details>{{end}}
+  {{if and .Focus (or $o.Boosts $o.Likes)}}<div class="s-stats">{{if $o.Boosts}}<a href="/s/{{$o.ID}}/boosts"><b>{{$o.Boosts}}</b> {{if eq $o.Boosts 1}}boost{{else}}boosts{{end}}</a>{{end}}{{if $o.Likes}}<a href="/s/{{$o.ID}}/favourites"><b>{{$o.Likes}}</b> {{if eq $o.Likes 1}}favourite{{else}}favourites{{end}}</a>{{end}}</div>{{end}}
   <footer class="s-actions">
     <a class="act" href="{{if $p.Me}}/compose?reply_to={{$o.ID}}{{else}}/interact?uri={{$o.URI}}&amp;back={{$o.Path}}{{end}}" title="Reply">{{template "icon" "reply"}}<span class="n">{{if $o.Replies}}{{$o.Replies}}{{end}}</span></a>
     {{if $p.Me}}
