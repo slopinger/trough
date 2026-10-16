@@ -21,15 +21,16 @@ sudo systemctl restart trough.service
 
 if ! cmp -s deploy/fedi.freifick.net.caddy /etc/caddy/conf.d/fedi.freifick.net.caddy; then
 	conf=/etc/caddy/conf.d/fedi.freifick.net.caddy
-	sudo cp -p "$conf" "$conf.prev" 2>/dev/null || true
+	prev=/etc/caddy/fedi.freifick.net.caddy.prev # outside conf.d, which is imported as a whole
+	sudo cp -p "$conf" "$prev" 2>/dev/null || true
 	sudo install -m 0644 deploy/fedi.freifick.net.caddy "$conf"
 	# as caddy, which owns the log files the config opens
 	if ! sudo -u caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1; then
 		echo "new Caddy config is invalid; keeping the old one" >&2
-		sudo mv "$conf.prev" "$conf"
+		sudo mv "$prev" "$conf"
 		exit 1
 	fi
-	sudo rm -f "$conf.prev"
+	sudo rm -f "$prev"
 	sudo systemctl reload caddy
 fi
 
