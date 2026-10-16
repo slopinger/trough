@@ -203,6 +203,7 @@
   one entry ("ann, ben and 3 others favourited your post") with a row of avatars
 - Keyboard shortcuts: j/k move between posts, o opens, r replies, f favourites, b boosts, n writes, / searches,
   ? shows the list
+- An "ALT" badge on described images and videos shows the description when clicked (also in embeds, no JavaScript)
 - Image viewer: attached images open large with their description; arrow keys go through a post's images
 - Browser notifications (Settings, per browser): the web UI subscribes through the browser's push service with the
   server's VAPID key; a service worker at `/sw.js` shows them and opens the post when clicked
