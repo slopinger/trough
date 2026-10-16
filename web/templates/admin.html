@@ -32,6 +32,15 @@
     <button class="btn">Save</button>
   </form>
 </section>
+<section class="card" id="privacy">
+  <h3>Privacy policy</h3>
+  <p class="muted small">Shown on <a href="/privacy-policy">/privacy-policy</a> and to apps. {{if .PolicyDefault}}This is trough's default, describing what the software stores; add what is specific to this server (who runs it, backups, web server logs, the AI provider).{{end}} Blank lines separate paragraphs, lines starting with "# " are headings and "- " list items. Saving it empty brings back the default.</p>
+  <form method="post" action="/admin/privacy_policy" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <textarea name="privacy_policy" rows="14" maxlength="20000" aria-label="Privacy policy">{{.PolicySource}}</textarea>
+    <button class="btn">Save</button>
+  </form>
+</section>
 <section class="card" id="rules">
   <h3>Server rules</h3>
   <p class="muted small">Shown on the About and sign-up pages and in apps.</p>

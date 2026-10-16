@@ -215,6 +215,9 @@ legend { color: var(--muted); padding: 0 4px; }
 .tbl form { margin: 0; }
 .tbl .btn { white-space: nowrap; }
 .facts { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.policy h3 { margin: 1.4em 0 0.4em; }
+.policy ul { padding-left: 1.2em; }
+.policy li { margin: 6px 0; line-height: 1.5; }
 .hero { padding: 24px 20px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 20px; }
 .hero h1 { margin: 0 0 8px; }
 .hero .desc { font-size: 17px; white-space: pre-wrap; }

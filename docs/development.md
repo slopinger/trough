@@ -45,6 +45,7 @@ Files are grouped by prefix:
 | `prefs.go` | posting and reading preferences |
 | `cleanup.go` | automated deletion of old posts |
 | `sessions.go` | logged-in browsers in Settings |
+| `privacy.go` | the privacy policy page and its default text |
 | `twofactor.go` | two-factor authentication (TOTP, recovery codes) |
 | `accountdelete.go` | deleting your own account |
 | `archive.go` | archive download (zip) |

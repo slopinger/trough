@@ -70,6 +70,7 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("POST /tags/{tag}/unfeature", auth(app.handleTagFeature))
 	mux.HandleFunc("GET /{at}/{id}/{tag}", pub(app.handleProfileOrStatus)) // /@name/tagged/tag
 	mux.HandleFunc("GET /about", pub(app.handleAbout))
+	mux.HandleFunc("GET /privacy-policy", pub(app.handlePrivacyPolicy))
 	mux.HandleFunc("GET /s/{id}", pub(app.handleThread))
 	mux.HandleFunc("GET /s/{id}/history", pub(app.handleHistory))
 	mux.HandleFunc("GET /s/{id}/favourites", pub(app.handleInteractions))
@@ -146,6 +147,7 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("POST /admin/users", admin(app.handleAdminCreateUser))
 	mux.HandleFunc("POST /admin/users/{id}/password", admin(app.handleAdminResetPassword))
 	mux.HandleFunc("POST /admin/settings", admin(app.handleAdminSettings))
+	mux.HandleFunc("POST /admin/privacy_policy", admin(app.handleAdminPrivacyPolicy))
 	mux.HandleFunc("POST /admin/rules", admin(app.handleAdminRules))
 	mux.HandleFunc("POST /admin/announcements", admin(app.handleAdminAnnouncements))
 	mux.HandleFunc("POST /admin/domain_blocks", admin(app.handleAdminDomainBlock))
@@ -223,6 +225,7 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	h("GET /api/v1/instance/translation_languages", pub(app.apiTranslationLanguages))
 	h("GET /api/v1/instance/languages", pub(app.apiLanguages))
 	h("GET /api/v1/instance/extended_description", pub(app.apiExtendedDescription))
+	h("GET /api/v1/instance/privacy_policy", pub(app.apiPrivacyPolicy))
 	h("POST /api/v1/statuses/{id}/translate", read(app.apiTranslate))
 	h("GET /api/v1/custom_emojis", pub(app.apiCustomEmojis))
 	h("GET /api/v1/announcements", pub(app.apiAnnouncements))

@@ -4,6 +4,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
+	"html/template"
 	"log"
 	"net"
 	"net/http"
@@ -94,10 +95,14 @@ type Page struct {
 	VapidKey        string        // settings: for browser notifications
 	Cleanup         CleanupPolicy // settings: automated post deletion
 	Sessions        []WebSession  // settings: logged-in browsers
-	sessID          string        // the viewer's session
-	CleanupCount    int           // posts it would delete now
-	Theme, TextSize string        // appearance: auto/light/dark, normal/large
-	Prefs           Prefs         // posting and reading preferences of the viewer
+	PolicyHTML      template.HTML // privacy policy page
+	PolicyUpdated   time.Time
+	PolicyDefault   bool
+	PolicySource    string // admin: the policy text being edited
+	sessID          string // the viewer's session
+	CleanupCount    int    // posts it would delete now
+	Theme, TextSize string // appearance: auto/light/dark, normal/large
+	Prefs           Prefs  // posting and reading preferences of the viewer
 	FeaturedTags    []FeaturedTag
 	FollowedTags    []string
 	FollowedTagRows []FollowedTag

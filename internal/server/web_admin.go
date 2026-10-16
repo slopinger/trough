@@ -77,6 +77,7 @@ func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Users, _ = app.ListUsers()
 	p.DomainBlocks = app.domainBlockList()
 	p.Description = app.getSetting("description")
+	p.PolicySource, _, p.PolicyDefault = app.privacyPolicy()
 	p.AIKeySource, p.AIModel = app.aiKeySource(), app.aiModel()
 	p.Reports = app.openReports()
 	p.Invites = app.invites()

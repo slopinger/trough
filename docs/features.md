@@ -206,6 +206,9 @@
 - Image viewer: attached images open large with their description; arrow keys go through a post's images
 - Browser notifications (Settings, per browser): the web UI subscribes through the browser's push service with the
   server's VAPID key; a service worker at `/sw.js` shows them and opens the post when clicked
+- A privacy policy (`/privacy-policy`, linked in the footer and on About; `/api/v1/instance/privacy_policy`):
+  admins write it on `/admin` (headings, paragraphs and lists as plain text); until then a default describes
+  what trough stores and shares
 - Logged-in browsers (Settings): each browser session with its browser and system (from the user agent; no IP
   addresses are stored), when it logged in and was last used, logging out single ones or all others
 - Automated post deletion (Settings, like Mastodon's): your posts older than 1 week to 2 years are deleted
