@@ -527,6 +527,15 @@ CREATE TABLE conversation_mutes (
 	created_at INTEGER NOT NULL,
 	PRIMARY KEY (account_id, root_id)
 );
+`, `
+CREATE TABLE web_push_subscriptions (
+	id TEXT PRIMARY KEY,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	endpoint TEXT NOT NULL UNIQUE,
+	p256dh TEXT NOT NULL,
+	auth TEXT NOT NULL,
+	created_at INTEGER NOT NULL
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

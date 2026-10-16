@@ -84,6 +84,7 @@ type Page struct {
 	Requests2       []*NotificationRequest // filtered notification requests
 	PendingRequests int
 	NotifPolicy     NotificationPolicy
+	VapidKey        string // settings: for browser notifications
 	FeaturedTags    []FeaturedTag
 	FollowedTags    []string
 	BlockedDomains  []string

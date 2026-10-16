@@ -31,6 +31,7 @@ func (app *App) handleSettings(w http.ResponseWriter, r *http.Request, p *Page) 
 	p.Import = importStatus(p.Me.ID)
 	p.TwoFactor = app.twoFactorEnabled(p.Me.ID)
 	p.NotifPolicy = app.notificationPolicy(p.Me.ID)
+	p.VapidKey = app.vapidPublic()
 	p.Blocked, _ = app.accountsQuery(`SELECT `+accountCols+` FROM blocks b JOIN accounts a ON a.id=b.target_id WHERE b.account_id=? ORDER BY b.created_at DESC`, p.Me.ID)
 	app.render(w, "settings", p)
 }

@@ -523,4 +523,46 @@
       }
     }, true);
   });
+
+  // Browser notifications (Settings): register /sw.js and subscribe with the
+  // server's VAPID key; the server pushes, the service worker shows them.
+  var wp = document.querySelector(".webpush");
+  if (wp && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window) {
+    wp.hidden = false;
+    var wpBtn = wp.querySelector("button"), wpStatus = wp.querySelector(".webpush-status");
+    var keyBytes = function (b64) {
+      var s = atob(b64.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((b64.length + 3) % 4));
+      return Uint8Array.from(s, function (c) { return c.charCodeAt(0); });
+    };
+    var send = function (fields) {
+      fields.csrf = wp.dataset.csrf;
+      return fetch("/settings/webpush", { method: "POST", credentials: "same-origin", body: new URLSearchParams(fields) })
+        .then(function (r) { if (!r.ok) throw new Error("server said " + r.status); });
+    };
+    var show = function (reg, sub) {
+      wpBtn.disabled = false;
+      wpBtn.textContent = sub ? "Turn off" : "Turn on";
+      wpStatus.textContent = sub ? "On in this browser." : Notification.permission === "denied" ? "Blocked in this browser's site settings." : "Off in this browser.";
+      wpBtn.onclick = function () {
+        wpBtn.disabled = true;
+        if (sub) {
+          var endpoint = sub.endpoint;
+          sub.unsubscribe().then(function () { return send({ action: "unsubscribe", endpoint: endpoint }); })
+            .then(function () { show(reg, null); }, function () { show(reg, sub); });
+          return;
+        }
+        Notification.requestPermission().then(function (perm) {
+          if (perm !== "granted") { show(reg, null); return; }
+          return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(wp.dataset.key) }).then(function (s) {
+            var j = s.toJSON();
+            return send({ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth }).then(function () { show(reg, s); });
+          });
+        }).catch(function (e) { wpStatus.textContent = "Couldn't turn them on: " + e.message; wpBtn.disabled = false; });
+      };
+    };
+    wpBtn.disabled = true;
+    navigator.serviceWorker.register("/sw.js").then(function (reg) {
+      return reg.pushManager.getSubscription().then(function (sub) { show(reg, sub); });
+    }).catch(function () { wp.hidden = true; });
+  }
 })();

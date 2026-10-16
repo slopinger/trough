@@ -276,7 +276,8 @@ var pushSem = make(chan struct{}, 4)
 // pushNotification sends a notification to the recipient's push subscriptions.
 func (app *App) pushNotification(accountID, notifID string) {
 	var count int
-	if app.db.QueryRow(`SELECT COUNT(*) FROM push_subscriptions WHERE account_id=?`, accountID).Scan(&count) != nil || count == 0 {
+	if app.db.QueryRow(`SELECT (SELECT COUNT(*) FROM push_subscriptions WHERE account_id=?) + (SELECT COUNT(*) FROM web_push_subscriptions WHERE account_id=?)`,
+		accountID, accountID).Scan(&count) != nil || count == 0 {
 		return
 	}
 	go func() {
@@ -337,6 +338,17 @@ func (app *App) pushNotification(accountID, notifID string) {
 					app.db.Exec(`DELETE FROM push_subscriptions WHERE id=?`, s.id)
 				} else {
 					log.Printf("push to %s: %v", ap.Host(s.endpoint), err)
+				}
+			}
+		}
+		// browsers subscribed from the web UI (/sw.js shows these)
+		for _, s := range app.webPushTargets(accountID) {
+			payload, _ := json.Marshal(obj{"title": title, "body": body, "icon": icon, "url": app.notificationURL(n), "tag": n.ID})
+			if err := app.sendPush(s.endpoint, s.p256dh, s.auth, payload); err != nil {
+				if errors.Is(err, errGone) {
+					app.db.Exec(`DELETE FROM web_push_subscriptions WHERE id=?`, s.id)
+				} else {
+					log.Printf("web push to %s: %v", ap.Host(s.endpoint), err)
 				}
 			}
 		}

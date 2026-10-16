@@ -93,6 +93,8 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("POST /notifications/requests", auth(app.handleNotificationRequests))
 	mux.HandleFunc("POST /settings/notification_policy", auth(app.handleNotificationPolicy))
 	mux.HandleFunc("GET /autocomplete", auth(app.handleAutocomplete))
+	mux.HandleFunc("POST /settings/webpush", auth(app.handleWebPush))
+	mux.HandleFunc("GET /sw.js", app.handleServiceWorker)
 	mux.HandleFunc("GET /follow_requests", auth(app.handleFollowRequests))
 	mux.HandleFunc("GET /search", auth(app.handleSearch))
 	mux.HandleFunc("GET /authorize_interaction", auth(app.handleAuthorizeInteraction))

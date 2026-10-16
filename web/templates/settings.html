@@ -77,6 +77,11 @@
   {{range .BlockedDomains}}<form method="post" action="/settings/domain_blocks" class="inline-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="unblock" value="{{.}}"><code>{{.}}</code><button class="btn small">Unblock</button></form>{{end}}
   <form method="post" action="/settings/domain_blocks" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><input name="domain" placeholder="example.social" required><button class="btn">Block server</button></form>
 </section>
+<section class="card webpush" id="browser-notifications" hidden data-key="{{.VapidKey}}" data-csrf="{{.CSRF}}">
+  <h3>Browser notifications</h3>
+  <p class="muted small">Get a notification from your browser for mentions, follows, likes and boosts, also while trough isn't open. Each browser is turned on separately.</p>
+  <div class="inline-form"><button type="button" class="btn">Turn on</button> <span class="webpush-status muted small"></span></div>
+</section>
 <section class="card" id="notification-filters">
   <h3>Notification filters</h3>
   <p class="muted small">Filtered notifications wait under Notifications → Filtered until you accept or dismiss them. Accepting someone lets them through from then on.</p>
