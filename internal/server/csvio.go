@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -64,7 +65,7 @@ func (app *App) exportCSV(me *Account, kind string, w io.Writer) error {
 		}
 		for _, a := range accs {
 			if kind == "mutes" {
-				cw.Write([]string{app.fullAcct(a), "true"})
+				cw.Write([]string{app.fullAcct(a), strconv.FormatBool(app.relationship(me.ID, a.ID).MutingNotifications)})
 			} else {
 				cw.Write([]string{app.fullAcct(a)})
 			}
@@ -230,8 +231,8 @@ func (app *App) importRow(me *Account, kind string, rec []string, lists map[stri
 		return app.Follow(me, acc)
 	case "blocks":
 		return app.Block(me, acc)
-	case "mutes":
-		return app.Mute(me, acc)
+	case "mutes": // Mastodon's second column is "Hide notifications"
+		return app.MuteFor(me, acc, len(rec) < 2 || strings.TrimSpace(rec[1]) != "false", 0)
 	case "lists":
 		if r := app.relationship(me.ID, acc.ID); !r.Following && !r.Requested { // Mastodon's list import follows too
 			if err := app.Follow(me, acc); err != nil {

@@ -92,6 +92,7 @@ type Page struct {
 	FollowedTags    []string
 	FollowedTagRows []FollowedTag
 	BlockedDomains  []string
+	MuteNotes       map[string]string // settings: how long each mute lasts
 	Import          *importState // settings: the running or last CSV import
 	History         []HistoryEntry
 	CustomEmojis    []CustomEmoji

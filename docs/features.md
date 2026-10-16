@@ -115,7 +115,8 @@
   the list of servers the instance blocks is public (`/api/v1/instance/domain_blocks`)
 - Muting a conversation (post menu, `POST /api/v1/statuses/:id/mute`): no more notifications about replies, likes
   or boosts in that thread
-- Mutes, keyword filters (collapse, hide media or hide; through the API also grouped, per context and expiring), blocks; reports with optional anonymous forwarding (`Flag`)
+- Mutes (indefinitely or for 1 hour/1 day/7 days, optionally posts only; API `duration` and `notifications`,
+  `mute_expires_at` in `/api/v1/mutes`), keyword filters (collapse, hide media or hide; through the API also grouped, per context and expiring), blocks; reports with optional anonymous forwarding (`Flag`)
   and incoming reports for admins. Admins review them on `/admin/reports` with the reported posts shown in full
   and how often the account was reported before; resolving can delete the reported posts (federated for local
   ones), suspend a remote account (reversible; posts hidden, its activities ignored, follows end) or block its

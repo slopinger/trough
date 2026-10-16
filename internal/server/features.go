@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -208,12 +209,86 @@ func (app *App) Unbookmark(me *Account, st *Status) error {
 
 // ---- mutes ----
 
-func (app *App) Mute(me, target *Account) error {
+func (app *App) Mute(me, target *Account) error { return app.MuteFor(me, target, true, 0) }
+
+// MuteFor mutes target, like Mastodon: notifications says whether their
+// notifications are hidden too, and a duration above zero lifts the mute
+// after that long. Muting again replaces both.
+func (app *App) MuteFor(me, target *Account, notifications bool, d time.Duration) error {
 	if me.ID == target.ID {
 		return errors.New("you can't mute yourself")
 	}
-	_, err := app.db.Exec(`INSERT OR IGNORE INTO mutes (account_id, target_id, created_at) VALUES (?,?,?)`, me.ID, target.ID, time.Now().Unix())
+	var expires int64
+	if d > 0 {
+		expires = time.Now().Add(d).Unix()
+	}
+	_, err := app.db.Exec(`INSERT INTO mutes (account_id, target_id, created_at, expires_at, notifications) VALUES (?,?,?,?,?)
+		ON CONFLICT(account_id, target_id) DO UPDATE SET expires_at=excluded.expires_at, notifications=excluded.notifications`,
+		me.ID, target.ID, time.Now().Unix(), expires, notifications)
 	return err
+}
+
+// muteExpiry maps the accounts me muted for a while to the end of the mute.
+func (app *App) muteExpiry(me *Account) map[string]time.Time {
+	out := map[string]time.Time{}
+	rows, err := app.db.Query(`SELECT target_id, expires_at FROM mutes WHERE account_id=? AND expires_at > 0`, me.ID)
+	if err != nil {
+		return out
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		var exp int64
+		if rows.Scan(&id, &exp) == nil {
+			out[id] = time.Unix(exp, 0)
+		}
+	}
+	return out
+}
+
+// muteNotes describes the settings page's mutes that aren't plain
+// indefinite ones: until when, and whether notifications still come through.
+func (app *App) muteNotes(me *Account) map[string]string {
+	out := map[string]string{}
+	rows, err := app.db.Query(`SELECT target_id, expires_at, notifications FROM mutes WHERE account_id=?`, me.ID)
+	if err != nil {
+		return out
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		var exp int64
+		var notif bool
+		if rows.Scan(&id, &exp, &notif) != nil {
+			continue
+		}
+		var parts []string
+		if exp > 0 {
+			parts = append(parts, "muted until "+time.Unix(exp, 0).UTC().Format("Mon, 2 Jan 2006 15:04 MST"))
+		}
+		if !notif {
+			parts = append(parts, "posts only, notifications still shown")
+		}
+		if len(parts) > 0 {
+			out[id] = strings.Join(parts, " · ")
+		}
+	}
+	return out
+}
+
+// expireMutes lifts timed mutes whose time is up (called every minute).
+func (app *App) expireMutes(now time.Time) {
+	app.db.Exec(`DELETE FROM mutes WHERE expires_at > 0 AND expires_at <= ?`, now.Unix())
+}
+
+// muteDuration reads a mute duration in seconds; Mastodon's web UI offers
+// up to 7 days, the API takes any length. 0 (or nothing) means indefinitely.
+func muteDuration(s string) time.Duration {
+	n, err := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
+	if err != nil || n <= 0 || n > 10*365*24*3600 {
+		return 0
+	}
+	return time.Duration(n) * time.Second
 }
 
 func (app *App) Unmute(me, target *Account) error {

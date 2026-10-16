@@ -434,6 +434,8 @@ type Relationship struct {
 	Following, Requested, FollowedBy, RequestedBy, Blocking, BlockedBy, Muting bool
 	Endorsed                                                                   bool // featured on my profile
 	DomainBlocking                                                             bool // I blocked their server (set by the web UI)
+	MutingNotifications                                                        bool
+	MuteExpiresAt                                                              time.Time // zero: muted indefinitely
 }
 
 func (app *App) relationship(me, other string) Relationship {
@@ -450,7 +452,14 @@ func (app *App) relationship(me, other string) Relationship {
 	var x int
 	r.Blocking = app.db.QueryRow(`SELECT 1 FROM blocks WHERE account_id=? AND target_id=?`, me, other).Scan(&x) == nil
 	r.BlockedBy = app.db.QueryRow(`SELECT 1 FROM blocks WHERE account_id=? AND target_id=?`, other, me).Scan(&x) == nil
-	r.Muting = app.isMuting(me, other)
+	var notif bool
+	var expires int64
+	if app.db.QueryRow(`SELECT notifications, expires_at FROM mutes WHERE account_id=? AND target_id=?`, me, other).Scan(&notif, &expires) == nil {
+		r.Muting, r.MutingNotifications = true, notif
+		if expires > 0 {
+			r.MuteExpiresAt = time.Unix(expires, 0)
+		}
+	}
 	r.Endorsed = app.db.QueryRow(`SELECT 1 FROM account_pins WHERE account_id=? AND target_id=?`, me, other).Scan(&x) == nil
 	return r
 }

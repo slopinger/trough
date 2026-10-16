@@ -189,7 +189,7 @@ func notificationNumber(id string) any {
 // and v2 notification endpoints into SQL. none means nothing can match.
 func (app *App) notificationFilter(r *http.Request, c *apiCtx, pq pageQ) (where string, args []any, order string, none bool) {
 	q := r.URL.Query()
-	where = `n.account_id=? AND a.suspended=0 AND NOT EXISTS(SELECT 1 FROM mutes mu WHERE mu.account_id=n.account_id AND mu.target_id=n.from_account_id) AND ` + notifDomainBlockSQL
+	where = `n.account_id=? AND a.suspended=0 AND NOT EXISTS(SELECT 1 FROM mutes mu WHERE mu.account_id=n.account_id AND mu.target_id=n.from_account_id AND mu.notifications=1) AND ` + notifDomainBlockSQL
 	args = []any{c.Me.ID}
 	if q.Get("include_filtered") != "true" {
 		where += ` AND n.filtered=0`

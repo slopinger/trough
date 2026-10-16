@@ -193,7 +193,7 @@
 <div class="accrow">
   <a href="{{$a.Path}}" class="avatar"><img src="{{template "avatarsrc" $a}}" alt="" width="46" height="46" loading="lazy"></a>
   <div class="who"><a href="{{$a.Path}}" class="dn">{{name $a}}</a><span class="acct">{{handle $a}}</span>
-    {{if $a.Note}}<div class="mini-bio">{{plain $a.Note}}</div>{{end}}</div>
+    {{if .Note}}<div class="mini-bio">{{.Note}}</div>{{else if $a.Note}}<div class="mini-bio">{{plain $a.Note}}</div>{{end}}</div>
   {{if .Remove}}<div class="row-actions"><form method="post" action="/lists/{{.Remove}}/remove"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><input type="hidden" name="account" value="{{$a.ID}}"><button class="btn small">Remove</button></form></div>{{end}}
   {{if .Actions}}<div class="row-actions">{{range .Actions}}
     <form method="post" action="/accounts/{{$a.ID}}/{{index . 0}}"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button class="btn {{index . 2}}">{{index . 1}}</button></form>
@@ -221,7 +221,11 @@
             {{range .Lists}}<form method="post" action="/lists/{{.ID}}/add"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="account" value="{{$a.ID}}"><button>Add to “{{.Title}}”</button></form>{{end}}
           </div></details>{{end}}
           <form method="post" action="/accounts/{{$a.ID}}/{{if .Rel.Endorsed}}unendorse{{else}}endorse{{end}}"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn" title="{{if .Rel.Endorsed}}Remove from the accounts featured on your profile{{else}}Recommend them on your profile{{end}}">{{if .Rel.Endorsed}}Unfeature{{else}}Feature{{end}}</button></form>
-          <form method="post" action="/accounts/{{$a.ID}}/{{if .Rel.Muting}}unmute{{else}}mute{{end}}"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn" title="{{if .Rel.Muting}}Show their posts again{{else}}Hide their posts from your timelines and notifications{{end}}">{{if .Rel.Muting}}Unmute{{else}}Mute{{end}}</button></form>
+          {{if .Rel.Muting}}<form method="post" action="/accounts/{{$a.ID}}/unmute"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn" title="{{if .Rel.MuteExpiresAt.IsZero}}Muted{{else}}Muted until {{fulltime .Rel.MuteExpiresAt}}{{end}}{{if not .Rel.MutingNotifications}} (posts only){{end}}. Show their posts again">Unmute</button></form>
+          {{else}}<details class="menu"><summary class="btn" title="Hide their posts from your timelines and notifications">Mute</summary><div class="menu-list">
+            {{range muteChoices}}<form method="post" action="/accounts/{{$a.ID}}/mute"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="duration" value="{{index . 0}}"><button>{{index . 1}}</button></form>{{end}}
+            <form method="post" action="/accounts/{{$a.ID}}/mute"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="notifications" value="keep"><button title="Their posts are hidden, their notifications still reach you">Mute posts only</button></form>
+          </div></details>{{end}}
           <form method="post" action="/accounts/{{$a.ID}}/block" class="confirm" data-confirm="Block {{handle $a}}? They won't be able to follow you or see your posts here."><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn danger-outline" title="Block">Block</button></form>
           {{if not $a.IsLocal}}{{if .Rel.DomainBlocking}}<form method="post" action="/settings/domain_blocks"><input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="unblock" value="{{$a.Domain}}"><button class="btn" title="Show posts from {{$a.Domain}} again">Unblock {{$a.Domain}}</button></form>
           {{else}}<form method="post" action="/settings/domain_blocks" class="confirm" data-confirm="Block everything from {{$a.Domain}}? You won't see posts or notifications from there, and your followers there will be removed."><input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="domain" value="{{$a.Domain}}"><button class="btn danger-outline" title="Hide everything from {{$a.Domain}}">Block server</button></form>{{end}}{{end}}

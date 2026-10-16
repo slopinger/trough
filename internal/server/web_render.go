@@ -243,6 +243,9 @@ func (app *App) templateFuncs() template.FuncMap {
 			}
 			return out
 		},
+		"muteChoices": func() [][2]string {
+			return [][2]string{{"0", "Mute indefinitely"}, {"3600", "Mute for 1 hour"}, {"86400", "Mute for 1 day"}, {"604800", "Mute for 7 days"}}
+		},
 		"fieldslots": func(a *Account) []Field {
 			out := append([]Field{}, a.Fields...)
 			for len(out) < 4 {

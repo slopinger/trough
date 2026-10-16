@@ -440,7 +440,7 @@ func groupNotifications(ns []*Notification) []*Notification {
 
 func (app *App) notifications(v *Account, maxID string) ([]*Notification, error) {
 	where := `n.account_id=? AND a.suspended=0 AND n.filtered=0
-		AND NOT EXISTS(SELECT 1 FROM mutes mu WHERE mu.account_id=n.account_id AND mu.target_id=n.from_account_id) AND ` + notifDomainBlockSQL
+		AND NOT EXISTS(SELECT 1 FROM mutes mu WHERE mu.account_id=n.account_id AND mu.target_id=n.from_account_id AND mu.notifications=1) AND ` + notifDomainBlockSQL
 	args := []any{v.ID}
 	if maxID != "" {
 		where += ` AND n.id < ?`

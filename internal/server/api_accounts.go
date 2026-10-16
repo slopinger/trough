@@ -244,7 +244,8 @@ func (app *App) apiAccountAction(w http.ResponseWriter, r *http.Request, c *apiC
 	case "unblock":
 		err = app.Unblock(c.Me, target)
 	case "mute":
-		err = app.Mute(c.Me, target)
+		p := readParams(r)
+		err = app.MuteFor(c.Me, target, p.Get("notifications") != "false", muteDuration(p.Get("duration")))
 	case "unmute":
 		err = app.Unmute(c.Me, target)
 	case "remove_from_followers":
@@ -340,7 +341,18 @@ func (app *App) apiAccountSearch(w http.ResponseWriter, r *http.Request, c *apiC
 func (app *App) apiBlocksOrMutes(table string) apiHandler {
 	return func(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 		accs, _ := app.accountsQuery(`SELECT `+accountCols+` FROM `+table+` x JOIN accounts a ON a.id=x.target_id WHERE x.account_id=? ORDER BY x.created_at DESC LIMIT 80`, c.Me.ID)
-		app.writeAccounts(w, accs)
+		if table != "mutes" {
+			app.writeAccounts(w, accs)
+			return
+		}
+		expiry := app.muteExpiry(c.Me)
+		out := []any{}
+		for _, a := range accs {
+			m := app.apiAccount(a)
+			m["mute_expires_at"] = apiTime(expiry[a.ID])
+			out = append(out, m)
+		}
+		apiJSON(w, 200, out)
 	}
 }
 

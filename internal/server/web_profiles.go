@@ -193,7 +193,8 @@ func (app *App) handleAccountAction(w http.ResponseWriter, r *http.Request, p *P
 	case "unblock":
 		err = app.Unblock(p.Me, target)
 	case "mute":
-		err = app.Mute(p.Me, target)
+		// the profile's mute menu sends a duration; "posts only" keeps notifications
+		err = app.MuteFor(p.Me, target, r.FormValue("notifications") != "keep", muteDuration(r.FormValue("duration")))
 	case "unmute":
 		err = app.Unmute(p.Me, target)
 	case "note":

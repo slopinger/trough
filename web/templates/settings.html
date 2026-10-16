@@ -70,7 +70,7 @@
 </section>
 <section class="card">
   <h3>Muted accounts</h3>
-  {{$p := .}}{{range .Accounts}}{{template "accountrow" (dict "A" . "P" $p "Actions" (actions "unmute" "Unmute" ""))}}{{else}}<p class="muted small">You haven't muted anyone.</p>{{end}}
+  {{$p := .}}{{range .Accounts}}{{template "accountrow" (dict "A" . "P" $p "Note" (index $p.MuteNotes .ID) "Actions" (actions "unmute" "Unmute" ""))}}{{else}}<p class="muted small">You haven't muted anyone.</p>{{end}}
   <h3>Blocked accounts</h3>
   {{range .Blocked}}{{template "accountrow" (dict "A" . "P" $p "Actions" (actions "unblock" "Unblock" ""))}}{{else}}<p class="muted small">You haven't blocked anyone.</p>{{end}}
   <h3 id="domain-blocks">Blocked servers</h3>

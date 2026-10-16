@@ -548,6 +548,9 @@ ALTER TABLE reports ADD COLUMN resolved_by TEXT NOT NULL DEFAULT '';
 ALTER TABLE reports ADD COLUMN note TEXT NOT NULL DEFAULT '';
 `, `
 ALTER TABLE accounts ADD COLUMN remote_suspended INTEGER NOT NULL DEFAULT 0;
+`, `
+ALTER TABLE mutes ADD COLUMN expires_at INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE mutes ADD COLUMN notifications INTEGER NOT NULL DEFAULT 1;
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {
