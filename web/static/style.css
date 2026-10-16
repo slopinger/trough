@@ -653,3 +653,7 @@ article.status.kbd-focus { outline: 2px solid var(--accent); outline-offset: 2px
 .link-head { margin: 0 0 12px; background: var(--panel); }
 .link-head img { width: 160px; }
 @media (max-width: 560px) { .link-head img { width: 96px; } }
+.fields > div.verified { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.fields > div.verified dt { background: color-mix(in srgb, var(--accent) 16%, var(--panel-2)); color: var(--accent); }
+.fields .verified .ico { width: 15px; height: 15px; color: var(--accent); vertical-align: -2px; }
+.fieldrow.verified input:last-child { border-color: var(--accent); }

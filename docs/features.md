@@ -140,6 +140,9 @@
   on local profiles, Reply on posts) and are sent to their server's subscribe page (WebFinger's OStatus subscribe
   template, else Mastodon's `/authorize_interaction`)
 - Profiles with header, avatar, bio, profile fields, locked accounts and bot flag; follow, unfollow and block
+- Verified profile links like Mastodon's: a field that is a link gets a check mark (and `verified_at` in the API)
+  once the page links back with `rel="me"`. Checked in the background when a local user saves the profile and
+  when a remote actor's field changes; a remote actor's own `url` only counts on its own host
 - Notification filters (Mastodon 4.3 policy: people you don't follow, who don't follow you, new accounts, private
   mentions from strangers; each show, filter or ignore; stranger DMs are filtered by default): filtered
   notifications wait as per-account requests to accept (which lets that account through) or dismiss, on the web

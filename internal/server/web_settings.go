@@ -136,7 +136,8 @@ func (app *App) replaceRemove(old string) {
 // fieldHTML renders a profile field value: a bare URL becomes a link.
 func fieldHTML(v string) string {
 	if (strings.HasPrefix(v, "https://") || strings.HasPrefix(v, "http://")) && !strings.ContainsAny(v, " \t\n") {
-		return linkHTML(v)
+		// rel="me" lets the linked site verify this profile in turn
+		return strings.Replace(linkHTML(v), ` rel="nofollow `, ` rel="me nofollow `, 1)
 	}
 	return htmlEscape(v)
 }

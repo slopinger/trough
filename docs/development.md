@@ -40,6 +40,7 @@ Files are grouped by prefix:
 | `csvio.go` | CSV export and import (Mastodon formats) |
 | `featuredtags.go` | featured hashtags |
 | `directory.go` | profile directory |
+| `verify.go` | profile link verification (`rel="me"`) |
 | `twofactor.go` | two-factor authentication (TOTP, recovery codes) |
 | `accountdelete.go` | deleting your own account |
 | `archive.go` | archive download (zip) |

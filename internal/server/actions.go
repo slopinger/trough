@@ -473,8 +473,16 @@ func (app *App) UpdateProfile(me *Account) error {
 		}
 		me.Emojis = app.emojisIn(append([]string{me.DisplayName, me.NoteSource}, fieldText...)...)
 	}
+	var old []Field
+	if prev, err := app.AccountByID(me.ID); err == nil {
+		old = prev.Fields
+		keepVerified(old, me.Fields)
+	}
 	if err := app.saveAccount(me); err != nil {
 		return err
+	}
+	if me.IsLocal() {
+		app.verifyLinksLater(me, old, false) // like Mastodon, saving the profile rechecks unverified links
 	}
 	app.enqueue(me, app.followerInboxes(me.ID), app.updateActorActivity(me))
 	return nil

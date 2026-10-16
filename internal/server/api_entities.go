@@ -8,6 +8,13 @@ import (
 	"time"
 )
 
+func (f Field) verifiedAt() any {
+	if f.VerifiedAt == 0 {
+		return nil
+	}
+	return apiTime(time.Unix(f.VerifiedAt, 0))
+}
+
 func apiTime(t time.Time) any {
 	if t.IsZero() {
 		return nil
@@ -58,7 +65,7 @@ func (app *App) apiAccountDepth(a *Account, depth int) obj {
 	}
 	fields := []any{}
 	for _, f := range a.Fields {
-		fields = append(fields, obj{"name": f.Name, "value": f.Value, "verified_at": nil})
+		fields = append(fields, obj{"name": f.Name, "value": f.Value, "verified_at": f.verifiedAt()})
 	}
 	statuses := app.countInt(`SELECT COUNT(*) FROM statuses WHERE account_id=?`, a.ID)
 	var lastStatus any
@@ -109,7 +116,7 @@ func (app *App) apiCredentialAccount(a *Account) obj {
 	m := app.apiAccount(a)
 	fields := []any{}
 	for _, f := range a.Fields {
-		fields = append(fields, obj{"name": f.Name, "value": plainText(f.Value), "verified_at": nil})
+		fields = append(fields, obj{"name": f.Name, "value": plainText(f.Value), "verified_at": f.verifiedAt()})
 	}
 	priv := "public"
 	m["source"] = obj{"privacy": priv, "sensitive": false, "language": "", "note": a.NoteSource, "fields": fields,

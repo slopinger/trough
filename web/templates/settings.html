@@ -19,8 +19,9 @@
     <fieldset>
       <legend>Profile fields</legend>
       {{range $i, $f := fieldslots $a}}
-      <div class="fieldrow"><input name="field_name{{$i}}" maxlength="100" placeholder="Label" value="{{$f.Name}}"><input name="field_value{{$i}}" maxlength="500" placeholder="Content (a URL becomes a link)" value="{{plain $f.Value}}"></div>
+      <div class="fieldrow{{if $f.VerifiedAt}} verified{{end}}"><input name="field_name{{$i}}" maxlength="100" placeholder="Label" value="{{$f.Name}}"><input name="field_value{{$i}}" maxlength="500" placeholder="Content (a URL becomes a link)" value="{{plain $f.Value}}"{{if $f.VerifiedAt}} title="Verified"{{end}}></div>
       {{end}}
+      <p class="muted small">A link gets a check mark once that page links back to your profile with <code>&lt;a rel="me" href="{{$a.URL}}"&gt;</code> (or a <code>&lt;link rel="me"&gt;</code>). It's checked when you save.</p>
     </fieldset>
     <label>Websites that may credit you as author <span class="muted small">(one domain per line; their pages can name you with <code>&lt;meta name="fediverse:creator" content="{{handle $a}}"&gt;</code>)</span>
       <textarea name="attribution_domains" rows="2" placeholder="blog.example">{{join $a.AttributionDomains "\n"}}</textarea></label>

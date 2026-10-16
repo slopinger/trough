@@ -321,12 +321,14 @@ func (app *App) upsertActor(m obj) (*Account, error) {
 	acc.PublicKey = keyPEM
 	acc.ActorType = ap.Type(m)
 	acc.Locked = ap.Bool(m, "manuallyApprovesFollowers")
+	oldFields := acc.Fields
 	acc.Fields = nil
 	for _, a := range ap.Objects(m["attachment"]) {
 		if ap.Type(a) == "PropertyValue" && len(acc.Fields) < 8 {
 			acc.Fields = append(acc.Fields, Field{Name: truncateRunes(ap.Str(a, "name"), 100), Value: sanitizeHTML(ap.Str(a, "value"))})
 		}
 	}
+	keepVerified(oldFields, acc.Fields)
 	acc.Emojis = emojisOf(m)
 	acc.FeaturedURI = ap.ID(m["featured"])
 	acc.AlsoKnownAs = ap.IDs(m["alsoKnownAs"])
@@ -343,6 +345,7 @@ func (app *App) upsertActor(m obj) (*Account, error) {
 		return nil, err
 	}
 	app.followRemoteSuspension(acc, ap.Bool(m, "suspended"))
+	app.verifyLinksLater(acc, oldFields, true)
 	return acc, nil
 }
 

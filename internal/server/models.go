@@ -16,6 +16,8 @@ var errNotFound = errors.New("not found")
 type Field struct {
 	Name  string `json:"name"`
 	Value string `json:"value"` // HTML
+	// VerifiedAt is when the linked page was found to link back with rel="me" (unix time, 0 = not verified).
+	VerifiedAt int64 `json:"verified_at,omitempty"`
 }
 
 type Emoji struct {
