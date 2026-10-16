@@ -71,7 +71,9 @@
   the arrow keys and Enter/Tab or the mouse
 - A reminder before posting images without a description (alt text)
 - Compose with content warnings, four visibilities (public, unlisted, followers-only, direct),
-  up to 4 images, videos or audio files with alt text, @mentions (resolved via WebFinger) and #hashtags
+  up to 4 images, videos or audio files with alt text (one "Attach media" button, drag and drop or paste; each
+  file shows as a tile with its preview, alt text and a remove button; four plain file fields without JavaScript),
+  @mentions (resolved via WebFinger) and #hashtags
 - **AI writing (optional):** "Write with AI" in the compose box drafts a post from a short instruction,
   improves the current draft, or drafts a reply with the thread as context. The draft streams into the
   text box and is never posted automatically. Uses DeepSeek's chat completions API (any
@@ -169,7 +171,7 @@
   the browser, so the server still needs no ffmpeg.
 - Focal points for images like Mastodon's: `focus` ("x,y", -1..1) on upload and `PUT /api/v1/media/:id`,
   `meta.focus` in the API, federated as the Document's `focalPoint` both ways. The web compose form sets it by
-  clicking a preview, and cropped images in timelines (2–4 per post) keep that point in view
+  clicking the image's tile, and cropped images in timelines (2–4 per post) keep that point in view
 - Editing a post through the API can change its media's alt text and focal point (`media_attributes[]` with
   `id`, `description`, `focus`, as JSON or form fields, like Mastodon 4.1); the Update federates the new values
 - Media: image uploads are re-encoded, which strips EXIF metadata such as GPS positions while keeping the

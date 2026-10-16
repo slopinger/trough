@@ -600,49 +600,129 @@
     });
   })();
 
-  // Video posters: take a frame from a chosen video and send it along as thumbN,
-  // so timelines show a picture instead of a black box (the server doesn't transcode).
-  document.querySelectorAll('form.compose input[type=file][name^="media"]').forEach(function (input) {
-    if (!window.DataTransfer || !window.URL || !URL.createObjectURL) return;
-    var n = input.name.slice(5), row = input.closest(".att-row") || input.parentNode;
-    function clear() {
-      var old = row.querySelector(".poster-preview"), thumb = input.form.querySelector('input[name="thumb' + n + '"]');
-      if (old) old.remove();
-      if (thumb) thumb.remove();
+  // Attachments: one "Attach media" button (or drop files on the form, or
+  // paste them) instead of four file fields. Each file becomes a tile with its
+  // preview, alt text and a remove button; clicking an image sets its focal
+  // point, and videos get a poster frame taken in the browser (sent as thumbN,
+  // the server doesn't transcode). The tiles are written into the plain
+  // media0-3/alt0-3 fields, which also work without JavaScript.
+  document.querySelectorAll("form.compose details.media-attach").forEach(function (details) {
+    var form = details.closest("form");
+    if (!window.DataTransfer || !window.FileReader || !form.querySelector('input[name="media0"]')) return;
+    var accept = form.querySelector('input[name="media0"]').accept, items = [];
+    details.classList.add("enhanced");
+    var tiles = document.createElement("div"), pick = document.createElement("input"), note = document.createElement("p");
+    tiles.className = "att-tiles"; note.className = "att-note muted small";
+    pick.type = "file"; pick.multiple = true; pick.accept = accept; pick.hidden = true;
+    details.querySelector("summary").after(tiles, note, pick);
+    var summary = details.querySelector("summary");
+    summary.addEventListener("click", function (ev) { ev.preventDefault(); if (items.length < 4) pick.click(); });
+    pick.addEventListener("change", function () { add(pick.files); pick.value = ""; });
+    form.addEventListener("dragover", function (ev) {
+      if (ev.dataTransfer && Array.prototype.indexOf.call(ev.dataTransfer.types, "Files") >= 0) { ev.preventDefault(); form.classList.add("dropping"); }
+    });
+    form.addEventListener("dragleave", function (ev) { if (!form.contains(ev.relatedTarget)) form.classList.remove("dropping"); });
+    form.addEventListener("drop", function (ev) {
+      if (!ev.dataTransfer || !ev.dataTransfer.files.length) return;
+      ev.preventDefault(); form.classList.remove("dropping"); add(ev.dataTransfer.files);
+    });
+    form.addEventListener("paste", function (ev) {
+      var files = ev.clipboardData && ev.clipboardData.files;
+      if (files && files.length) { ev.preventDefault(); add(files); }
+    });
+
+    function slot(name, make) {
+      var el = form.querySelector('input[name="' + name + '"]');
+      if (!el && make) { el = document.createElement("input"); el.name = name; el.hidden = true; el.type = make; form.appendChild(el); }
+      return el;
     }
-    input.addEventListener("change", function () {
-      clear();
-      var file = input.files && input.files[0];
-      if (!file || file.type.indexOf("video/") !== 0) return;
-      var url = URL.createObjectURL(file), v = document.createElement("video");
+    function sync() {
+      for (var i = 0; i < 4; i++) {
+        var it = items[i], dt = new DataTransfer();
+        if (it) dt.items.add(it.file);
+        slot("media" + i).files = dt.files;
+        slot("alt" + i).value = it ? it.alt : "";
+        var focus = slot("focus" + i, it && it.focus ? "hidden" : null);
+        if (focus) { if (it && it.focus) focus.value = it.focus; else focus.remove(); }
+        var thumb = slot("thumb" + i, it && it.poster ? "file" : null);
+        if (thumb) {
+          if (it && it.poster) { var pt = new DataTransfer(); pt.items.add(it.poster); thumb.files = pt.files; } else thumb.remove();
+        }
+      }
+      details.open = items.length > 0;
+      summary.lastChild.textContent = items.length ? (items.length < 4 ? " Add more media" : " 4 files attached") : " Attach media";
+      summary.classList.toggle("full", items.length >= 4);
+    }
+    function add(files) {
+      var full = 0, wrong = [];
+      Array.prototype.forEach.call(files, function (file) {
+        var kind = file.type.split("/")[0];
+        if (["image", "video", "audio"].indexOf(kind) < 0) { wrong.push(file.name); return; }
+        if (items.length >= 4) { full++; return; }
+        var it = { file: file, kind: kind, alt: "", focus: "", poster: null };
+        items.push(it);
+        tiles.appendChild(tile(it));
+      });
+      note.textContent = (wrong.length ? wrong.join(", ") + (wrong.length > 1 ? " aren't" : " isn't") + " an image, video or audio file. " : "") +
+        (full ? "Only 4 files fit in a post." : "");
+      sync();
+    }
+    function tile(it) {
+      var el = document.createElement("div"), box = document.createElement("div"), wrap = document.createElement("span"),
+        img = document.createElement("img"), dot = document.createElement("span"), rm = document.createElement("button"),
+        alt = document.createElement("textarea"), hint = document.createElement("small");
+      el.className = "att-tile"; box.className = "att-thumb"; wrap.className = "att-wrap"; dot.className = "focus-dot"; dot.hidden = true;
+      rm.type = "button"; rm.className = "att-remove"; rm.textContent = "×"; rm.title = "Remove"; rm.setAttribute("aria-label", "Remove " + it.file.name);
+      img.alt = ""; alt.rows = 2; alt.maxLength = 1500; alt.className = "att-alt";
+      alt.placeholder = it.kind === "audio" ? "Describe it for people who can't hear it" : "Alt text: describe it for people who can't see it";
+      alt.setAttribute("aria-label", "Description of " + it.file.name);
+      hint.className = "muted";
+      wrap.append(img, dot); box.append(wrap, rm); el.append(box, alt);
+      alt.addEventListener("input", function () { it.alt = alt.value; sync(); });
+      rm.addEventListener("click", function () { items.splice(items.indexOf(it), 1); el.remove(); sync(); });
+      if (it.kind === "image") {
+        hint.textContent = "Click the picture to choose what stays in view when it's cropped";
+        el.append(hint);
+        var reader = new FileReader(); // data: URL, the CSP doesn't allow blob: images
+        reader.onload = function () { img.src = reader.result; };
+        reader.readAsDataURL(it.file);
+        img.title = "Click to set the focal point";
+        img.classList.add("pickable");
+        img.addEventListener("click", function (ev) {
+          var r = img.getBoundingClientRect(), fx = (ev.clientX - r.left) / r.width, fy = (ev.clientY - r.top) / r.height;
+          it.focus = (fx * 2 - 1).toFixed(2) + "," + (1 - fy * 2).toFixed(2);
+          dot.style.left = (fx * 100).toFixed(1) + "%"; dot.style.top = (fy * 100).toFixed(1) + "%"; dot.hidden = false;
+          hint.textContent = "Focal point set. Click again to move it";
+          sync();
+        });
+      } else {
+        box.classList.add("att-" + it.kind);
+        wrap.setAttribute("data-label", it.kind === "video" ? "Video" : "Audio");
+        if (it.kind === "video") poster(it, img);
+      }
+      return el;
+    }
+    // a frame from a second in (skipping black first frames) as the video's poster
+    function poster(it, img) {
+      var url = URL.createObjectURL(it.file), v = document.createElement("video");
       v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = url;
       var done = function () { URL.revokeObjectURL(url); v.removeAttribute("src"); v.load(); };
-      v.addEventListener("loadeddata", function () {
-        v.currentTime = Math.min(1, (v.duration || 0) / 4); // skip a black first frame
-      }, { once: true });
+      v.addEventListener("loadeddata", function () { v.currentTime = Math.min(1, (v.duration || 0) / 4); }, { once: true });
       v.addEventListener("seeked", function () {
-        var scale = Math.min(1, 1280 / Math.max(v.videoWidth, 1));
-        var c = document.createElement("canvas");
+        var scale = Math.min(1, 1280 / Math.max(v.videoWidth, 1)), c = document.createElement("canvas");
         c.width = Math.round(v.videoWidth * scale); c.height = Math.round(v.videoHeight * scale);
         if (!c.width || !c.height) { done(); return; }
         c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
         done();
+        img.src = c.toDataURL("image/jpeg", 0.6);
         c.toBlob(function (blob) {
-          if (!blob || input.files[0] !== file) return;
-          var dt = new DataTransfer();
-          dt.items.add(new File([blob], "poster.jpg", { type: "image/jpeg" }));
-          var thumb = document.createElement("input");
-          thumb.type = "file"; thumb.name = "thumb" + n; thumb.hidden = true;
-          thumb.files = dt.files;
-          input.form.appendChild(thumb);
-          var img = document.createElement("img");
-          img.className = "poster-preview"; img.alt = ""; img.title = "Poster frame shown before the video plays";
-          img.src = c.toDataURL("image/jpeg", 0.6);
-          row.appendChild(img);
+          if (!blob || items.indexOf(it) < 0) return;
+          it.poster = new File([blob], "poster.jpg", { type: "image/jpeg" });
+          sync();
         }, "image/jpeg", 0.85);
       }, { once: true });
       v.addEventListener("error", done, { once: true });
-    });
+    }
   });
 
   // Focal points: crop images around the point their author picked
@@ -651,43 +731,6 @@
     var f = img.getAttribute("data-focus").split(","), x = parseFloat(f[0]), y = parseFloat(f[1]);
     if (isNaN(x) || isNaN(y)) return;
     img.style.objectPosition = ((x + 1) * 50).toFixed(1) + "% " + ((1 - y) * 50).toFixed(1) + "%";
-  });
-
-  // Picking a focal point: a chosen image shows a small preview; clicking it
-  // sends focusN along, so crops in timelines keep that part visible.
-  document.querySelectorAll('form.compose input[type=file][name^="media"]').forEach(function (input) {
-    if (!window.FileReader) return;
-    var n = input.name.slice(5), row = input.closest(".att-row") || input.parentNode;
-    input.addEventListener("change", function () {
-      var old = row.querySelector(".focus-pick"), field = input.form.querySelector('input[name="focus' + n + '"]');
-      if (old) old.remove();
-      if (field) field.remove();
-      var file = input.files && input.files[0];
-      if (!file || file.type.indexOf("image/") !== 0) return;
-      var box = document.createElement("div"), wrap = document.createElement("span"), img = document.createElement("img"), dot = document.createElement("span"), note = document.createElement("small");
-      box.className = "focus-pick"; wrap.className = "focus-wrap"; dot.className = "focus-dot"; dot.hidden = true;
-      img.alt = ""; img.title = "Click the part that should stay visible when the picture is cropped";
-      note.textContent = "Click the picture to set its focal point";
-      wrap.append(img, dot);
-      box.append(wrap, note);
-      row.appendChild(box);
-      var reader = new FileReader(); // data: URL, the CSP doesn't allow blob: images
-      reader.onload = function () { if (input.files[0] === file) img.src = reader.result; };
-      reader.readAsDataURL(file);
-      img.addEventListener("click", function (ev) {
-        var r = img.getBoundingClientRect(), fx = (ev.clientX - r.left) / r.width, fy = (ev.clientY - r.top) / r.height;
-        var hidden = input.form.querySelector('input[name="focus' + n + '"]');
-        if (!hidden) {
-          hidden = document.createElement("input");
-          hidden.type = "hidden"; hidden.name = "focus" + n;
-          input.form.appendChild(hidden);
-        }
-        hidden.value = (fx * 2 - 1).toFixed(2) + "," + (1 - fy * 2).toFixed(2);
-        dot.style.left = (fx * 100).toFixed(1) + "%"; dot.style.top = (fy * 100).toFixed(1) + "%";
-        dot.hidden = false;
-        note.textContent = "Focal point set, click again to move it";
-      });
-    });
   });
 
   // Remind people to describe images before posting.
