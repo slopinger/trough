@@ -1,6 +1,9 @@
 # trough fediverse server (trough.service, loopback only)
 fedi.freifick.net {
 	import security_headers
+	# embedded posts may be framed by other sites (trough sends frame-ancestors *)
+	@embed path_regexp ^/s/[^/]+/embed$
+	header @embed -X-Frame-Options
 	encode zstd gzip
 	request_body {
 		max_size 90MB
