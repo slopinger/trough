@@ -149,10 +149,11 @@ func (app *App) handlePost(w http.ResponseWriter, r *http.Request, p *Page) {
 		Sensitive:  r.FormValue("sensitive") != "",
 		InReplyTo:  r.FormValue("in_reply_to"),
 		QuoteOf:    r.FormValue("quote_of"),
+		Language:   r.FormValue("language"),
 	}
 	fail := func(msg string) {
 		p.Title, p.Error = "New post", msg
-		p.Compose = &Compose{Text: in.Text, Spoiler: in.Spoiler, Visibility: in.Visibility, Sensitive: in.Sensitive}
+		p.Compose = &Compose{Text: in.Text, Spoiler: in.Spoiler, Visibility: in.Visibility, Sensitive: in.Sensitive, Language: in.Language}
 		if in.QuoteOf != "" {
 			p.Compose.QuoteOf, _ = app.loadStatus(p.Me, in.QuoteOf)
 		}

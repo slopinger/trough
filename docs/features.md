@@ -161,6 +161,8 @@
 - Drafts: unsent text, content warning and visibility are saved in the browser as you type (per account, and
   separately for a new post, each reply and each quote) and offered again with a "Discard" link; a draft is
   forgotten once the post went through. Nothing is stored on the server.
+- Post language in the web compose form (44 languages by their own names): it starts with the language of
+  your last post, or the browser's; used by search (`language:`), translation and other servers
 - Grouped notifications in the web UI too: likes and boosts of the same post and the day's follows show as
   one entry ("ann, ben and 3 others favourited your post") with a row of avatars
 - Keyboard shortcuts: j/k move between posts, o opens, r replies, f favourites, b boosts, n writes, / searches,

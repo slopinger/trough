@@ -161,8 +161,10 @@ func (app *App) templateFuncs() template.FuncMap {
 			}
 			return m
 		},
-		"add":      func(a, b int) int { return a + b },
-		"clampint": func(v, hi int) int { return min(v, hi) },
+		"add":          func(a, b int) int { return a + b },
+		"languages":    func() any { return postLanguages },
+		"postLanguage": app.postLanguage,
+		"clampint":     func(v, hi int) int { return min(v, hi) },
 		"percent": func(v int, p *Poll) int {
 			total := 0
 			for _, o := range p.Options {

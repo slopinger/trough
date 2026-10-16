@@ -109,6 +109,7 @@ type Compose struct {
 	Spoiler       string
 	Visibility    string
 	Sensitive     bool
+	Language      string // keeps the choice when the form comes back with an error
 }
 
 type DomainBlock struct {

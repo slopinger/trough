@@ -591,6 +591,12 @@
     });
   })();
 
+  // Post language: without an earlier choice, start with the browser's language.
+  document.querySelectorAll("select.lang-select").forEach(function (sel) {
+    var l = (navigator.language || "").slice(0, 2).toLowerCase();
+    if (!sel.value && l && sel.querySelector('option[value="' + l + '"]')) sel.value = l;
+  });
+
   // Video posters: take a frame from a chosen video and send it along as thumbN,
   // so timelines show a picture instead of a black box (the server doesn't transcode).
   document.querySelectorAll('form.compose input[type=file][name^="media"]').forEach(function (input) {

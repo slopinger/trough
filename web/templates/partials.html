@@ -177,6 +177,10 @@
       <option value="unlisted"{{if eq $c.Visibility "unlisted"}} selected{{end}}>🔓 Unlisted</option>
       <option value="private"{{if eq $c.Visibility "private"}} selected{{end}}>🔒 Followers only</option>
       <option value="direct"{{if eq $c.Visibility "direct"}} selected{{end}}>✉️ Mentioned people only</option>
+    </select>
+    {{$lang := or $c.Language (postLanguage $p.Me)}}<select name="language" class="lang-select" aria-label="Language of the post" title="Language of the post">
+      <option value=""{{if not $lang}} selected{{end}}>Language…</option>
+      {{range languages}}<option value="{{.Code}}"{{if eq .Code $lang}} selected{{end}}>{{.Name}}</option>{{end}}
     </select>{{end}}
     <span class="draft-status muted small" hidden></span>
     <span class="counter" aria-live="polite"></span>

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"io"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -34,5 +35,39 @@ func TestComposeDraftKeys(t *testing.T) {
 	}
 	if page := get("/compose?edit=" + st.ID); !strings.Contains(page, "Editing your post") || strings.Contains(page, "data-draft=") {
 		t.Error("editing a post shouldn't keep a draft")
+	}
+}
+
+func TestComposeLanguage(t *testing.T) {
+	la := startLiveApp(t)
+	la.CreateLocalUser("bob", "password123", false)
+	web := webClient(t, la, "bob", "password123")
+	page := func() string {
+		t.Helper()
+		resp, err := web.Get(la.base + "/compose")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		b, _ := io.ReadAll(resp.Body)
+		return string(b)
+	}
+	first := page()
+	if !strings.Contains(first, `<option value="" selected>Language…</option>`) || !strings.Contains(first, `<option value="de">Deutsch</option>`) {
+		t.Fatal("compose form has no unset language selector")
+	}
+	csrf := strings.SplitN(strings.SplitN(first, `name="csrf" value="`, 2)[1], `"`, 2)[0]
+	resp, err := web.PostForm(la.base+"/statuses", url.Values{"csrf": {csrf}, "text": {"hallo zusammen"}, "visibility": {"public"}, "language": {"de"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	var lang string
+	la.db.QueryRow(`SELECT language FROM statuses WHERE content LIKE '%hallo zusammen%'`).Scan(&lang)
+	if lang != "de" {
+		t.Fatalf("post language = %q", lang)
+	}
+	if !strings.Contains(page(), `<option value="de" selected>Deutsch</option>`) {
+		t.Error("the next post doesn't start with the last language")
 	}
 }

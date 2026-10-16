@@ -227,6 +227,8 @@ legend { color: var(--muted); padding: 0 4px; }
 .compose .cw-input { width: 100%; }
 .compose-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .compose-row select { max-width: 60%; }
+.compose-row select[name=visibility] { max-width: 45%; }
+.compose-row .lang-select { max-width: 9.5em; }
 .compose-row .btn { margin-left: auto; }
 .counter { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .draft-status button { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; }
