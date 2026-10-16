@@ -511,6 +511,12 @@
     ev.stopImmediatePropagation();
   }, true);
 
+  // Post language: without an earlier choice, start with the browser's language.
+  document.querySelectorAll("select.lang-select").forEach(function (sel) {
+    var l = (navigator.language || "").slice(0, 2).toLowerCase();
+    if (!sel.value && l && sel.querySelector('option[value="' + l + '"]')) sel.value = l;
+  });
+
   // Drafts: unsent text is kept in this browser (per account and per new post,
   // reply or quote) and offered again when the form comes back. A draft is only
   // forgotten once a post went through, i.e. the next page shows no error.
@@ -540,8 +546,9 @@
     document.querySelectorAll("form.compose[data-draft]").forEach(function (form) {
       var key = prefix + form.dataset.draft;
       var ta = form.querySelector("textarea"), cw = form.querySelector(".cw-input"), vis = form.querySelector("select[name=visibility]");
+      var lang = form.querySelector("select[name=language]");
       var status = form.querySelector(".draft-status");
-      var initial = { text: ta.value, spoiler: cw ? cw.value : "", visibility: vis ? vis.value : "" };
+      var initial = { text: ta.value, spoiler: cw ? cw.value : "", visibility: vis ? vis.value : "", language: lang ? lang.value : "" };
       var timer = null;
       function show(html) { status.innerHTML = html; status.hidden = !html; }
       function save() {
@@ -549,12 +556,12 @@
         var text = ta.value, spoiler = cw ? cw.value : "";
         try {
           if (text.trim() === initial.text.trim() && spoiler === initial.spoiler) { store.removeItem(key); show(""); return; }
-          store.setItem(key, JSON.stringify({ text: text, spoiler: spoiler, visibility: vis ? vis.value : "", at: Date.now() }));
+          store.setItem(key, JSON.stringify({ text: text, spoiler: spoiler, visibility: vis ? vis.value : "", language: lang ? lang.value : "", at: Date.now() }));
           show("Draft saved");
         } catch (e) {}
       }
       function later() { if (timer) clearTimeout(timer); timer = setTimeout(save, 600); }
-      [ta, cw, vis].forEach(function (el) { el && el.addEventListener(el === vis ? "change" : "input", later); });
+      [ta, cw, vis, lang].forEach(function (el) { el && el.addEventListener(el.tagName === "SELECT" ? "change" : "input", later); });
       window.addEventListener("pagehide", function () { if (timer) { clearTimeout(timer); save(); } });
       form.addEventListener("submit", function (ev) {
         if (ev.defaultPrevented || (ev.submitter && ev.submitter.getAttribute("formaction"))) return; // AI drafting, not posting
@@ -570,6 +577,7 @@
       ta.value = d.text;
       if (cw) cw.value = d.spoiler || "";
       if (vis && d.visibility) vis.value = d.visibility;
+      if (lang && d.language && Array.prototype.some.call(lang.options, function (o) { return o.value === d.language; })) lang.value = d.language;
       ta.setSelectionRange(0, 0); // so autocomplete doesn't pop up for the restored text
       ta.dispatchEvent(new Event("input"));
       if (timer) { clearTimeout(timer); timer = null; }
@@ -581,6 +589,7 @@
         ta.value = initial.text;
         if (cw) cw.value = initial.spoiler;
         if (vis) vis.value = initial.visibility;
+        if (lang) lang.value = initial.language;
         ta.dispatchEvent(new Event("input"));
         if (timer) { clearTimeout(timer); timer = null; }
         try { store.removeItem(key); } catch (e) {}
@@ -590,12 +599,6 @@
       status.appendChild(discard);
     });
   })();
-
-  // Post language: without an earlier choice, start with the browser's language.
-  document.querySelectorAll("select.lang-select").forEach(function (sel) {
-    var l = (navigator.language || "").slice(0, 2).toLowerCase();
-    if (!sel.value && l && sel.querySelector('option[value="' + l + '"]')) sel.value = l;
-  });
 
   // Video posters: take a frame from a chosen video and send it along as thumbN,
   // so timelines show a picture instead of a black box (the server doesn't transcode).
