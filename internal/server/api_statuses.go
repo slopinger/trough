@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -154,12 +155,90 @@ func (app *App) apiEditStatus(w http.ResponseWriter, r *http.Request, c *apiCtx)
 		app.db.Exec(`UPDATE statuses SET quote_policy=? WHERE id=?`, qp, st.ID)
 		st.QuotePolicy = qp
 	}
+	if st.AccountID == c.Me.ID {
+		app.applyMediaAttributes(st, p.mediaAttributes()) // before the edit, so its Update carries them
+	}
 	edited, err := app.EditStatus(r.Context(), c.Me, st, p.Get("status"), p.Get("spoiler_text"), p.Bool("sensitive"))
 	if err != nil {
 		apiError(w, 422, err.Error())
 		return
 	}
 	apiJSON(w, 200, app.apiStatus(c.Me, edited))
+}
+
+// mediaAttributes reads media_attributes[] of a status edit (Mastodon 4.1):
+// a JSON array, indexed form fields (media_attributes[0][id]) or Rails-style
+// media_attributes[][id] lists, matched by position.
+func (p *apiParams) mediaAttributes() []map[string]string {
+	keys := []string{"id", "description", "focus"}
+	var out []map[string]string
+	if raw, ok := p.jsonPath("media_attributes"); ok {
+		list, _ := raw.([]any)
+		for _, e := range list {
+			m, _ := e.(map[string]any)
+			entry := map[string]string{}
+			for _, k := range keys {
+				if v, ok := m[k].(string); ok {
+					entry[k] = v
+				}
+			}
+			out = append(out, entry)
+		}
+		return out
+	}
+	for i := 0; i < 4; i++ {
+		k := "media_attributes." + strconv.Itoa(i)
+		if !p.Has(k + ".id") {
+			break
+		}
+		entry := map[string]string{}
+		for _, f := range keys {
+			if p.Has(k + "." + f) {
+				entry[f] = p.Get(k + "." + f)
+			}
+		}
+		out = append(out, entry)
+	}
+	if len(out) > 0 {
+		return out
+	}
+	form := p.r.Form
+	if p.r.MultipartForm != nil {
+		form = p.r.MultipartForm.Value
+	}
+	for i, id := range form["media_attributes[][id]"] {
+		entry := map[string]string{"id": id}
+		for _, f := range keys[1:] {
+			if vals := form["media_attributes[]["+f+"]"]; i < len(vals) {
+				entry[f] = vals[i]
+			}
+		}
+		out = append(out, entry)
+	}
+	return out
+}
+
+// applyMediaAttributes updates the alt text and focal point of st's own
+// attachments.
+func (app *App) applyMediaAttributes(st *Status, attrs []map[string]string) {
+	for _, a := range attrs {
+		var at *Attachment
+		for _, x := range st.Attachments {
+			if x.ID == a["id"] {
+				at = x
+			}
+		}
+		if at == nil {
+			continue
+		}
+		if d, ok := a["description"]; ok {
+			at.Description = truncateRunes(strings.TrimSpace(d), 1500)
+			app.db.Exec(`UPDATE attachments SET description=? WHERE id=? AND status_id=?`, at.Description, at.ID, st.ID)
+		}
+		if f, ok := a["focus"]; ok {
+			app.setFocus(at, f)
+		}
+	}
 }
 
 func (app *App) apiDeleteStatus(w http.ResponseWriter, r *http.Request, c *apiCtx) {

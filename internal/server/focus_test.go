@@ -95,3 +95,55 @@ func TestFocalPoints(t *testing.T) {
 		t.Errorf("incoming focus = %v", f)
 	}
 }
+
+func TestEditMediaAttributes(t *testing.T) {
+	la, _, _, _ := featureFixture(t)
+	token := oauthLogin(t, la, "bob", "password123", "read write")
+	c := &apiClient{t: t, base: la.base, token: token}
+	upload := func() string {
+		var body bytes.Buffer
+		mw := multipart.NewWriter(&body)
+		fw, _ := mw.CreateFormFile("file", "pic.png")
+		fw.Write(pngBytes())
+		mw.WriteField("description", "old words")
+		mw.Close()
+		req, _ := http.NewRequest("POST", la.base+"/api/v2/media", &body)
+		req.Header.Set("Content-Type", mw.FormDataContentType())
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		var m map[string]any
+		json.NewDecoder(resp.Body).Decode(&m)
+		return m["id"].(string)
+	}
+	a, b, stray := upload(), upload(), upload()
+	st := c.ok("POST", "/api/v1/statuses", url.Values{"status": {"two pics"}, "media_ids[]": {a, b}, "visibility": {"public"}}).(map[string]any)
+	path := "/api/v1/statuses/" + st["id"].(string)
+	media := func(v any) []any { return v.(map[string]any)["media_attachments"].([]any) }
+
+	// JSON, as Mastodon's web UI sends it; an id that isn't part of the post is ignored
+	got := media(c.ok("PUT", path, map[string]any{"status": "two pics, edited", "media_attributes": []any{
+		map[string]any{"id": a, "description": "a pig in a field", "focus": "0.0,-0.8"},
+		map[string]any{"id": stray, "description": "not mine to change"},
+	}}))
+	first := got[0].(map[string]any)
+	if first["description"] != "a pig in a field" || first["meta"].(map[string]any)["focus"].(map[string]any)["y"] != -0.8 {
+		t.Errorf("JSON edit: %v", first)
+	}
+	if got[1].(map[string]any)["description"] != "old words" {
+		t.Errorf("untouched attachment changed: %v", got[1])
+	}
+	var strayDesc string
+	la.db.QueryRow(`SELECT description FROM attachments WHERE id=?`, stray).Scan(&strayDesc)
+	if strayDesc != "old words" {
+		t.Error("an attachment outside the post was changed")
+	}
+	// Rails-style form lists
+	got = media(c.ok("PUT", path, url.Values{"status": {"again"}, "media_attributes[][id]": {a, b}, "media_attributes[][description]": {"pig", "checkerboard"}}))
+	if got[0].(map[string]any)["description"] != "pig" || got[1].(map[string]any)["description"] != "checkerboard" {
+		t.Errorf("form edit: %v", got)
+	}
+}

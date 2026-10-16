@@ -170,6 +170,8 @@
 - Focal points for images like Mastodon's: `focus` ("x,y", -1..1) on upload and `PUT /api/v1/media/:id`,
   `meta.focus` in the API, federated as the Document's `focalPoint` both ways. The web compose form sets it by
   clicking a preview, and cropped images in timelines (2–4 per post) keep that point in view
+- Editing a post through the API can change its media's alt text and focal point (`media_attributes[]` with
+  `id`, `description`, `focus`, as JSON or form fields, like Mastodon 4.1); the Update federates the new values
 - Media: image uploads are re-encoded, which strips EXIF metadata such as GPS positions while keeping the
   orientation. Remote media goes through an HMAC-signed caching proxy, so remote servers never see visitors'
   IP addresses and the page can use a strict CSP (`img-src 'self'`). Cache entries with missing data
