@@ -76,6 +76,7 @@ type Page struct {
 	Announcements   []*Announcement // unread banner; all of them on /admin
 	TrendTags       []TrendTag
 	TrendLinks      []TrendLink
+	LinkCard        *LinkCard // the link a /links page is about
 	Suggestions     []Suggestion
 	Familiar        []*Account // people the viewer follows who follow this profile
 	TagFollowed     bool

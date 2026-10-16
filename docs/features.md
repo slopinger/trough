@@ -100,7 +100,8 @@
   (`/api/v1/accounts/familiar_followers`)
 - Explore page and Mastodon trends API (`/api/v1/trends/{tags,statuses,links}`): posts with the most
   likes, boosts and replies from the last three days, and hashtags and links used by at least two people
-  this week, with per-day history (also in every hashtag entity)
+  this week, with per-day history (also in every hashtag entity). A trending link opens `/links?url=`, the
+  public posts sharing it (Mastodon 4.3's link timeline, also `/api/v1/timelines/link`)
 - Custom emoji uploaded by admins, usable as `:shortcode:` in posts, names and bios, federated as `Emoji` tags
 - Featured hashtags on profiles (up to 10, with post counts, linking to `/@name/tagged/tag`; "Feature on
   profile" on hashtag pages, `/api/v1/featured_tags`, `/api/v1/tags/:name/feature`), federated as the

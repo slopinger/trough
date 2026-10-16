@@ -17,7 +17,7 @@ func TestTrends(t *testing.T) {
 		users = append(users, u)
 	}
 	hot, _ := la.PostStatus(ctx, users[0], PostInput{Text: "big news #Trough", Visibility: "public"})
-	la.PostStatus(ctx, users[1], PostInput{Text: "me too #trough", Visibility: "public"})
+	meToo, _ := la.PostStatus(ctx, users[1], PostInput{Text: "me too #trough", Visibility: "public"})
 	la.PostStatus(ctx, users[2], PostInput{Text: "only me #lonely", Visibility: "public"})
 	la.PostStatus(ctx, users[2], PostInput{Text: "secret #trough", Visibility: "private"})
 	la.PostStatus(ctx, users[2], PostInput{Text: "boring post", Visibility: "public"})
@@ -50,5 +50,19 @@ func TestTrends(t *testing.T) {
 		if resp.StatusCode != 200 || (tab == "?tab=tags" && !strings.Contains(string(body), "#trough")) || (tab == "" && !strings.Contains(string(body), "big news")) {
 			t.Fatalf("explore%s: %d", tab, resp.StatusCode)
 		}
+	}
+	// A link shared by two people trends; Explore leads to its posts.
+	la.db.Exec(`UPDATE statuses SET card_url='https://news.example/pigs' WHERE id IN (?,?)`, hot.ID, meToo.ID)
+	if links := c.ok("GET", "/api/v1/trends/links", nil).([]any); len(links) != 1 {
+		t.Fatalf("trending links = %v", links)
+	}
+	resp, err := http.Get(la.base + "/explore?tab=links")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if !strings.Contains(string(body), `href="/links?url=https%3a%2f%2fnews.example%2fpigs"`) {
+		t.Errorf("trending link doesn't lead to its posts:\n%s", body)
 	}
 }

@@ -3,6 +3,10 @@
 <div class="pagehead"><h2 class="pagetitle">{{.Heading}}</h2>
 {{if and .Tag .Me}}<form method="post" action="/tags/{{.Tag}}/{{if .TagFollowed}}unfollow{{else}}follow{{end}}"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn small{{if not .TagFollowed}} primary{{end}}" title="{{if .TagFollowed}}Stop showing these posts in Home{{else}}Show public posts with this hashtag in your Home timeline{{end}}">{{if .TagFollowed}}Unfollow #{{.Tag}}{{else}}Follow #{{.Tag}}{{end}}</button></form>
 <form method="post" action="/tags/{{.Tag}}/{{if .TagFeatured}}unfeature{{else}}feature{{end}}"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn small" title="{{if .TagFeatured}}Remove it from your profile{{else}}Show it on your profile with a link to your posts using it{{end}}">{{if .TagFeatured}}Unfeature{{else}}Feature on profile{{end}}</button></form>{{end}}</div>
+{{with .LinkCard}}<a class="card-link link-head" href="{{.URL}}" target="_blank" rel="noopener noreferrer nofollow">
+  {{if .Image}}<img src="{{media .Image}}" alt="" loading="lazy">{{end}}
+  <span class="card-text"><span class="card-site">{{if .Site}}{{.Site}}{{else}}{{hostOf .URL}}{{end}}</span><b>{{if .Title}}{{.Title}}{{else}}{{.URL}}{{end}}</b>{{if .Description}}<span class="card-desc">{{.Description}}</span>{{end}}</span>
+</a>{{end}}
 {{if .Timeline}}<a class="new-posts" href="{{.Path}}" hidden data-timeline="{{.Timeline}}" data-since="{{sinceID .Statuses}}">Show new posts</a>{{end}}
 {{if .Compose}}{{template "compose" (dict "C" .Compose "P" .)}}{{end}}
 {{template "statuslist" .}}

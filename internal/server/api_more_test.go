@@ -122,6 +122,38 @@ func TestAPILinkTimeline(t *testing.T) {
 	}
 }
 
+// TestWebLinkTimeline covers /links?url=, the web page Explore's trending links lead to.
+func TestWebLinkTimeline(t *testing.T) {
+	la, _, _, alice := featureFixture(t)
+	link := "https://news.example/story?id=1&x=2"
+	la.db.Exec(`INSERT INTO link_cards(url, title, description, image, site, fetched_at) VALUES(?,?,?,?,?,?)`,
+		link, "Pigs learn to code", "a story", "", "News Example", 1)
+	for i, vis := range []string{"public", "private"} {
+		la.insertStatus(&Status{ID: ulid.New(), URI: alice.URI + "/s/l" + string(rune('a'+i)), AccountID: alice.ID, Visibility: vis,
+			Content: "<p>" + vis + " take on the story</p>", CardURL: link, CreatedAt: ap.ParseTime("2026-01-01T00:00:00Z")})
+	}
+	get := func(path string) (int, string) {
+		t.Helper()
+		resp, err := http.Get(la.base + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		b, _ := io.ReadAll(resp.Body)
+		return resp.StatusCode, string(b)
+	}
+	code, page := get("/links?url=" + url.QueryEscape(link))
+	if code != 200 || !strings.Contains(page, "Pigs learn to code") || !strings.Contains(page, "public take on the story") {
+		t.Fatalf("link page %d lacks the card or the post", code)
+	}
+	if strings.Contains(page, "private take") {
+		t.Error("link page shows a followers-only post")
+	}
+	if code, page := get("/links?url=javascript:alert(1)"); code != 200 || !strings.Contains(page, "Explore") {
+		t.Errorf("bad url not sent to Explore: %d", code)
+	}
+}
+
 func TestAPINotificationRequests(t *testing.T) {
 	la, _, _, _ := featureFixture(t)
 	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read write")}

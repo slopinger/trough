@@ -650,3 +650,6 @@ article.status.kbd-focus { outline: 2px solid var(--accent); outline-offset: 2px
 .followed-tag .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 @media (max-width: 560px) { .followed-tag { flex-wrap: wrap; } .followed-tag .spark { display: none; } }
 .section-title { font-size: 14px; font-weight: 600; margin: 18px 2px 8px; color: var(--muted); text-transform: none; }
+.link-head { margin: 0 0 12px; background: var(--panel); }
+.link-head img { width: 160px; }
+@media (max-width: 560px) { .link-head img { width: 96px; } }

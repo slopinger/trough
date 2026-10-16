@@ -20,7 +20,7 @@
 <a class="more" href="/directory">Browse the profile directory</a>
 {{else if eq .Tab "links"}}
 {{range .TrendLinks}}
-<a class="trend" href="{{.Card.URL}}" target="_blank" rel="noopener noreferrer nofollow">
+<a class="trend" href="/links?url={{.Card.URL}}" title="Posts sharing {{.Card.URL}}">
   {{if .Card.Image}}<img class="trend-img" src="{{media .Card.Image}}" alt="" loading="lazy">{{end}}
   <span class="trend-main">{{if .Card.Site}}<small>{{.Card.Site}}</small>{{end}}<b>{{if .Card.Title}}{{.Card.Title}}{{else}}{{.Card.URL}}{{end}}</b><small>shared by {{.Accounts}} people this week</small></span>
   <svg class="spark" viewBox="0 0 60 24" aria-hidden="true"><polyline points="{{sparkline .History}}"/></svg>

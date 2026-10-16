@@ -298,6 +298,13 @@ func (app *App) tagTimeline(v *Account, tag, maxID string) ([]*Status, error) {
 		append([]any{strings.ToLower(tag)}, margs...), maxID, pageSize, false)
 }
 
+// linkTimeline lists public posts whose link preview is the given URL.
+func (app *App) linkTimeline(v *Account, link, maxID string) ([]*Status, error) {
+	mute, margs := muteSQL(v)
+	return app.queryStatuses(v, `s.visibility='public' AND s.boost_of_id='' AND s.card_url=? AND `+mute,
+		append([]any{link}, margs...), maxID, pageSize, false)
+}
+
 func (app *App) accountTimeline(v *Account, acc *Account, withReplies, mediaOnly bool, maxID string) ([]*Status, error) {
 	where := `s.account_id=?`
 	if !withReplies {

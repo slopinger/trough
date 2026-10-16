@@ -1,6 +1,7 @@
 package server
 
 import (
+	"cmp"
 	"net/http"
 	"strings"
 )
@@ -103,6 +104,32 @@ func (app *App) handleTag(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Empty = "No public posts with this hashtag are known here."
 	if p.Me != nil {
 		p.Compose = &Compose{Visibility: "public", Text: "\n\n#" + tag}
+	}
+	app.render(w, "timeline", p)
+}
+
+// handleLink lists the public posts sharing a link (/links?url=), like Mastodon's
+// link timeline. Explore's trending links lead here.
+func (app *App) handleLink(w http.ResponseWriter, r *http.Request, p *Page) {
+	link := strings.TrimSpace(r.URL.Query().Get("url"))
+	if !strings.HasPrefix(link, "https://") && !strings.HasPrefix(link, "http://") {
+		http.Redirect(w, r, "/explore?tab=links", http.StatusFound)
+		return
+	}
+	sts, err := app.linkTimeline(p.Me, link, r.URL.Query().Get("max_id"))
+	if err != nil {
+		http.Error(w, "db error", 500)
+		return
+	}
+	c := &LinkCard{URL: link}
+	app.db.QueryRow(`SELECT title, description, image, site FROM link_cards WHERE url=?`, link).Scan(&c.Title, &c.Description, &c.Image, &c.Site)
+	p.LinkCard, p.Section, p.Heading = c, "explore", "Posts about this link"
+	p.Title = "Posts about " + cmp.Or(c.Title, link)
+	p.Statuses = app.applyFilters(p.Me, sts, "public")
+	p.NextURL = nextURL(r, sts)
+	p.Empty = "No public posts with this link are known here."
+	if p.Me != nil {
+		p.Compose = &Compose{Visibility: "public", Text: "\n\n" + link}
 	}
 	app.render(w, "timeline", p)
 }

@@ -64,6 +64,7 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("GET /federated", auth(app.handleFederated))
 	mux.HandleFunc("GET /tags/{tag}", pub(app.handleTag))
 	mux.HandleFunc("GET /explore", pub(app.handleExplore))
+	mux.HandleFunc("GET /links", pub(app.handleLink))
 	mux.HandleFunc("GET /directory", pub(app.handleDirectory))
 	mux.HandleFunc("POST /tags/{tag}/feature", auth(app.handleTagFeature))
 	mux.HandleFunc("POST /tags/{tag}/unfeature", auth(app.handleTagFeature))
