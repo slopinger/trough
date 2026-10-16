@@ -50,6 +50,7 @@ type Page struct {
 	Users           []*User
 	DomainBlocks    []DomainBlock
 	Stats           map[string]int
+	TopServers      []ServerCount // admin: where this week's remote posts came from
 	Counts          struct{ Posts, Following, Followers int }
 	Description     string
 	Admins          []*Account

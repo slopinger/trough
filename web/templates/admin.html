@@ -10,6 +10,15 @@
     <li><b>{{index .Stats "instances"}}</b> servers</li>
     <li><b>{{index .Stats "queued"}}</b> queued deliveries ({{index .Stats "retrying"}} retrying)</li>
   </ul>
+  <h4>Last 7 days</h4>
+  <ul class="facts">
+    <li><b>{{index .Stats "new_users"}}</b> new users</li>
+    <li><b>{{index .Stats "active_users"}}</b> active users</li>
+    <li><b>{{index .Stats "week_posts"}}</b> local posts</li>
+    <li><b>{{index .Stats "interactions"}}</b> likes, boosts and replies on local posts</li>
+    <li><b>{{index .Stats "new_accounts"}}</b> remote accounts discovered</li>
+  </ul>
+  {{if .TopServers}}<p class="muted small">Most posts from: {{range $i, $s := .TopServers}}{{if $i}}, {{end}}<b>{{$s.Domain}}</b> ({{$s.Posts}}){{end}}</p>{{end}}
   {{if .Deliveries}}<details><summary>Failing deliveries</summary>
   <table class="tbl"><tr><th>Inbox</th><th>Attempts</th><th>Next try</th><th>Error</th></tr>
   {{range .Deliveries}}<tr><td>{{.Inbox}}</td><td>{{.Attempts}}</td><td>{{fulltime .NextTry}}</td><td class="small">{{.LastError}}</td></tr>{{end}}</table></details>{{end}}

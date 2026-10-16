@@ -156,7 +156,8 @@
 - Notifications (mentions, replies, likes, boosts, follows, follow requests), follow request management
 - Search by `@user@server`, by profile/post URL, by `#tag`, or full text over known posts
 - Admin page: create users, reset passwords, instance title/description, domain blocks (including
-  subdomains), federation stats and failing deliveries
+  subdomains), federation stats and failing deliveries, and the last 7 days (new and active users, local posts,
+  likes/boosts/replies on them, newly seen remote accounts, the servers most posts came from)
 - Server rules (on About and sign-up, `/api/v1/instance/rules`, in the instance entity) and announcements
   (a banner until each user dismisses it; `/api/v1/announcements` with dismissing and emoji reactions)
 - Video and audio uploads (web, Mastodon API, C2S): MP4/MOV, WebM, MP3, Ogg, WAV and FLAC up to 40 MB, recognised

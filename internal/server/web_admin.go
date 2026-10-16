@@ -37,6 +37,41 @@ func (app *App) domainBlockList() []DomainBlock {
 	return out
 }
 
+// ServerCount is a remote server and how many of its posts arrived.
+type ServerCount struct {
+	Domain string
+	Posts  int
+}
+
+// weekStats adds the admin page's last-7-days numbers, like the top of
+// Mastodon's admin dashboard.
+func (app *App) weekStats(p *Page) {
+	since := time.Now().Add(-7 * 24 * time.Hour).Unix()
+	for k, q := range map[string]string{
+		"new_users":    `SELECT COUNT(*) FROM users WHERE created_at >= ?`,
+		"active_users": `SELECT COUNT(*) FROM users WHERE last_seen >= ?`,
+		"week_posts":   `SELECT COUNT(*) FROM statuses WHERE local=1 AND boost_of_id='' AND created_at >= ?`,
+		"interactions": `SELECT (SELECT COUNT(*) FROM likes l JOIN statuses s ON s.id=l.status_id WHERE s.local=1 AND l.created_at >= ?1)
+			+ (SELECT COUNT(*) FROM statuses b JOIN statuses s ON s.id=b.boost_of_id WHERE s.local=1 AND b.created_at >= ?1)
+			+ (SELECT COUNT(*) FROM statuses r JOIN statuses s ON s.id=r.in_reply_to_id WHERE s.local=1 AND r.account_id != s.account_id AND r.created_at >= ?1)`,
+		"new_accounts": `SELECT COUNT(*) FROM accounts WHERE domain != '' AND created_at >= ?`,
+	} {
+		p.Stats[k] = app.countInt(q, since)
+	}
+	rows, err := app.db.Query(`SELECT a.domain, COUNT(*) n FROM statuses s JOIN accounts a ON a.id=s.account_id
+		WHERE s.local=0 AND s.created_at >= ? GROUP BY a.domain ORDER BY n DESC LIMIT 5`, since)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var c ServerCount
+		if rows.Scan(&c.Domain, &c.Posts) == nil {
+			p.TopServers = append(p.TopServers, c)
+		}
+	}
+}
+
 func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Title, p.Section = "Admin", "admin"
 	p.Users, _ = app.ListUsers()
@@ -59,6 +94,7 @@ func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
 		"queued":    app.countInt(`SELECT COUNT(*) FROM deliveries`),
 		"retrying":  app.countInt(`SELECT COUNT(*) FROM deliveries WHERE attempts > 0`),
 	}
+	app.weekStats(p)
 	rows, err := app.db.Query(`SELECT inbox, attempts, next_try, last_error FROM deliveries WHERE attempts > 0 ORDER BY next_try LIMIT 20`)
 	if err == nil {
 		for rows.Next() {
