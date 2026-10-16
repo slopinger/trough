@@ -515,7 +515,7 @@
         var file = form.querySelector('input[name="media' + i + '"]'), alt = form.querySelector('input[name="alt' + i + '"]');
         if (file && file.files && file.files.length && alt && !alt.value.trim()) { missing = missing || alt; }
       }
-      if (missing && !window.confirm("Some images have no description. People using screen readers won't know what they show. Post anyway?")) {
+      if (missing && !window.confirm("Some attachments have no description. People using screen readers won\u2019t know what they show. Post anyway?")) {
         ev.preventDefault();
         ev.stopImmediatePropagation();
         missing.closest("details") && (missing.closest("details").open = true);

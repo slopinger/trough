@@ -397,7 +397,7 @@ func (app *App) handleC2SUploadMedia(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not read file", http.StatusBadRequest)
 		return
 	}
-	data, _ := io.ReadAll(io.LimitReader(fh, maxUploadSize+1))
+	data, _ := io.ReadAll(io.LimitReader(fh, maxMediaSize+1))
 	fh.Close()
 	at, err := app.saveUpload(me, data, alt)
 	if err != nil {

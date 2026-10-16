@@ -54,7 +54,7 @@ func (app *App) readImageField(r *http.Request, field string) ([]byte, bool) {
 }
 
 func (app *App) replaceImage(me *Account, old string, data []byte) (string, error) {
-	at, err := app.saveUpload(me, data, "")
+	at, err := app.saveImage(me, data, "")
 	if err != nil {
 		return "", err
 	}

@@ -192,7 +192,7 @@ func (app *App) web(requireLogin bool, h handler) http.HandlerFunc {
 			}
 			limit := int64(1 << 20)
 			if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/") {
-				limit = 5*maxUploadSize + 1<<20
+				limit = 4*maxMediaSize + 1<<20
 			}
 			r.Body = http.MaxBytesReader(w, r.Body, limit)
 			if p.Me != nil {

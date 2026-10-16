@@ -31,7 +31,7 @@ Files are grouped by prefix:
 | `actions.go` | what local users do (post, like, boost, follow, block, ...) |
 | `timeline.go`, `conversations.go`, `lists.go`, `tags.go` | timelines, visibility rules, threads, notifications, DMs, lists, followed hashtags |
 | `social.go`, `features.go`, `polls.go`, `quotes.go`, `accounts.go` | edits, pins, bookmarks, mutes, filters, reports, polls, reactions, quotes and quote approval (FEP-044f), link cards, featured accounts, migration, sign-ups |
-| `media.go`, `emoji.go`, `text.go` | uploads (EXIF stripping), media proxy, custom emoji, post formatting and HTML sanitizing |
+| `media.go`, `media_av.go`, `emoji.go`, `text.go` | uploads (EXIF stripping; video/audio recognition and MP4 metadata blanking), media proxy, custom emoji, post formatting and HTML sanitizing |
 | `scheduled.go`, `push.go`, `trends.go` | scheduled posts, Web Push, trends and the Explore page |
 | `announcements.go` | server rules and announcements |
 | `domainblocks.go` | servers users block for themselves |

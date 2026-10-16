@@ -105,8 +105,8 @@
 {{define "media"}}<div class="media n{{len .Attachments}}">
   {{range .Attachments}}
   {{if eq .Kind "image"}}<a href="{{media .URL}}" target="_blank" class="m-img"><img src="{{media .URL}}" alt="{{.Description}}" title="{{.Description}}" loading="lazy"></a>
-  {{else if eq .Kind "video"}}<video controls preload="none" src="{{media .URL}}" title="{{.Description}}"></video>
-  {{else if eq .Kind "audio"}}<audio controls preload="none" src="{{media .URL}}" title="{{.Description}}"></audio>
+  {{else if eq .Kind "video"}}<video controls playsinline preload="none" src="{{media .URL}}" title="{{.Description}}" aria-label="{{.Description}}"{{if .Width}} width="{{.Width}}" height="{{.Height}}"{{end}}></video>
+  {{else if eq .Kind "audio"}}<audio controls preload="none" src="{{media .URL}}" title="{{.Description}}" aria-label="{{.Description}}"></audio>
   {{else}}<a class="m-file" href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{template "icon" "external"}} attachment ({{.MediaType}})</a>{{end}}
   {{end}}
 </div>{{end}}
@@ -163,11 +163,11 @@
       <label class="check"><input type="checkbox" name="poll_multiple"> multiple choice</label>
     </div>
   </details>{{end}}
-  {{if not $c.EditOf}}<details class="attach"><summary>{{template "icon" "image"}} Attach images</summary>
-    <div class="att-row"><input type="file" name="media0" accept="image/png,image/jpeg,image/gif,image/webp"><input name="alt0" maxlength="1500" placeholder="Describe the image (alt text)"></div>
-    <div class="att-row"><input type="file" name="media1" accept="image/png,image/jpeg,image/gif,image/webp"><input name="alt1" maxlength="1500" placeholder="Describe the image (alt text)"></div>
-    <div class="att-row"><input type="file" name="media2" accept="image/png,image/jpeg,image/gif,image/webp"><input name="alt2" maxlength="1500" placeholder="Describe the image (alt text)"></div>
-    <div class="att-row"><input type="file" name="media3" accept="image/png,image/jpeg,image/gif,image/webp"><input name="alt3" maxlength="1500" placeholder="Describe the image (alt text)"></div>
+  {{if not $c.EditOf}}<details class="attach"><summary>{{template "icon" "image"}} Attach media</summary>
+    <div class="att-row"><input type="file" name="media0" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/quicktime,video/webm,audio/*"><input name="alt0" maxlength="1500" placeholder="Describe it for people who can't see or hear it (alt text)"></div>
+    <div class="att-row"><input type="file" name="media1" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/quicktime,video/webm,audio/*"><input name="alt1" maxlength="1500" placeholder="Describe it for people who can't see or hear it (alt text)"></div>
+    <div class="att-row"><input type="file" name="media2" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/quicktime,video/webm,audio/*"><input name="alt2" maxlength="1500" placeholder="Describe it for people who can't see or hear it (alt text)"></div>
+    <div class="att-row"><input type="file" name="media3" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/quicktime,video/webm,audio/*"><input name="alt3" maxlength="1500" placeholder="Describe it for people who can't see or hear it (alt text)"></div>
     <label class="check"><input type="checkbox" name="sensitive"{{if $c.Sensitive}} checked{{end}}> Mark media as sensitive</label>
   </details>{{else}}<input type="hidden" name="sensitive" value="{{if $c.Sensitive}}1{{end}}">{{end}}
   <div class="compose-row">

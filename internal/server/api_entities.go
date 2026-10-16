@@ -342,9 +342,10 @@ func (app *App) apiConfiguration() obj {
 		"accounts": obj{"max_featured_tags": 0, "max_pinned_statuses": maxPins},
 		"statuses": obj{"max_characters": maxStatusChars, "max_media_attachments": 4, "characters_reserved_per_url": 23},
 		"media_attachments": obj{
-			"supported_mime_types": []string{"image/jpeg", "image/png", "image/gif", "image/webp"},
-			"image_size_limit":     maxUploadSize, "image_matrix_limit": maxImagePixels,
-			"video_size_limit": 0, "video_frame_rate_limit": 0, "video_matrix_limit": 0, "description_limit": 1500,
+			"supported_mime_types": []string{"image/jpeg", "image/png", "image/gif", "image/webp", "video/mp4", "video/quicktime", "video/webm",
+				"audio/mpeg", "audio/mp4", "audio/ogg", "audio/wav", "audio/flac", "audio/webm"},
+			"image_size_limit": maxUploadSize, "image_matrix_limit": maxImagePixels,
+			"video_size_limit": maxMediaSize, "video_frame_rate_limit": 120, "video_matrix_limit": 16384 * 16384, "description_limit": 1500,
 		},
 		"polls":            obj{"max_options": 4, "max_characters_per_option": 100, "min_expiration": 300, "max_expiration": 7 * 24 * 3600},
 		"translation":      obj{"enabled": app.aiEnabled()},

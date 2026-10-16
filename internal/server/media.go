@@ -38,12 +38,27 @@ const (
 
 // ---- uploads ----
 
-// saveUpload stores an uploaded image. JPEG/PNG/WebP images are re-encoded,
+// saveUpload stores an uploaded image, video or audio file for a post.
+func (app *App) saveUpload(acc *Account, data []byte, description string) (*Attachment, error) {
+	if _, _, err := image.DecodeConfig(bytes.NewReader(data)); err == nil {
+		return app.saveImage(acc, data, description)
+	}
+	if len(data) > maxMediaSize {
+		return nil, errors.New("file is too large (max 40 MB)")
+	}
+	info, err := sniffAV(data)
+	if err != nil {
+		return nil, err
+	}
+	return app.storeAttachment(acc, data, info.ext, info.mediaType, description, info.width, info.height)
+}
+
+// saveImage stores an uploaded image. JPEG/PNG/WebP images are re-encoded,
 // which strips EXIF metadata (GPS positions!) after applying the EXIF
 // orientation. GIFs are kept as they are (animation).
-func (app *App) saveUpload(acc *Account, data []byte, description string) (*Attachment, error) {
+func (app *App) saveImage(acc *Account, data []byte, description string) (*Attachment, error) {
 	if len(data) > maxUploadSize {
-		return nil, errors.New("file is too large (max 16 MB)")
+		return nil, errors.New("image is too large (max 16 MB)")
 	}
 	ct := http.DetectContentType(data)
 	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
@@ -53,7 +68,6 @@ func (app *App) saveUpload(acc *Account, data []byte, description string) (*Atta
 	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width*cfg.Height > maxImagePixels || cfg.Width > 16384 || cfg.Height > 16384 {
 		return nil, errors.New("image dimensions are too large")
 	}
-	id := ulid.New()
 	var out []byte
 	var ext, mediaType string
 	w, h := cfg.Width, cfg.Height
@@ -92,6 +106,11 @@ func (app *App) saveUpload(acc *Account, data []byte, description string) (*Atta
 	default:
 		return nil, fmt.Errorf("unsupported image type %s", ct)
 	}
+	return app.storeAttachment(acc, out, ext, mediaType, description, w, h)
+}
+
+func (app *App) storeAttachment(acc *Account, out []byte, ext, mediaType, description string, w, h int) (*Attachment, error) {
+	id := ulid.New()
 	name := id + ext
 	if err := os.WriteFile(filepath.Join(app.mediaDir, name), out, 0o640); err != nil {
 		return nil, err
@@ -100,7 +119,7 @@ func (app *App) saveUpload(acc *Account, data []byte, description string) (*Atta
 		ID: id, AccountID: acc.ID, URL: app.cfg.BaseURL() + "/media/" + name, MediaType: mediaType,
 		Description: truncateRunes(strings.TrimSpace(description), 1500), File: name, Width: w, Height: h,
 	}
-	_, err = app.db.Exec(`INSERT INTO attachments (id,status_id,account_id,url,media_type,description,file,width,height,created_at) VALUES (?,NULL,?,?,?,?,?,?,?,?)`,
+	_, err := app.db.Exec(`INSERT INTO attachments (id,status_id,account_id,url,media_type,description,file,width,height,created_at) VALUES (?,NULL,?,?,?,?,?,?,?,?)`,
 		at.ID, at.AccountID, at.URL, at.MediaType, at.Description, at.File, at.Width, at.Height, time.Now().Unix())
 	return at, err
 }
@@ -212,7 +231,12 @@ func applyOrientation(img image.Image, o int) image.Image {
 	return dst
 }
 
-var mediaNameRe = regexp.MustCompile(`^[0-9A-Z]{26}\.(jpg|png|gif)$`)
+var mediaNameRe = regexp.MustCompile(`^[0-9A-Z]{26}\.(jpg|png|gif|mp4|m4a|webm|weba|mp3|ogg|wav|flac)$`)
+
+var mediaTypes = map[string]string{
+	".jpg": "image/jpeg", ".png": "image/png", ".gif": "image/gif", ".mp4": "video/mp4", ".m4a": "audio/mp4",
+	".webm": "video/webm", ".weba": "audio/webm", ".mp3": "audio/mpeg", ".ogg": "audio/ogg", ".wav": "audio/wav", ".flac": "audio/flac",
+}
 
 func (app *App) handleMedia(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("file")
@@ -227,13 +251,11 @@ func (app *App) handleMedia(w http.ResponseWriter, r *http.Request) {
 	}
 	defer f.Close()
 	st, _ := f.Stat()
-	ct := map[string]string{".jpg": "image/jpeg", ".png": "image/png", ".gif": "image/gif"}[filepath.Ext(name)]
-	w.Header().Set("Content-Type", ct)
+	w.Header().Set("Content-Type", mediaTypes[filepath.Ext(name)])
 	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
 	w.Header().Set("Access-Control-Allow-Origin", "*") // clients like Phanpy load images with crossorigin
 	w.Header().Set("Cross-Origin-Resource-Policy", "cross-origin")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	http.ServeContent(w, r, "", st.ModTime(), f)
 }
 

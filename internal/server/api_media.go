@@ -19,7 +19,7 @@ func (app *App) apiUploadMedia(w http.ResponseWriter, r *http.Request, c *apiCtx
 		apiError(w, 422, "could not read file")
 		return
 	}
-	data, _ := io.ReadAll(io.LimitReader(fh, maxUploadSize+1))
+	data, _ := io.ReadAll(io.LimitReader(fh, maxMediaSize+1))
 	fh.Close()
 	at, err := app.saveUpload(c.Me, data, r.FormValue("description"))
 	if err != nil {

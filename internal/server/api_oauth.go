@@ -270,7 +270,7 @@ func (app *App) api(scope string, needUser bool, h apiHandler) http.HandlerFunc 
 			return
 		}
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
-			r.Body = http.MaxBytesReader(w, r.Body, 5*maxUploadSize)
+			r.Body = http.MaxBytesReader(w, r.Body, maxMediaSize+16<<20)
 		}
 		h(w, r, c)
 	}

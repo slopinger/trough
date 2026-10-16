@@ -179,7 +179,7 @@ func (app *App) handlePost(w http.ResponseWriter, r *http.Request, p *Page) {
 				fail("Could not read upload.")
 				return
 			}
-			data, err := io.ReadAll(io.LimitReader(f, maxUploadSize+1))
+			data, err := io.ReadAll(io.LimitReader(f, maxMediaSize+1))
 			f.Close()
 			if err != nil {
 				fail("Could not read upload.")

@@ -64,7 +64,7 @@
   the arrow keys and Enter/Tab or the mouse
 - A reminder before posting images without a description (alt text)
 - Compose with content warnings, four visibilities (public, unlisted, followers-only, direct),
-  up to 4 images with alt text, @mentions (resolved via WebFinger) and #hashtags
+  up to 4 images, videos or audio files with alt text, @mentions (resolved via WebFinger) and #hashtags
 - **AI writing (optional):** "Write with AI" in the compose box drafts a post from a short instruction,
   improves the current draft, or drafts a reply with the thread as context. The draft streams into the
   text box and is never posted automatically. Uses DeepSeek's chat completions API (any
@@ -137,7 +137,11 @@
   subdomains), federation stats and failing deliveries
 - Server rules (on About and sign-up, `/api/v1/instance/rules`, in the instance entity) and announcements
   (a banner until each user dismisses it; `/api/v1/announcements` with dismissing and emoji reactions)
-- Media: uploads are re-encoded, which strips EXIF metadata such as GPS positions while keeping the
+- Video and audio uploads (web, Mastodon API, C2S): MP4/MOV, WebM, MP3, Ogg, WAV and FLAC up to 40 MB, recognised
+  by their file signature and served with range requests. There is no transcoding, so only formats browsers play
+  directly are taken; MP4 metadata boxes (`udta`/`meta`, where phones put the recording location) are blanked in
+  place. Avatars and headers stay images only.
+- Media: image uploads are re-encoded, which strips EXIF metadata such as GPS positions while keeping the
   orientation. Remote media goes through an HMAC-signed caching proxy, so remote servers never see visitors'
   IP addresses and the page can use a strict CSP (`img-src 'self'`). Cache entries with missing data
   or invalid metadata are refetched; per-URL locks coordinate fetches and expiry cleanup.
