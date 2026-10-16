@@ -34,6 +34,7 @@
     <label class="check"><input type="checkbox" name="locked"{{if $a.Locked}} checked{{end}}> Approve followers manually</label>
     <label class="check"><input type="checkbox" name="bot"{{if $a.IsBot}} checked{{end}}> This is a bot account</label>
     <label class="check"><input type="checkbox" name="discoverable"{{if $a.Discoverable}} checked{{end}}> List me in the profile directory and in follow suggestions</label>
+    <label class="check"><input type="checkbox" name="hide_collections"{{if $a.HideCollections}} checked{{end}}> Hide who follows me and who I follow (others see only the counts)</label>
     <button class="btn primary">Save profile</button>
   </form>
 </section>

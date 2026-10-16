@@ -291,6 +291,14 @@ func (app *App) handleFollowCollection(followers bool) http.HandlerFunc {
 		}
 		total := app.countInt(q, acc.ID)
 		pageStr := r.URL.Query().Get("page")
+		if acc.HideCollections { // only the count, like Mastodon
+			if pageStr != "" {
+				http.Error(w, "hidden", http.StatusForbidden)
+				return
+			}
+			writeAP(w, withContext(obj{"id": id, "type": "OrderedCollection", "totalItems": total}))
+			return
+		}
 		if pageStr == "" {
 			writeAP(w, withContext(obj{"id": id, "type": "OrderedCollection", "totalItems": total, "first": id + "?page=1"}))
 			return

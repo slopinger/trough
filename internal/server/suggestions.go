@@ -36,7 +36,8 @@ func (app *App) suggestions(me *Account, limit int) []Suggestion {
 		}
 	}
 	fof, _ := app.accountsQuery(`SELECT `+accountCols+` FROM follows f2 JOIN follows f1 ON f1.target_id=f2.account_id AND f1.account_id=? AND f1.accepted=1
-		JOIN accounts a ON a.id=f2.target_id WHERE f2.accepted=1 AND `+exclude+`
+		JOIN accounts a ON a.id=f2.target_id WHERE f2.accepted=1
+		AND NOT EXISTS(SELECT 1 FROM accounts h WHERE h.id=f2.account_id AND h.hide_collections=1) AND `+exclude+`
 		GROUP BY a.id ORDER BY COUNT(*) DESC, MAX(f2.created_at) DESC LIMIT ?`, append(append([]any{me.ID}, ex...), limit)...)
 	add(fof, "friends_of_friends")
 	if len(out) < limit {
@@ -58,7 +59,7 @@ func (app *App) dismissSuggestion(me *Account, targetID string) {
 func (app *App) familiarFollowers(me, target *Account, limit int) []*Account {
 	accs, _ := app.accountsQuery(`SELECT `+accountCols+` FROM follows mine JOIN follows theirs ON theirs.account_id=mine.target_id
 		JOIN accounts a ON a.id=mine.target_id WHERE mine.account_id=? AND mine.accepted=1 AND theirs.target_id=? AND theirs.accepted=1
-		AND a.suspended=0 ORDER BY mine.created_at DESC LIMIT ?`, me.ID, target.ID, limit)
+		AND a.suspended=0 AND a.hide_collections=0 AND NOT EXISTS(SELECT 1 FROM accounts t WHERE t.id=theirs.target_id AND t.hide_collections=1) ORDER BY mine.created_at DESC LIMIT ?`, me.ID, target.ID, limit)
 	return accs
 }
 

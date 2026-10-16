@@ -110,6 +110,8 @@
   keep their own server's flag)
 - Who to follow (Explore → People, `/api/v2/suggestions` with dismissing): accounts followed by people you
   follow, then popular ones here; profiles show which people you follow follow them
+- Hiding your social graph (Settings, `hide_collections` in the API): others see only the follower and follow
+  counts; the lists, ActivityPub collection pages, familiar followers and suggestions don't reveal them
   (`/api/v1/accounts/familiar_followers`)
 - Explore page and Mastodon trends API (`/api/v1/trends/{tags,statuses,links}`): posts with the most
   likes, boosts and replies from the last three days, and hashtags and links used by at least two people

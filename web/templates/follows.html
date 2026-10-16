@@ -7,5 +7,7 @@
 </nav>
 {{if not .Account.IsLocal}}<div class="empty">Only follows known to this server are shown. <a href="{{.Account.URL}}" target="_blank" rel="noopener noreferrer">See the full list on {{hostOf .Account.URI}}</a>.</div>{{end}}
 {{$own := and .Me (eq .Me.ID .Account.ID) (eq .Tab "followers")}}
-{{range .Accounts}}{{if $own}}{{template "accountrow" (dict "A" . "P" $p "Actions" (actions "remove_follower" "Remove" ""))}}{{else}}{{template "accountrow" (dict "A" . "P" $p)}}{{end}}{{else}}<div class="empty">Nobody yet.</div>{{end}}
+{{if and .Account.HideCollections (not (and .Me (eq .Me.ID .Account.ID)))}}<div class="empty">{{name .Account}} keeps {{if eq .Tab "followers"}}their followers{{else}}who they follow{{end}} private.</div>
+{{else}}{{if and .Account.HideCollections .Me}}<div class="empty">Only you can see this list. Others just see the count.</div>{{end}}
+{{range .Accounts}}{{if $own}}{{template "accountrow" (dict "A" . "P" $p "Actions" (actions "remove_follower" "Remove" ""))}}{{else}}{{template "accountrow" (dict "A" . "P" $p)}}{{end}}{{else}}<div class="empty">Nobody yet.</div>{{end}}{{end}}
 {{end}}

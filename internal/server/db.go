@@ -563,6 +563,8 @@ ALTER TABLE users ADD COLUMN default_sensitive INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE users ADD COLUMN default_language TEXT NOT NULL DEFAULT '';
 ALTER TABLE users ADD COLUMN expand_media TEXT NOT NULL DEFAULT 'default';
 ALTER TABLE users ADD COLUMN expand_spoilers INTEGER NOT NULL DEFAULT 0;
+`, `
+ALTER TABLE accounts ADD COLUMN hide_collections INTEGER NOT NULL DEFAULT 0;
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

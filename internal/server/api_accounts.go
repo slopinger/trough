@@ -30,6 +30,9 @@ func (app *App) apiUpdateCredentials(w http.ResponseWriter, r *http.Request, c *
 	if p.Has("discoverable") {
 		me.Discoverable = p.Bool("discoverable")
 	}
+	if p.Has("hide_collections") {
+		me.HideCollections = p.Bool("hide_collections")
+	}
 	if p.Has("bot") {
 		if p.Bool("bot") {
 			me.ActorType = "Service"
@@ -224,7 +227,10 @@ func (app *App) apiFollowList(followers bool) apiHandler {
 		if !ok {
 			return
 		}
-		list, _ := app.followList(a, followers, false, 0)
+		var list []*Account
+		if !a.HideCollections || (c.Me != nil && c.Me.ID == a.ID) {
+			list, _ = app.followList(a, followers, false, 0)
+		}
 		app.writeAccounts(w, list)
 	}
 }

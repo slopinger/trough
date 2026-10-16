@@ -160,12 +160,14 @@ func (app *App) showProfile(w http.ResponseWriter, r *http.Request, p *Page, acc
 
 func (app *App) showFollows(w http.ResponseWriter, r *http.Request, p *Page, acc *Account, followers bool) {
 	app.profileCommon(p, acc)
-	list, err := app.followList(acc, followers, false, 0)
-	if err != nil {
-		http.Error(w, "db error", 500)
-		return
+	if !acc.HideCollections || (p.Me != nil && p.Me.ID == acc.ID) {
+		list, err := app.followList(acc, followers, false, 0)
+		if err != nil {
+			http.Error(w, "db error", 500)
+			return
+		}
+		p.Accounts = list
 	}
-	p.Accounts = list
 	if followers {
 		p.Tab, p.Title = "followers", "Followers of "+acc.Name()
 	} else {
