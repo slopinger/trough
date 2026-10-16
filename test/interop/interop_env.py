@@ -120,12 +120,14 @@ class Env:
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         sys.exit(143)
 
-    def dns(self, names):
-        """Answer DNS queries on 127.0.0.1:53 inside the private namespace:
+    def dns(self, names, addr="127.0.0.1"):
+        """Answer DNS queries on addr:53 inside the private namespace:
         each of names gets A 127.0.0.1 and AAAA ::1, anything else NXDOMAIN.
-        For servers whose resolver skips /etc/hosts. Returns a resolv.conf."""
+        For servers whose resolver skips /etc/hosts. Returns a resolv.conf.
+        addr="127.0.0.53" serves programs that use the host's resolved stub
+        resolv.conf directly, which has nothing listening in the namespace."""
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind(("127.0.0.1", 53))
+        sock.bind((addr, 53))
         self.stack.callback(sock.close)
         records = {b"\x00\x01": socket.inet_pton(socket.AF_INET, "127.0.0.1"),
                    b"\x00\x1c": socket.inet_pton(socket.AF_INET6, "::1")}
@@ -150,7 +152,7 @@ class Env:
                 sock.sendto(header + q[12:end + 5] + answer, addr)
         threading.Thread(target=serve, daemon=True).start()
         conf = self.root / "resolv.conf"
-        conf.write_text("nameserver 127.0.0.1\n")
+        conf.write_text(f"nameserver {addr}\n")
         conf.chmod(0o644)
         return conf
 

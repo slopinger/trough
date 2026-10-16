@@ -13,7 +13,7 @@ the command in `cmd/`, the server's packages in `internal/`, everything that isn
 | `internal/httpsig/` | HTTP Signatures: draft-cavage and RFC 9421, signing and verifying |
 | `internal/ulid/` | time-sortable IDs and their numeric form for clients |
 | `web/` | HTML templates and static files (CSS, JS, icons), embedded into the binary |
-| `test/interop/` | runs trough against real servers (Mastodon, GoToSocial, Akkoma/Pleroma, Misskey/Sharkey) and two troughs against each other |
+| `test/interop/` | runs trough against real servers (Mastodon, GoToSocial, Akkoma/Pleroma, Misskey/Sharkey, Lemmy) and two troughs against each other |
 | `test/clients/` | drives trough with real clients: Mastodon.py, toot, Ice Cubes' and the Mastodon iOS app's code |
 | `deploy/`, `deploy.sh` | systemd unit, Caddy site, `troughctl`, install script for fedi.freifick.net |
 | `nix/`, `flake.nix` | Nix package and NixOS module |
@@ -128,6 +128,22 @@ credentials; everything is disposable and removed on exit.
   (`test/interop/interop_misskey.py`): follows, mentions, reactions, likes, renotes, quotes, replies,
   polls, followers-only and direct notes, deletes, profile updates. Misskey ignores remote edits (only
   warns). `MISSKEY_IMAGE=registry.activitypub.software/transfem-org/sharkey:latest` runs **Sharkey**.
+- `LEMMY=/path/to/lemmy_server python3 test/interop/run-lemmy.py`: a real **Lemmy** (0.19.20) through its
+  own API (`test/interop/interop_lemmy.py`): following a community, its posts in the home timeline,
+  favourites as upvotes, replies as comments, Lemmy replies as mentions, edits, deletes, unfollowing.
+  About five minutes, mostly waiting for trough to resend the first Follow (Lemmy loses the Accept for a
+  server it has never seen). PostgreSQL runs in Docker, Lemmy natively in the namespace with fake DNS on
+  `127.0.0.53` for `lemmy.localhost`/`trough.localhost`. Lemmy release builds only trust their built-in
+  CA roots, so build one that honours `SSL_CERT_FILE` (~15 min, about 4 GB of RAM with thin LTO):
+  ```sh
+  git clone --recurse-submodules --branch 0.19.20 https://github.com/LemmyNet/lemmy && cd lemmy
+  sed -i 's/"rustls-tls"/"rustls-tls-native-roots"/' Cargo.toml   # in the reqwest features
+  # Rust >= 1.98 rejects the ambiguous glob import in crates/federate/src/util.rs: drop its
+  # `use diesel::dsl::max;` line and call `diesel::dsl::max(id)` instead
+  nix shell nixpkgs#{cargo,rustc,pkg-config,openssl,openssl.dev,postgresql.lib,postgresql.dev,gcc,protobuf} --command \
+    env LIBRARY_PATH=$(nix eval --raw nixpkgs#postgresql.lib)/lib CARGO_PROFILE_RELEASE_LTO=thin \
+    CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 cargo build --release -p lemmy_server
+  ```
 
 `AUTHORIZED_FETCH=true` runs Mastodon, Akkoma and Pleroma in secure mode (the runner first checks that
 unsigned fetches are refused). Shared setup (namespace, containers, DNS, Caddy, trough) is in

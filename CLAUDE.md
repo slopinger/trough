@@ -16,8 +16,8 @@ Keep these notes, README and docs/ up to date whenever code behavior, commands o
   flavor/fixture when fixing an interop bug. `ai_test.go` covers AI drafting against a fake server.
 - Interop runs (docs/development.md has details): `python3 test/interop/run-federation.py` (two
   troughs), `run-gotosocial.py`, `run-mastodon.py`, `run-akkoma.py` (`AKKOMA=<pleroma path>`),
-  `run-misskey.py` (`MISSKEY_IMAGE=...sharkey`); `AUTHORIZED_FETCH=true` for secure mode,
-  `INTEROP_PAUSE=<s>` to inspect a failed run. Shared setup is `test/interop/interop_env.py`.
+  `run-misskey.py` (`MISSKEY_IMAGE=...sharkey`), `run-lemmy.py` (`LEMMY=<lemmy_server>`, build in docs);
+  `AUTHORIZED_FETCH=true` for secure mode, `INTEROP_PAUSE=<s>` to inspect a failed run. Shared setup is `test/interop/interop_env.py`.
 - Client checks: `test/clients/` (Mastodon.py, `toot.sh`, `run-icecubes.sh`, `run-mastodon-ios.sh`).
   Keep entity shapes Mastodon-compatible (ids are strings, `Link` pagination, CORS). These are slow;
   run the relevant one when changing client API shapes, not for every change.
