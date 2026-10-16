@@ -149,12 +149,36 @@ func (app *App) handleUnsuspend(w http.ResponseWriter, r *http.Request, p *Page)
 	if err == nil {
 		err = app.UnsuspendAccount(a)
 	}
-	if err != nil {
+	switch {
+	case err != nil:
 		setFlash(w, "Couldn't lift the suspension: "+err.Error())
-	} else {
+	case a.IsLocal():
+		setFlash(w, "Lifted the suspension of @"+a.Username+". They can log in again, and other servers were told.")
+	default:
 		setFlash(w, "Lifted the suspension of "+a.Acct()+". Follows that ended stay ended.")
 	}
-	http.Redirect(w, r, "/admin/reports?tab=resolved", http.StatusSeeOther)
+	http.Redirect(w, r, adminBack(r), http.StatusSeeOther)
+}
+
+// handleSuspend suspends a local user from the user list on /admin.
+func (app *App) handleSuspend(w http.ResponseWriter, r *http.Request, p *Page) {
+	a, err := app.AccountByID(r.PathValue("id"))
+	if err == nil {
+		err = app.AdminSuspend(p.Me, a)
+	}
+	if err != nil {
+		setFlash(w, "Couldn't suspend: "+err.Error())
+	} else {
+		setFlash(w, "Suspended "+a.Acct()+".")
+	}
+	http.Redirect(w, r, adminBack(r), http.StatusSeeOther)
+}
+
+func adminBack(r *http.Request) string {
+	if r.FormValue("back") == "users" {
+		return "/admin#users"
+	}
+	return "/admin/reports?tab=resolved"
 }
 
 func (app *App) handleAdminAI(w http.ResponseWriter, r *http.Request, p *Page) {

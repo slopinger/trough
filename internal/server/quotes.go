@@ -324,7 +324,7 @@ func (app *App) SetQuotePolicy(me *Account, st *Status, policy string) error {
 // handleQuoteAuthorization serves a stamp, so other servers can check a quote.
 func (app *App) handleQuoteAuthorization(w http.ResponseWriter, r *http.Request) {
 	acc, err := app.LocalAccount(r.PathValue("name"))
-	if err != nil {
+	if err != nil || acc.Suspended {
 		http.NotFound(w, r)
 		return
 	}

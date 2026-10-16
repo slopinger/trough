@@ -115,14 +115,16 @@
   <p class="muted small">A key in the environment (<code>TROUGH_DEEPSEEK_API_KEY</code>) takes precedence over one stored here. Each user can make 30 AI requests per hour.</p>
 </section>
 <section class="card">
-  <h3>Users</h3>
+  <h3 id="users">Users</h3>
   <table class="tbl">
     <tr><th>User</th><th>Role</th><th>Last seen</th><th></th></tr>
     {{range .Users}}<tr>
-      <td><a href="{{.Account.Path}}">@{{.Account.Username}}</a></td>
+      <td>{{if .Account.Suspended}}@{{.Account.Username}} <span class="badge">suspended</span>{{else}}<a href="{{.Account.Path}}">@{{.Account.Username}}</a>{{end}}</td>
       <td>{{if .Admin}}admin{{else}}user{{end}}</td>
       <td>{{if .LastSeen.Unix}}{{ago .LastSeen}}{{else}}never{{end}}</td>
-      <td><form method="post" action="/admin/users/{{.Account.ID}}/password" class="confirm" data-confirm="Generate a new password for @{{.Account.Username}}? Existing sessions are logged out."><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small">Reset password</button></form></td>
+      <td class="row-actions"><form method="post" action="/admin/users/{{.Account.ID}}/password" class="confirm" data-confirm="Generate a new password for @{{.Account.Username}}? Existing sessions are logged out."><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small">Reset password</button></form>
+      {{if .Account.Suspended}}<form method="post" action="/admin/accounts/{{.Account.ID}}/unsuspend" class="confirm" data-confirm="Lift the suspension of @{{.Account.Username}}? They can log in again and their posts come back."><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="back" value="users"><button class="btn small">Lift suspension</button></form>
+      {{else if ne .Account.ID $.Me.ID}}<form method="post" action="/admin/accounts/{{.Account.ID}}/suspend" class="confirm" data-confirm="Suspend @{{.Account.Username}}? They can't log in, and their profile and posts are hidden until you lift it. Nothing is deleted."><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="back" value="users"><button class="btn small danger-outline">Suspend</button></form>{{end}}</td>
     </tr>{{end}}
   </table>
   <form method="post" action="/admin/users" class="inline-form">

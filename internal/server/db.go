@@ -546,6 +546,8 @@ ALTER TABLE attachments ADD COLUMN preview_file TEXT NOT NULL DEFAULT '';
 ALTER TABLE reports ADD COLUMN action_taken TEXT NOT NULL DEFAULT '';
 ALTER TABLE reports ADD COLUMN resolved_by TEXT NOT NULL DEFAULT '';
 ALTER TABLE reports ADD COLUMN note TEXT NOT NULL DEFAULT '';
+`, `
+ALTER TABLE accounts ADD COLUMN remote_suspended INTEGER NOT NULL DEFAULT 0;
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

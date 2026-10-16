@@ -152,7 +152,7 @@ func (app *App) apStatus(w http.ResponseWriter, r *http.Request, username, id st
 		return
 	}
 	sts, err := app.hydrate(nil, []*Status{st})
-	if err != nil || len(sts) == 0 || !strings.EqualFold(sts[0].Account.Username, username) {
+	if err != nil || len(sts) == 0 || !strings.EqualFold(sts[0].Account.Username, username) || sts[0].Account.Suspended {
 		http.NotFound(w, r)
 		return
 	}
@@ -234,7 +234,7 @@ func (app *App) handleAPReplies(w http.ResponseWriter, r *http.Request) {
 
 func (app *App) handleOutbox(w http.ResponseWriter, r *http.Request) {
 	acc, err := app.LocalAccount(r.PathValue("name"))
-	if err != nil {
+	if err != nil || acc.Suspended {
 		http.NotFound(w, r)
 		return
 	}
@@ -281,7 +281,7 @@ func delContext(m obj) obj {
 func (app *App) handleFollowCollection(followers bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		acc, err := app.LocalAccount(r.PathValue("name"))
-		if err != nil {
+		if err != nil || acc.Suspended {
 			http.NotFound(w, r)
 			return
 		}
@@ -319,7 +319,7 @@ func (app *App) handleFollowCollection(followers bool) http.HandlerFunc {
 
 func (app *App) handleFeatured(w http.ResponseWriter, r *http.Request) {
 	acc, err := app.LocalAccount(r.PathValue("name"))
-	if err != nil {
+	if err != nil || acc.Suspended {
 		http.NotFound(w, r)
 		return
 	}

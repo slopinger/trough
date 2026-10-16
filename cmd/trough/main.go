@@ -28,6 +28,7 @@ usage:
   trough user create [flags] <name> [-admin]   create a local account (prints a password)
   trough user password [flags] <name>          set a new random password
   trough user admin [flags] <name> on|off      grant/revoke admin
+  trough user suspend [flags] <name> on|off    suspend a local account or lift it
   trough user list [flags]                     list local accounts
   trough fetch [flags] <url>                   signed GET of an ActivityPub object (debugging)
 
@@ -209,6 +210,22 @@ func cmdUser(args []string) error {
 			return err
 		}
 		return app.SetAdmin(acc.ID, rest[1] == "on")
+	case "suspend":
+		if len(rest) != 2 || (rest[1] != "on" && rest[1] != "off") {
+			return errors.New("usage: trough user suspend <name> on|off")
+		}
+		acc, err := app.LocalAccount(rest[0])
+		if err != nil {
+			return err
+		}
+		if rest[1] == "off" {
+			return app.UnsuspendAccount(acc)
+		}
+		if acc.Suspended {
+			return errors.New("already suspended")
+		}
+		app.SuspendAccount(acc)
+		fmt.Printf("suspended @%s; other servers are told once the server sends its queue\n", acc.Username)
 	case "list":
 		users, err := app.ListUsers()
 		if err != nil {
@@ -218,6 +235,9 @@ func cmdUser(args []string) error {
 			flag := ""
 			if u.Admin {
 				flag = " (admin)"
+			}
+			if u.Account.Suspended {
+				flag += " (suspended)"
 			}
 			fmt.Printf("@%s@%s%s\n", u.Account.Username, cfg.Host, flag)
 		}

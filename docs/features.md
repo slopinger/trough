@@ -117,6 +117,11 @@
   and how often the account was reported before; resolving can delete the reported posts (federated for local
   ones), suspend a remote account (reversible; posts hidden, its activities ignored, follows end) or block its
   server, with a note for other admins. Resolved reports keep who did what.
+- Suspending local accounts (from a report, the user list on `/admin` or `trough user suspend <name> on|off`):
+  login and tokens stop working, profile and posts are hidden, nothing is deleted. Like Mastodon, other servers
+  get an actor `Update` with `"suspended": true` and an empty profile, and another one when it's lifted.
+  Accounts that their own server suspends that way are hidden here too, until that server lifts it
+  (suspensions by our admins stay).
 - Archive download (Settings, once an hour): a zip in Mastodon's archive layout with actor.json, outbox.json (all
   your posts and boosts, private ones included), likes.json, bookmarks.json, avatar, header and uploaded media
 - Import and export (Settings) of follows, lists, blocks, mutes, blocked servers and bookmarks as CSV files in

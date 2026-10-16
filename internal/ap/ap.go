@@ -201,6 +201,7 @@ var Context = []any{
 		"Hashtag":                   "as:Hashtag",
 		"toot":                      "http://joinmastodon.org/ns#",
 		"discoverable":              "toot:discoverable",
+		"suspended":                 "toot:suspended",
 		"attributionDomains":        obj{"@id": "toot:attributionDomains", "@type": "@id"},
 		"featuredTags":              obj{"@id": "toot:featuredTags", "@type": "@id"},
 		"indexable":                 "toot:indexable",

@@ -342,6 +342,7 @@ func (app *App) upsertActor(m obj) (*Account, error) {
 	if err := app.saveAccount(acc); err != nil {
 		return nil, err
 	}
+	app.followRemoteSuspension(acc, ap.Bool(m, "suspended"))
 	return acc, nil
 }
 

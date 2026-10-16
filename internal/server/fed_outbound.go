@@ -23,6 +23,9 @@ func (app *App) actorEndpoints(acc *Account) obj {
 }
 
 func (app *App) actorJSON(acc *Account) obj {
+	if acc.Suspended && acc.IsLocal() {
+		return app.suspendedActorJSON(acc)
+	}
 	m := obj{
 		"@context":                  ap.Context,
 		"id":                        acc.URI,
@@ -72,6 +75,33 @@ func (app *App) actorJSON(acc *Account) obj {
 	}
 	if att != nil {
 		m["attachment"] = att
+	}
+	return m
+}
+
+// suspendedActorJSON is what a suspended local account shows other servers
+// (the way Mastodon does): the key and inboxes, but no profile.
+func (app *App) suspendedActorJSON(acc *Account) obj {
+	m := obj{
+		"@context":          ap.Context,
+		"id":                acc.URI,
+		"type":              acc.ActorType,
+		"preferredUsername": acc.Username,
+		"name":              "",
+		"summary":           "",
+		"url":               acc.URL,
+		"inbox":             acc.Inbox,
+		"outbox":            acc.Outbox,
+		"endpoints":         app.actorEndpoints(acc),
+		"published":         ap.Time(acc.CreatedAt),
+		"suspended":         true,
+		"publicKey":         obj{"id": acc.PublicKeyID, "owner": acc.URI, "publicKeyPem": acc.PublicKey},
+		"tag":               []any{},
+		"attachment":        []any{},
+	}
+	if acc.FollowersURI != "" {
+		m["followers"] = acc.FollowersURI
+		m["following"] = acc.FollowingURI
 	}
 	return m
 }

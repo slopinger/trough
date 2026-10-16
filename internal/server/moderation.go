@@ -3,6 +3,8 @@ package server
 import (
 	"errors"
 	"time"
+
+	"git.freifick.net/slop/trough/internal/ap"
 )
 
 // What an admin can do about a report. Each action resolves it.
@@ -46,10 +48,9 @@ func (app *App) ResolveReport(admin *Account, id, action, note string) (string, 
 		}
 		msg = "Deleted " + plural(n, "post") + " and resolved the report."
 	case "suspend":
-		if t.IsLocal() {
-			return "", errors.New("only accounts on other servers can be suspended here")
+		if err := app.AdminSuspend(admin, t); err != nil {
+			return "", err
 		}
-		app.SuspendAccount(t)
 		msg = "Suspended " + t.Acct() + " and resolved the report."
 	case "block":
 		if t.IsLocal() {
@@ -67,22 +68,101 @@ func (app *App) ResolveReport(admin *Account, id, action, note string) (string, 
 
 // SuspendAccount hides a remote account: its posts disappear, its activities
 // are ignored and follows in both directions end (like a one-account domain block).
+// Local accounts go to suspendLocal instead.
 func (app *App) SuspendAccount(a *Account) {
-	app.db.Exec(`UPDATE accounts SET suspended=1 WHERE id=? AND domain != ''`, a.ID)
+	if a.IsLocal() {
+		app.suspendLocal(a, true)
+		return
+	}
+	app.db.Exec(`UPDATE accounts SET suspended=1, remote_suspended=0 WHERE id=? AND domain != ''`, a.ID)
 	app.db.Exec(`DELETE FROM follows WHERE account_id=? OR target_id=?`, a.ID, a.ID)
 	app.db.Exec(`DELETE FROM notifications WHERE from_account_id=?`, a.ID)
+}
+
+// AdminSuspend is an admin suspending an account (from a report or the user list).
+func (app *App) AdminSuspend(admin, a *Account) error {
+	switch {
+	case a.ID == admin.ID:
+		return errors.New("you can't suspend yourself")
+	case a.IsLocal() && a.ActorType == "Application":
+		return errors.New("that's the server's own account")
+	case a.IsLocal() && !app.isUser(a.ID):
+		return errors.New("that account was deleted")
+	case a.Suspended:
+		return errors.New(a.Acct() + " is already suspended")
+	}
+	app.SuspendAccount(a)
+	return nil
 }
 
 // UnsuspendAccount lifts a suspension, unless the account's server is blocked.
 func (app *App) UnsuspendAccount(a *Account) error {
 	if a.IsLocal() {
-		return errors.New("not a remote account")
+		if !app.isUser(a.ID) {
+			return errors.New("that account was deleted")
+		}
+		app.suspendLocal(a, false)
+		return nil
 	}
 	if app.domainBlocked(a.Domain) {
 		return errors.New(a.Domain + " is blocked; unblock the server instead")
 	}
-	_, err := app.db.Exec(`UPDATE accounts SET suspended=0 WHERE id=?`, a.ID)
+	_, err := app.db.Exec(`UPDATE accounts SET suspended=0, remote_suspended=0 WHERE id=?`, a.ID)
 	return err
+}
+
+// A suspended local account keeps its user row, posts, media and follows, so
+// the suspension can be lifted; a deleted one has lost its user row. While
+// suspended, nobody can log in or use its tokens, its profile and posts are
+// hidden here, and the actor document says "suspended": true with an empty
+// profile. Like Mastodon, other servers learn about it through an Update of
+// the actor (and again when the suspension is lifted).
+func (app *App) suspendLocal(a *Account, on bool) {
+	app.db.Exec(`UPDATE accounts SET suspended=? WHERE id=? AND domain=''`, on, a.ID)
+	if on {
+		app.db.Exec(`DELETE FROM sessions WHERE account_id=?`, a.ID)
+	}
+	if acc, err := app.AccountByID(a.ID); err == nil {
+		*a = *acc
+		app.sendActorUpdate(acc)
+	}
+}
+
+func (app *App) sendActorUpdate(acc *Account) {
+	app.enqueue(acc, uniq(append(app.followerInboxes(acc.ID), app.followingInboxes(acc.ID)...)), app.updateActorActivity(acc))
+}
+
+func (app *App) isUser(accountID string) bool {
+	var n int
+	app.db.QueryRow(`SELECT COUNT(*) FROM users WHERE account_id=?`, accountID).Scan(&n)
+	return n > 0
+}
+
+// followRemoteSuspension mirrors a suspension announced by the account's own
+// server ("suspended": true in its actor, as Mastodon sends). Suspensions by
+// our admins or domain blocks are never lifted this way.
+func (app *App) followRemoteSuspension(a *Account, suspended bool) {
+	if suspended && !a.Suspended {
+		app.db.Exec(`UPDATE accounts SET suspended=1, remote_suspended=1 WHERE id=?`, a.ID)
+		a.Suspended = true
+	} else if !suspended && a.Suspended && !app.domainBlocked(a.Domain) {
+		if res, err := app.db.Exec(`UPDATE accounts SET suspended=0, remote_suspended=0 WHERE id=? AND remote_suspended=1`, a.ID); err == nil {
+			if n, _ := res.RowsAffected(); n > 0 {
+				a.Suspended = false
+			}
+		}
+	}
+}
+
+// liftsOwnSuspension lets an account suspended by its own server through to
+// announce the end of that suspension with an Update of itself.
+func (app *App) liftsOwnSuspension(signer *Account, act obj) bool {
+	if ap.Type(act) != "Update" || ap.ID(act["object"]) != signer.URI {
+		return false
+	}
+	var remote bool
+	app.db.QueryRow(`SELECT remote_suspended FROM accounts WHERE id=?`, signer.ID).Scan(&remote)
+	return remote
 }
 
 // loadReports returns reports matching where (on reports r), newest first,

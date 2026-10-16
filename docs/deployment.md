@@ -12,7 +12,7 @@ go build -o trough ./cmd/trough
 ./trough serve -host example.org -listen 127.0.0.1:8790 -data ./data
 ```
 
-Other commands: `trough user password <name>`, `trough user admin <name> on|off`, `trough user list`,
+Other commands: `trough user password <name>`, `trough user admin <name> on|off`, `trough user suspend <name> on|off`, `trough user list`,
 `trough fetch <url>` (signed GET of an ActivityPub object, for debugging). Every flag can also be set as
 an environment variable (`TROUGH_HOST`, `TROUGH_LISTEN`, `TROUGH_DATA`, ...).
 

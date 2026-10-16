@@ -62,10 +62,6 @@ func TestReportModeration(t *testing.T) {
 		t.Error("admin page doesn't summarize open reports")
 	}
 
-	// local accounts can't be suspended from a report; the report stays open
-	if _, err := la.ResolveReport(root, aboutBob, "suspend", ""); err == nil {
-		t.Error("suspended a local account")
-	}
 	// deleting a reported local post federates the deletion
 	if msg, err := la.ResolveReport(root, aboutBob, "delete", "agreed, removed"); err != nil || !strings.Contains(msg, "1 post") {
 		t.Fatalf("delete = %q %v", msg, err)

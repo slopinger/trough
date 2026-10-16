@@ -48,7 +48,7 @@ Files are grouped by prefix:
 | `convmute.go` | muted conversations |
 | `webpush.go` | browser notifications for the web UI (service worker in `web/static/sw.js`) |
 | `languages.go` | post languages offered in the web compose form |
-| `moderation.go` | report review and actions (delete posts, suspend remote accounts, block servers) |
+| `moderation.go` | report review and actions (delete posts, suspend accounts, block servers); local and origin-server suspensions |
 | `statussearch.go` | post search with Mastodon-style operators (web and API) |
 | `remoteinteract.go` | following and interacting from other servers (visitors) |
 | `ai.go`, `translate.go` | AI drafting and translation |

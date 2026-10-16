@@ -19,14 +19,14 @@
     <div class="row-actions">
       <button class="btn small" name="action" value="none">Resolve, no action</button>
       {{if .Statuses}}<button class="btn small danger-outline" name="action" value="delete" data-confirm="Delete the {{len .Statuses}} reported {{if eq (len .Statuses) 1}}post{{else}}posts{{end}}?{{if .Target.IsLocal}} The deletion is sent to other servers too.{{end}}">Delete {{if eq (len .Statuses) 1}}post{{else}}{{len .Statuses}} posts{{end}}</button>{{end}}
-      {{if not .Target.IsLocal}}{{if not .Target.Suspended}}<button class="btn small danger-outline" name="action" value="suspend" data-confirm="Suspend {{handle .Target}}? Their posts disappear here and follows in both directions end.">Suspend account</button>{{end}}
-      <button class="btn small danger-outline" name="action" value="block" data-confirm="Block the whole server {{.Target.Domain}}?">Block {{.Target.Domain}}</button>{{end}}
+      {{if not .Target.Suspended}}{{if .Target.IsLocal}}{{if ne .Target.ID $p.Me.ID}}<button class="btn small danger-outline" name="action" value="suspend" data-confirm="Suspend {{handle .Target}}? They can't log in, and their profile and posts are hidden until you lift it. Nothing is deleted.">Suspend account</button>{{end}}{{else}}<button class="btn small danger-outline" name="action" value="suspend" data-confirm="Suspend {{handle .Target}}? Their posts disappear here and follows in both directions end.">Suspend account</button>{{end}}{{end}}
+      {{if not .Target.IsLocal}}<button class="btn small danger-outline" name="action" value="block" data-confirm="Block the whole server {{.Target.Domain}}?">Block {{.Target.Domain}}</button>{{end}}
     </div>
   </form>
   {{else}}
   <p class="report-outcome"><b>{{.ActionLabel}}</b>{{if .ResolvedBy}} by <a href="{{.ResolvedBy.Path}}">{{handle .ResolvedBy}}</a>{{end}} <span class="muted small">· {{ago .Resolved}}</span></p>
   {{if .Note}}<blockquote class="prewrap small">{{.Note}}</blockquote>{{end}}
-  {{if and .Target.Suspended (not .Target.IsLocal)}}<form method="post" action="/admin/accounts/{{.Target.ID}}/unsuspend" class="confirm" data-confirm="Lift the suspension of {{handle .Target}}?"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button class="btn small">Lift suspension</button></form>{{end}}
+  {{if .Target.Suspended}}<form method="post" action="/admin/accounts/{{.Target.ID}}/unsuspend" class="confirm" data-confirm="Lift the suspension of {{handle .Target}}?"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button class="btn small">Lift suspension</button></form>{{end}}
   {{end}}
 </section>
 {{else}}<div class="empty">{{if eq .Tab "resolved"}}No resolved reports yet.{{else}}No open reports. Nice and quiet.{{end}}</div>{{end}}

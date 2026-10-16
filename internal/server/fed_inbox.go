@@ -63,7 +63,7 @@ func (app *App) handleInbox(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "signer does not match actor", http.StatusUnauthorized)
 		return
 	}
-	if signer.Suspended {
+	if signer.Suspended && !app.liftsOwnSuspension(signer, act) {
 		w.WriteHeader(http.StatusAccepted)
 		return
 	}

@@ -33,6 +33,11 @@ func (app *App) handleLogin(w http.ResponseWriter, r *http.Request, p *Page) {
 		app.renderStatus(w, http.StatusUnauthorized, "login", p)
 		return
 	}
+	if acc.Suspended {
+		p.Error = "This account is suspended. Contact the admins of this server if you think that's a mistake."
+		app.renderStatus(w, http.StatusForbidden, "login", p)
+		return
+	}
 	next := r.FormValue("next")
 	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.HasPrefix(next, "/\\") {
 		next = "/"

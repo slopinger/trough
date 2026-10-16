@@ -515,6 +515,10 @@ func (app *App) handleToken(w http.ResponseWriter, r *http.Request) {
 			apiJSON(w, 400, obj{"error": "invalid_grant", "error_description": "invalid username or password"})
 			return
 		}
+		if acc.Suspended {
+			apiJSON(w, 403, obj{"error": "invalid_grant", "error_description": "this account is suspended"})
+			return
+		}
 		if app.twoFactorEnabled(acc.ID) {
 			apiJSON(w, 400, obj{"error": "invalid_grant", "error_description": "two-factor authentication is on; log in through the browser"})
 			return
