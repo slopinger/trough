@@ -85,6 +85,7 @@ type Page struct {
 	PendingRequests int
 	NotifPolicy     NotificationPolicy
 	VapidKey        string // settings: for browser notifications
+	Theme, TextSize string // appearance: auto/light/dark, normal/large
 	FeaturedTags    []FeaturedTag
 	FollowedTags    []string
 	BlockedDomains  []string
@@ -172,6 +173,7 @@ func (app *App) web(requireLogin bool, h handler) http.HandlerFunc {
 					p.AI = app.aiEnabled()
 					p.CustomEmojis = app.customEmojis()
 					p.Announcements = app.unreadAnnouncements(acc)
+					app.db.QueryRow(`SELECT theme, text_size FROM users WHERE account_id=?`, acc.ID).Scan(&p.Theme, &p.TextSize)
 					now := time.Now().Unix()
 					app.db.Exec(`UPDATE users SET last_seen=? WHERE account_id=? AND last_seen < ?`, now, acc.ID, now-3600)
 				}

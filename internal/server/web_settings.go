@@ -212,3 +212,16 @@ func (app *App) handleRevokeApp(w http.ResponseWriter, r *http.Request, p *Page)
 	setFlash(w, "Access revoked.")
 	http.Redirect(w, r, "/settings#apps", http.StatusSeeOther)
 }
+
+func (app *App) handleAppearance(w http.ResponseWriter, r *http.Request, p *Page) {
+	theme, size := r.FormValue("theme"), r.FormValue("text_size")
+	if theme != "light" && theme != "dark" {
+		theme = "auto"
+	}
+	if size != "large" {
+		size = "normal"
+	}
+	app.db.Exec(`UPDATE users SET theme=?, text_size=? WHERE account_id=?`, theme, size, p.Me.ID)
+	setFlash(w, "Appearance saved.")
+	http.Redirect(w, r, "/settings#appearance", http.StatusSeeOther)
+}

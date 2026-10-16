@@ -77,6 +77,20 @@
   {{range .BlockedDomains}}<form method="post" action="/settings/domain_blocks" class="inline-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="unblock" value="{{.}}"><code>{{.}}</code><button class="btn small">Unblock</button></form>{{end}}
   <form method="post" action="/settings/domain_blocks" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><input name="domain" placeholder="example.social" required><button class="btn">Block server</button></form>
 </section>
+<section class="card" id="appearance">
+  <h3>Appearance</h3>
+  <form method="post" action="/settings/appearance" class="policy-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Theme <select name="theme">
+      <option value="auto"{{if eq .Theme "auto"}} selected{{end}}>Like my device</option>
+      <option value="light"{{if eq .Theme "light"}} selected{{end}}>Light</option>
+      <option value="dark"{{if eq .Theme "dark"}} selected{{end}}>Dark</option></select></label>
+    <label>Text size <select name="text_size">
+      <option value="normal"{{if ne .TextSize "large"}} selected{{end}}>Normal</option>
+      <option value="large"{{if eq .TextSize "large"}} selected{{end}}>Large</option></select></label>
+    <button class="btn">Save</button>
+  </form>
+</section>
 <section class="card webpush" id="browser-notifications" hidden data-key="{{.VapidKey}}" data-csrf="{{.CSRF}}">
   <h3>Browser notifications</h3>
   <p class="muted small">Get a notification from your browser for mentions, follows, likes and boosts, also while trough isn't open. Each browser is turned on separately.</p>
