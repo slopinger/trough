@@ -3,8 +3,6 @@ package server
 import (
 	"context"
 	"errors"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -209,23 +207,11 @@ func (app *App) followerInboxesOfBoosters(statusID string) []string {
 
 // purgeStatus deletes a status, its boosts, notifications and local media.
 func (app *App) purgeStatus(id string) error {
-	rows, err := app.db.Query(`SELECT file FROM attachments WHERE status_id=? AND file != ''`, id)
-	if err == nil {
-		var files []string
-		for rows.Next() {
-			var f string
-			rows.Scan(&f)
-			files = append(files, f)
-		}
-		rows.Close()
-		for _, f := range files {
-			os.Remove(filepath.Join(app.mediaDir, filepath.Base(f)))
-		}
-	}
+	app.removeMediaFiles(`status_id=?`, id)
 	app.db.Exec(`DELETE FROM notifications WHERE status_id=? OR status_id IN (SELECT id FROM statuses WHERE boost_of_id=?)`, id, id)
 	app.db.Exec(`DELETE FROM statuses WHERE boost_of_id=?`, id)
 	app.db.Exec(`UPDATE statuses SET in_reply_to_id='' WHERE in_reply_to_id=?`, id)
-	_, err = app.db.Exec(`DELETE FROM statuses WHERE id=?`, id)
+	_, err := app.db.Exec(`DELETE FROM statuses WHERE id=?`, id)
 	if err == nil {
 		app.publishDelete(id)
 	}

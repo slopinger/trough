@@ -142,7 +142,10 @@
 - Video and audio uploads (web, Mastodon API, C2S): MP4/MOV, WebM, MP3, Ogg, WAV and FLAC up to 40 MB, recognised
   by their file signature and served with range requests. There is no transcoding, so only formats browsers play
   directly are taken; MP4 metadata boxes (`udta`/`meta`, where phones put the recording location) are blanked in
-  place. Avatars and headers stay images only.
+  place. Avatars and headers stay images only. Videos and audio can have a poster image (`thumbnail` on
+  `POST /api/v2/media` and `PUT /api/v1/media/:id`, re-encoded like images, federated as the Document's `icon`;
+  incoming Mastodon thumbnails are shown too). The web UI takes the poster from a frame of the chosen video in
+  the browser, so the server still needs no ffmpeg.
 - Media: image uploads are re-encoded, which strips EXIF metadata such as GPS positions while keeping the
   orientation. Remote media goes through an HMAC-signed caching proxy, so remote servers never see visitors'
   IP addresses and the page can use a strict CSP (`img-src 'self'`). Cache entries with missing data

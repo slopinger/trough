@@ -143,6 +143,9 @@ func (app *App) noteJSON(st *Status) obj {
 		if a.Width > 0 {
 			o["width"], o["height"] = a.Width, a.Height
 		}
+		if a.PreviewURL != "" {
+			o["icon"] = imageObj(a.PreviewURL)
+		}
 		atts = append(atts, o)
 	}
 	m := obj{

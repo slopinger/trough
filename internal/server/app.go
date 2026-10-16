@@ -153,9 +153,7 @@ func (app *App) cleanOrphanMedia() {
 	}
 	rows.Close()
 	for _, o := range list {
-		if o.file != "" {
-			os.Remove(filepath.Join(app.mediaDir, filepath.Base(o.file)))
-		}
+		app.removeMediaFiles(`id=?`, o.id)
 		app.db.Exec(`DELETE FROM attachments WHERE id=?`, o.id)
 	}
 }

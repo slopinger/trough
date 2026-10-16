@@ -105,8 +105,8 @@
 {{define "media"}}<div class="media n{{len .Attachments}}">
   {{range .Attachments}}
   {{if eq .Kind "image"}}<a href="{{media .URL}}" target="_blank" class="m-img"><img src="{{media .URL}}" alt="{{.Description}}" title="{{.Description}}" loading="lazy"></a>
-  {{else if eq .Kind "video"}}<video controls playsinline preload="none" src="{{media .URL}}" title="{{.Description}}" aria-label="{{.Description}}"{{if .Width}} width="{{.Width}}" height="{{.Height}}"{{end}}></video>
-  {{else if eq .Kind "audio"}}<audio controls preload="none" src="{{media .URL}}" title="{{.Description}}" aria-label="{{.Description}}"></audio>
+  {{else if eq .Kind "video"}}<video controls playsinline preload="none" src="{{media .URL}}"{{if .PreviewURL}} poster="{{media .PreviewURL}}"{{end}} title="{{.Description}}" aria-label="{{.Description}}"{{if .Width}} width="{{.Width}}" height="{{.Height}}"{{end}}></video>
+  {{else if eq .Kind "audio"}}<div class="m-audio">{{if .PreviewURL}}<img src="{{media .PreviewURL}}" alt="" loading="lazy">{{end}}<audio controls preload="none" src="{{media .URL}}" title="{{.Description}}" aria-label="{{.Description}}"></audio></div>
   {{else}}<a class="m-file" href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{template "icon" "external"}} attachment ({{.MediaType}})</a>{{end}}
   {{end}}
 </div>{{end}}

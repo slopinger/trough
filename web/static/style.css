@@ -233,6 +233,7 @@ legend { color: var(--muted); padding: 0 4px; }
 .counter.over { color: var(--danger); font-weight: 700; }
 .attach summary { cursor: pointer; color: var(--muted); padding: 2px 0; }
 .att-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 8px; margin: 8px 0; }
+.att-row .poster-preview { grid-column: 1 / -1; height: 72px; width: auto; justify-self: start; border-radius: 8px; border: 1px solid var(--line); }
 .replying { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 520px) { .att-row, .fieldrow { grid-template-columns: 1fr; } }
 
@@ -298,6 +299,8 @@ details.sensitive > summary { cursor: pointer; padding: 18px; text-align: center
 .media.n2 img, .media.n3 img, .media.n4 img { aspect-ratio: 16 / 10; }
 .media video { width: 100%; height: auto; max-height: 520px; background: #000; }
 .media audio { width: 100%; }
+.media .m-audio { display: flex; flex-direction: column; gap: 8px; background: var(--panel-2); padding: 8px; }
+.media .m-audio img { width: 100%; max-height: 320px; object-fit: contain; border-radius: 8px; }
 .m-file { display: block; padding: 10px; background: var(--panel-2); }
 
 .poll { margin: 8px 0; }

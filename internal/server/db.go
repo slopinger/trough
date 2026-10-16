@@ -539,6 +539,9 @@ CREATE TABLE web_push_subscriptions (
 `, `
 ALTER TABLE users ADD COLUMN theme TEXT NOT NULL DEFAULT 'auto';
 ALTER TABLE users ADD COLUMN text_size TEXT NOT NULL DEFAULT 'normal';
+`, `
+ALTER TABLE attachments ADD COLUMN preview_url TEXT NOT NULL DEFAULT '';
+ALTER TABLE attachments ADD COLUMN preview_file TEXT NOT NULL DEFAULT '';
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

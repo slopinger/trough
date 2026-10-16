@@ -42,18 +42,7 @@ func (app *App) DeleteOwnAccount(me *Account) error {
 	for _, id := range ids {
 		app.purgeStatus(id)
 	}
-	if rows, err := app.db.Query(`SELECT file FROM attachments WHERE account_id=? AND file != ''`, me.ID); err == nil {
-		var files []string
-		for rows.Next() {
-			var f string
-			rows.Scan(&f)
-			files = append(files, f)
-		}
-		rows.Close()
-		for _, f := range files {
-			os.Remove(filepath.Join(app.mediaDir, filepath.Base(f)))
-		}
-	}
+	app.removeMediaFiles(`account_id=?`, me.ID)
 	for _, u := range []string{me.Avatar, me.Header} {
 		if strings.Contains(u, "/media/") {
 			os.Remove(filepath.Join(app.mediaDir, filepath.Base(u)))

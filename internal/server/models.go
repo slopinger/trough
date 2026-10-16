@@ -220,6 +220,7 @@ type Attachment struct {
 	URL, MediaType          string
 	Description, File       string
 	Width, Height           int
+	PreviewURL, PreviewFile string // poster image of a video or cover of an audio file
 }
 
 func (at *Attachment) Kind() string {
@@ -398,7 +399,7 @@ func (app *App) attachmentsFor(statusIDs []string) (map[string][]*Attachment, er
 	if len(statusIDs) == 0 {
 		return out, nil
 	}
-	q, args := inClause(`SELECT id,status_id,account_id,url,media_type,description,file,width,height FROM attachments WHERE status_id IN (%s) ORDER BY position`, statusIDs)
+	q, args := inClause(`SELECT id,status_id,account_id,url,media_type,description,file,width,height,preview_url,preview_file FROM attachments WHERE status_id IN (%s) ORDER BY position`, statusIDs)
 	rows, err := app.db.Query(q, args...)
 	if err != nil {
 		return nil, err
@@ -407,7 +408,7 @@ func (app *App) attachmentsFor(statusIDs []string) (map[string][]*Attachment, er
 	for rows.Next() {
 		at := &Attachment{}
 		var sid sql.NullString
-		if err := rows.Scan(&at.ID, &sid, &at.AccountID, &at.URL, &at.MediaType, &at.Description, &at.File, &at.Width, &at.Height); err != nil {
+		if err := rows.Scan(&at.ID, &sid, &at.AccountID, &at.URL, &at.MediaType, &at.Description, &at.File, &at.Width, &at.Height, &at.PreviewURL, &at.PreviewFile); err != nil {
 			return nil, err
 		}
 		at.StatusID = sid.String

@@ -57,30 +57,37 @@ func (app *App) saveUpload(acc *Account, data []byte, description string) (*Atta
 // which strips EXIF metadata (GPS positions!) after applying the EXIF
 // orientation. GIFs are kept as they are (animation).
 func (app *App) saveImage(acc *Account, data []byte, description string) (*Attachment, error) {
+	out, ext, mediaType, w, h, err := encodeImage(data)
+	if err != nil {
+		return nil, err
+	}
+	return app.storeAttachment(acc, out, ext, mediaType, description, w, h)
+}
+
+// encodeImage checks an uploaded image and re-encodes it (see saveImage).
+func encodeImage(data []byte) (out []byte, ext, mediaType string, w, h int, err error) {
 	if len(data) > maxUploadSize {
-		return nil, errors.New("image is too large (max 16 MB)")
+		return nil, "", "", 0, 0, errors.New("image is too large (max 16 MB)")
 	}
 	ct := http.DetectContentType(data)
 	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
-		return nil, errors.New("unsupported file type (use JPEG, PNG, GIF or WebP)")
+		return nil, "", "", 0, 0, errors.New("unsupported file type (use JPEG, PNG, GIF or WebP)")
 	}
 	if cfg.Width <= 0 || cfg.Height <= 0 || cfg.Width*cfg.Height > maxImagePixels || cfg.Width > 16384 || cfg.Height > 16384 {
-		return nil, errors.New("image dimensions are too large")
+		return nil, "", "", 0, 0, errors.New("image dimensions are too large")
 	}
-	var out []byte
-	var ext, mediaType string
-	w, h := cfg.Width, cfg.Height
+	w, h = cfg.Width, cfg.Height
 	switch format {
 	case "gif":
 		if _, err := gif.DecodeAll(bytes.NewReader(data)); err != nil {
-			return nil, errors.New("broken GIF")
+			return nil, "", "", 0, 0, errors.New("broken GIF")
 		}
 		out, ext, mediaType = data, ".gif", "image/gif"
 	case "jpeg", "png", "webp":
 		img, _, err := image.Decode(bytes.NewReader(data))
 		if err != nil {
-			return nil, errors.New("could not decode image")
+			return nil, "", "", 0, 0, errors.New("could not decode image")
 		}
 		if format == "jpeg" {
 			img = applyOrientation(img, jpegOrientation(data))
@@ -100,13 +107,13 @@ func (app *App) saveImage(acc *Account, data []byte, description string) (*Attac
 			ext, mediaType = ".jpg", "image/jpeg"
 		}
 		if err != nil {
-			return nil, err
+			return nil, "", "", 0, 0, err
 		}
 		out = buf.Bytes()
 	default:
-		return nil, fmt.Errorf("unsupported image type %s", ct)
+		return nil, "", "", 0, 0, fmt.Errorf("unsupported image type %s", ct)
 	}
-	return app.storeAttachment(acc, out, ext, mediaType, description, w, h)
+	return out, ext, mediaType, w, h, nil
 }
 
 func (app *App) storeAttachment(acc *Account, out []byte, ext, mediaType, description string, w, h int) (*Attachment, error) {
@@ -122,6 +129,54 @@ func (app *App) storeAttachment(acc *Account, out []byte, ext, mediaType, descri
 	_, err := app.db.Exec(`INSERT INTO attachments (id,status_id,account_id,url,media_type,description,file,width,height,created_at) VALUES (?,NULL,?,?,?,?,?,?,?,?)`,
 		at.ID, at.AccountID, at.URL, at.MediaType, at.Description, at.File, at.Width, at.Height, time.Now().Unix())
 	return at, err
+}
+
+// setPoster stores a poster image for a video or audio attachment (Mastodon's
+// "thumbnail"), re-encoded like any image upload, and removes the previous one.
+func (app *App) setPoster(at *Attachment, data []byte) error {
+	if k := at.Kind(); k != "video" && k != "audio" {
+		return errors.New("only videos and audio can have a thumbnail")
+	}
+	out, ext, _, _, _, err := encodeImage(data)
+	if err != nil {
+		return err
+	}
+	name := ulid.New() + ext
+	if err := os.WriteFile(filepath.Join(app.mediaDir, name), out, 0o640); err != nil {
+		return err
+	}
+	old := at.PreviewFile
+	at.PreviewURL, at.PreviewFile = app.cfg.BaseURL()+"/media/"+name, name
+	if _, err := app.db.Exec(`UPDATE attachments SET preview_url=?, preview_file=? WHERE id=?`, at.PreviewURL, at.PreviewFile, at.ID); err != nil {
+		os.Remove(filepath.Join(app.mediaDir, name))
+		return err
+	}
+	if old != "" {
+		os.Remove(filepath.Join(app.mediaDir, filepath.Base(old)))
+	}
+	return nil
+}
+
+// removeMediaFiles deletes the local files (uploads and posters) of the attachments
+// matching where; the rows themselves are left to the caller.
+func (app *App) removeMediaFiles(where string, args ...any) {
+	rows, err := app.db.Query(`SELECT file, preview_file FROM attachments WHERE `+where, args...)
+	if err != nil {
+		return
+	}
+	var files []string
+	for rows.Next() {
+		var f, p string
+		if rows.Scan(&f, &p) == nil {
+			files = append(files, f, p)
+		}
+	}
+	rows.Close()
+	for _, f := range files {
+		if f != "" {
+			os.Remove(filepath.Join(app.mediaDir, filepath.Base(f)))
+		}
+	}
 }
 
 func jpegOrientation(b []byte) int {

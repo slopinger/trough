@@ -284,8 +284,15 @@ func (app *App) replaceNoteExtras(ctx context.Context, st *Status, note obj) map
 		}
 		w, _ := a["width"].(float64)
 		h, _ := a["height"].(float64)
-		app.db.Exec(`INSERT INTO attachments (id,status_id,account_id,url,media_type,description,width,height,position,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)`,
-			ulid.New(), st.ID, st.AccountID, u, mt, truncateRunes(ap.Str(a, "name"), 1500), int(w), int(h), i, time.Now().Unix())
+		// Mastodon sends a video's or audio file's thumbnail as its icon
+		poster := ""
+		if icon := ap.Object(a["icon"]); icon != nil && !strings.HasPrefix(mt, "image/") {
+			if p := ap.URL(icon["url"]); strings.HasPrefix(p, "https://") || (app.cfg.Insecure && strings.HasPrefix(p, "http://")) {
+				poster = p
+			}
+		}
+		app.db.Exec(`INSERT INTO attachments (id,status_id,account_id,url,media_type,description,width,height,position,created_at,preview_url) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+			ulid.New(), st.ID, st.AccountID, u, mt, truncateRunes(ap.Str(a, "name"), 1500), int(w), int(h), i, time.Now().Unix(), poster)
 	}
 	return local
 }

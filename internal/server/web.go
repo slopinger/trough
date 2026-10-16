@@ -145,7 +145,7 @@ func clientIP(r *http.Request) string {
 
 func (app *App) setSecurityHeaders(w http.ResponseWriter) {
 	h := w.Header()
-	h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; media-src 'self'; style-src 'self'; script-src 'self'; "+
+	h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; media-src 'self' blob:; style-src 'self'; script-src 'self'; "+
 		"object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'")
 	h.Set("X-Content-Type-Options", "nosniff")
 	h.Set("Referrer-Policy", "same-origin")

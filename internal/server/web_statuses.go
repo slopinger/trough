@@ -4,6 +4,7 @@ import (
 	"context"
 	"html/template"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -189,6 +190,12 @@ func (app *App) handlePost(w http.ResponseWriter, r *http.Request, p *Page) {
 			if err != nil {
 				fail(fhs[0].Filename + ": " + err.Error())
 				return
+			}
+			// a poster frame the browser took from the video (see app.js); best effort
+			if thumb := formFile(r, "thumb"+string(rune('0'+i))); thumb != nil && at.Kind() != "image" {
+				if err := app.setPoster(at, thumb); err != nil {
+					log.Printf("poster for %s: %v", at.ID, err)
+				}
 			}
 			in.MediaIDs = append(in.MediaIDs, at.ID)
 		}

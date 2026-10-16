@@ -586,6 +586,51 @@
     });
   })();
 
+  // Video posters: take a frame from a chosen video and send it along as thumbN,
+  // so timelines show a picture instead of a black box (the server doesn't transcode).
+  document.querySelectorAll('form.compose input[type=file][name^="media"]').forEach(function (input) {
+    if (!window.DataTransfer || !window.URL || !URL.createObjectURL) return;
+    var n = input.name.slice(5), row = input.closest(".att-row") || input.parentNode;
+    function clear() {
+      var old = row.querySelector(".poster-preview"), thumb = input.form.querySelector('input[name="thumb' + n + '"]');
+      if (old) old.remove();
+      if (thumb) thumb.remove();
+    }
+    input.addEventListener("change", function () {
+      clear();
+      var file = input.files && input.files[0];
+      if (!file || file.type.indexOf("video/") !== 0) return;
+      var url = URL.createObjectURL(file), v = document.createElement("video");
+      v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = url;
+      var done = function () { URL.revokeObjectURL(url); v.removeAttribute("src"); v.load(); };
+      v.addEventListener("loadeddata", function () {
+        v.currentTime = Math.min(1, (v.duration || 0) / 4); // skip a black first frame
+      }, { once: true });
+      v.addEventListener("seeked", function () {
+        var scale = Math.min(1, 1280 / Math.max(v.videoWidth, 1));
+        var c = document.createElement("canvas");
+        c.width = Math.round(v.videoWidth * scale); c.height = Math.round(v.videoHeight * scale);
+        if (!c.width || !c.height) { done(); return; }
+        c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+        done();
+        c.toBlob(function (blob) {
+          if (!blob || input.files[0] !== file) return;
+          var dt = new DataTransfer();
+          dt.items.add(new File([blob], "poster.jpg", { type: "image/jpeg" }));
+          var thumb = document.createElement("input");
+          thumb.type = "file"; thumb.name = "thumb" + n; thumb.hidden = true;
+          thumb.files = dt.files;
+          input.form.appendChild(thumb);
+          var img = document.createElement("img");
+          img.className = "poster-preview"; img.alt = ""; img.title = "Poster frame shown before the video plays";
+          img.src = c.toDataURL("image/jpeg", 0.6);
+          row.appendChild(img);
+        }, "image/jpeg", 0.85);
+      }, { once: true });
+      v.addEventListener("error", done, { once: true });
+    });
+  });
+
   // Remind people to describe images before posting.
   document.querySelectorAll("form.compose").forEach(function (form) {
     form.addEventListener("submit", function (ev) {

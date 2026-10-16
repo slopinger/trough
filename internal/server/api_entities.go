@@ -125,12 +125,19 @@ func (app *App) apiMedia(at *Attachment) obj {
 		kind = "image"
 	}
 	u := app.absMedia(at.URL)
+	var preview any = u // videos and audio: their poster image, if any
+	if kind != "image" {
+		preview = nullIfEmpty(app.absMedia(at.PreviewURL))
+	}
 	m := obj{
-		"id": at.ID, "type": kind, "url": u, "preview_url": u, "text_url": nil,
+		"id": at.ID, "type": kind, "url": u, "preview_url": preview, "text_url": nil,
 		"remote_url": nil, "description": nullIfEmpty(at.Description), "blurhash": nil, "meta": obj{},
 	}
 	if !strings.HasPrefix(at.URL, app.cfg.BaseURL()) {
 		m["remote_url"] = at.URL
+	}
+	if at.PreviewURL != "" && !strings.HasPrefix(at.PreviewURL, app.cfg.BaseURL()) {
+		m["preview_remote_url"] = at.PreviewURL
 	}
 	if at.Width > 0 && at.Height > 0 {
 		orig := obj{"width": at.Width, "height": at.Height, "size": fmt.Sprintf("%dx%d", at.Width, at.Height), "aspect": float64(at.Width) / float64(at.Height)}
