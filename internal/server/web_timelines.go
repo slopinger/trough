@@ -98,6 +98,7 @@ func (app *App) handleTag(w http.ResponseWriter, r *http.Request, p *Page) {
 	}
 	p.Title, p.Heading = "#"+tag, "#"+tag
 	p.Tag, p.TagFollowed = tag, app.followsTag(p.Me, tag)
+	p.TagStats = app.tagStats(tag)
 	p.TagFeatured = p.Me != nil && app.featuresTag(p.Me, tag)
 	p.Statuses = app.applyFilters(p.Me, sts, "public")
 	p.NextURL = nextURL(r, sts)

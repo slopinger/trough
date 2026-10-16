@@ -51,12 +51,22 @@ func TestTrends(t *testing.T) {
 			t.Fatalf("explore%s: %d", tab, resp.StatusCode)
 		}
 	}
+	// The hashtag page sums up the week: the private post doesn't count.
+	resp, err := http.Get(la.base + "/tags/trough")
+	if err != nil {
+		t.Fatal(err)
+	}
+	page, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if !strings.Contains(string(page), "<b>2</b> posts from <b>2</b> people this week · <b>2</b> today") {
+		t.Errorf("hashtag header missing or wrong")
+	}
 	// A link shared by two people trends; Explore leads to its posts.
 	la.db.Exec(`UPDATE statuses SET card_url='https://news.example/pigs' WHERE id IN (?,?)`, hot.ID, meToo.ID)
 	if links := c.ok("GET", "/api/v1/trends/links", nil).([]any); len(links) != 1 {
 		t.Fatalf("trending links = %v", links)
 	}
-	resp, err := http.Get(la.base + "/explore?tab=links")
+	resp, err = http.Get(la.base + "/explore?tab=links")
 	if err != nil {
 		t.Fatal(err)
 	}

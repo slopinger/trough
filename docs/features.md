@@ -65,7 +65,8 @@
   Tusky 33.1 in an emulator; see [development.md](development.md#client-tests)
 
 ## Web interface
-- Home, local and federated timelines, hashtag timelines, threads with nested replies
+- Home, local and federated timelines, hashtag timelines (headed by this week's posts and people, today's posts
+  and a sparkline), threads with nested replies
 - Autocomplete while writing: `@accounts` (people you follow first), `#hashtags` and `:custom_emoji:`, picked with
   the arrow keys and Enter/Tab or the mouse
 - A reminder before posting images without a description (alt text)

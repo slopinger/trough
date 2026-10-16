@@ -88,6 +88,24 @@ func (app *App) tagHistory(tag string) []TagDay {
 		WHERE t.tag=? AND s.visibility='public' AND s.boost_of_id='' AND a.suspended=0 AND s.created_at >= ? GROUP BY d`, tag, trendSince())
 }
 
+// TagStats is the header of a hashtag page: this week's public posts and
+// the people writing them, today's posts, and the per-day history.
+type TagStats struct {
+	Posts, People, Today int
+	History              []TagDay
+}
+
+func (app *App) tagStats(tag string) *TagStats {
+	t := &TagStats{History: app.tagHistory(tag)}
+	app.db.QueryRow(`SELECT COUNT(*), COUNT(DISTINCT s.account_id) FROM status_tags t
+		JOIN statuses s ON s.id=t.status_id JOIN accounts a ON a.id=s.account_id
+		WHERE t.tag=? AND s.visibility='public' AND s.boost_of_id='' AND a.suspended=0 AND s.created_at >= ?`, tag, trendSince()).Scan(&t.Posts, &t.People)
+	if len(t.History) > 0 {
+		t.Today = t.History[0].Uses
+	}
+	return t
+}
+
 func (app *App) dayCounts(q string, args ...any) []TagDay {
 	counts := map[int64][2]int{}
 	if rows, err := app.db.Query(q, args...); err == nil {
