@@ -67,6 +67,23 @@ func (app *App) apiUpdateCredentials(w http.ResponseWriter, r *http.Request, c *
 	if seenFields {
 		me.Fields = fields
 	}
+	if p.Has("source.privacy") || p.Has("source.sensitive") || p.Has("source.language") {
+		pr := app.prefs(me.ID)
+		if p.Has("source.privacy") {
+			if _, ok := visibilityRank[p.Get("source.privacy")]; !ok {
+				apiError(w, 422, "Validation failed: source[privacy] is invalid")
+				return
+			}
+			pr.Visibility = p.Get("source.privacy")
+		}
+		if p.Has("source.sensitive") {
+			pr.Sensitive = p.Bool("source.sensitive")
+		}
+		if p.Has("source.language") {
+			pr.Language = p.Get("source.language")
+		}
+		app.setPrefs(me.ID, pr)
+	}
 	if p.Has("source.quote_policy") {
 		if err := app.SetDefaultQuotePolicy(me, p.Get("source.quote_policy")); err != nil {
 			apiError(w, 422, "Validation failed: "+err.Error())

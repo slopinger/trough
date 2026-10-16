@@ -20,7 +20,7 @@
   {{if $o.InReplyToURI}}<div class="replyto">{{template "icon" "reply"}} {{if $o.InReplyToAccount}}in reply to <a href="{{$o.InReplyToAccount.Path}}">{{handle $o.InReplyToAccount}}</a>{{else if $o.InReplyToID}}<a href="/s/{{$o.InReplyToID}}">in reply to a post</a>{{else}}in reply to a post{{end}}</div>{{end}}
   {{if $s.FilteredBy}}<details class="filtered"><summary>Filtered: “{{$s.FilteredBy}}” <span class="cwbtn">show anyway</span></summary>{{end}}
   {{if $o.Spoiler}}
-  <details class="cw"><summary><span class="cwtext">{{spoiler $o}}</span> <span class="cwbtn">show more</span></summary>{{template "statusbody" (dict "S" $o "P" $p)}}</details>
+  <details class="cw"{{if $p.Prefs.Spoilers}} open{{end}}><summary><span class="cwtext">{{spoiler $o}}</span> <span class="cwbtn">show more</span></summary>{{template "statusbody" (dict "S" $o "P" $p)}}</details>
   {{else}}{{template "statusbody" (dict "S" $o "P" $p)}}{{end}}
   {{if $s.FilteredBy}}</details>{{end}}
   {{if and .Focus (or $o.Boosts $o.Likes)}}<div class="s-stats">{{if $o.Boosts}}<a href="/s/{{$o.ID}}/boosts"><b>{{$o.Boosts}}</b> {{if eq $o.Boosts 1}}boost{{else}}boosts{{end}}</a>{{end}}{{if $o.Likes}}<a href="/s/{{$o.ID}}/favourites"><b>{{$o.Likes}}</b> {{if eq $o.Likes 1}}favourite{{else}}favourites{{end}}</a>{{end}}</div>{{end}}
@@ -94,7 +94,7 @@
   {{- else if $s.QuoteState}}<span class="quote"><span class="quote-body muted">The quoted post's author removed this quote</span></span>
   {{- else if $s.QuoteURI}}<a class="quote" href="/search?q={{$s.QuoteURI}}"><span class="quote-body muted">Quoted post: {{$s.QuoteURI}}</span></a>{{end}}
   {{if $s.Attachments}}
-  {{if or $s.Sensitive $s.Blurred}}<details class="sensitive"><summary>{{template "icon" "image"}} {{if $s.Blurred}}Media hidden by a filter{{else}}Sensitive media{{end}} — click to show</summary>{{template "media" $s}}</details>
+  {{if hideMedia $p $s}}<details class="sensitive"><summary>{{template "icon" "image"}} {{if $s.Blurred}}Media hidden by a filter{{else if $s.Sensitive}}Sensitive media{{else}}Media hidden{{end}} — click to show</summary>{{template "media" $s}}</details>
   {{else}}{{template "media" $s}}{{end}}
   {{else if $s.Card}}{{with $s.Card}}<a class="card-link" href="{{.URL}}" target="_blank" rel="noopener noreferrer nofollow">
     {{if .Image}}<img src="{{media .Image}}" alt="" loading="lazy">{{end}}

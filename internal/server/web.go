@@ -93,6 +93,7 @@ type Page struct {
 	NotifPolicy     NotificationPolicy
 	VapidKey        string // settings: for browser notifications
 	Theme, TextSize string // appearance: auto/light/dark, normal/large
+	Prefs           Prefs  // posting and reading preferences of the viewer
 	FeaturedTags    []FeaturedTag
 	FollowedTags    []string
 	FollowedTagRows []FollowedTag
@@ -181,6 +182,7 @@ func (app *App) web(requireLogin bool, h handler) http.HandlerFunc {
 					p.Unread = app.unreadNotifications(acc.ID)
 					p.Requests = app.followRequestCount(acc.ID)
 					p.DMs = app.unreadConversations(acc)
+					p.Prefs = app.prefs(acc.ID)
 					p.AI = app.aiEnabled()
 					p.CustomEmojis = app.customEmojis()
 					p.Announcements = app.unreadAnnouncements(acc)
@@ -231,6 +233,7 @@ func (app *App) web(requireLogin bool, h handler) http.HandlerFunc {
 
 func (app *App) render(w http.ResponseWriter, name string, p *Page) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	composeDefaults(p.Compose, p.Prefs)
 	if err := app.tmpl.execute(w, name, p); err != nil {
 		log.Printf("render %s: %v", name, err)
 	}
@@ -238,6 +241,7 @@ func (app *App) render(w http.ResponseWriter, name string, p *Page) {
 
 func (app *App) renderStatus(w http.ResponseWriter, code int, name string, p *Page) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	composeDefaults(p.Compose, p.Prefs)
 	w.WriteHeader(code)
 	if err := app.tmpl.execute(w, name, p); err != nil {
 		log.Printf("render %s: %v", name, err)

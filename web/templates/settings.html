@@ -78,6 +78,28 @@
   {{range .BlockedDomains}}<form method="post" action="/settings/domain_blocks" class="inline-form"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="unblock" value="{{.}}"><code>{{.}}</code><button class="btn small">Unblock</button></form>{{end}}
   <form method="post" action="/settings/domain_blocks" class="inline-form"><input type="hidden" name="csrf" value="{{.CSRF}}"><input name="domain" placeholder="example.social" required><button class="btn">Block server</button></form>
 </section>
+<section class="card" id="preferences">
+  <h3>Posting and reading</h3>
+  <form method="post" action="/settings/preferences" class="policy-form">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>New posts are <select name="visibility">
+      <option value="public"{{if eq .Prefs.Visibility "public"}} selected{{end}}>🌍 Public</option>
+      <option value="unlisted"{{if eq .Prefs.Visibility "unlisted"}} selected{{end}}>🔓 Unlisted</option>
+      <option value="private"{{if eq .Prefs.Visibility "private"}} selected{{end}}>🔒 Followers only</option>
+      <option value="direct"{{if eq .Prefs.Visibility "direct"}} selected{{end}}>✉️ Mentioned people only</option></select></label>
+    <label>Language of new posts <select name="language">
+      <option value=""{{if not .Prefs.Language}} selected{{end}}>The one I used last</option>
+      {{range languages}}<option value="{{.Code}}"{{if eq .Code $.Prefs.Language}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+    <label class="check"><input type="checkbox" name="sensitive"{{if .Prefs.Sensitive}} checked{{end}}> Always mark my media as sensitive</label>
+    <label>Media in posts <select name="media">
+      <option value="default"{{if eq .Prefs.Media "default"}} selected{{end}}>Hide media marked as sensitive</option>
+      <option value="show_all"{{if eq .Prefs.Media "show_all"}} selected{{end}}>Always show media</option>
+      <option value="hide_all"{{if eq .Prefs.Media "hide_all"}} selected{{end}}>Always hide media</option></select></label>
+    <label class="check"><input type="checkbox" name="spoilers"{{if .Prefs.Spoilers}} checked{{end}}> Always expand posts with content warnings</label>
+    <p class="muted small">Replies stay at least as private as the post they answer. Apps using the Mastodon API read these settings too.</p>
+    <button class="btn">Save</button>
+  </form>
+</section>
 <section class="card" id="appearance">
   <h3>Appearance</h3>
   <form method="post" action="/settings/appearance" class="policy-form">

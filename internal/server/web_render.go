@@ -164,6 +164,7 @@ func (app *App) templateFuncs() template.FuncMap {
 		"add":          func(a, b int) int { return a + b },
 		"languages":    func() any { return postLanguages },
 		"postLanguage": app.postLanguage,
+		"hideMedia":    func(p *Page, s *Status) bool { return p.Prefs.hideMedia(s) },
 		"clampint":     func(v, hi int) int { return min(v, hi) },
 		"percent": func(v int, p *Poll) int {
 			total := 0

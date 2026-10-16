@@ -557,6 +557,12 @@ ALTER TABLE attachments ADD COLUMN focus_y REAL NOT NULL DEFAULT 0;
 `, `
 ALTER TABLE follows ADD COLUMN show_reblogs INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE follows ADD COLUMN notify INTEGER NOT NULL DEFAULT 0;
+`, `
+ALTER TABLE users ADD COLUMN default_visibility TEXT NOT NULL DEFAULT 'public';
+ALTER TABLE users ADD COLUMN default_sensitive INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN default_language TEXT NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN expand_media TEXT NOT NULL DEFAULT 'default';
+ALTER TABLE users ADD COLUMN expand_spoilers INTEGER NOT NULL DEFAULT 0;
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

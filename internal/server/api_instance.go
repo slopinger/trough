@@ -28,8 +28,13 @@ func (app *App) apiPeers(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 }
 
 func (app *App) apiPreferences(w http.ResponseWriter, r *http.Request, c *apiCtx) {
-	apiJSON(w, 200, obj{"posting:default:visibility": "public", "posting:default:sensitive": false, "posting:default:language": nil,
-		"reading:expand:media": "default", "reading:expand:spoilers": false, "posting:default:quoted_policy": app.defaultQuotePolicy(c.Me.ID)})
+	pr := app.prefs(c.Me.ID)
+	var lang any
+	if pr.Language != "" {
+		lang = pr.Language
+	}
+	apiJSON(w, 200, obj{"posting:default:visibility": pr.Visibility, "posting:default:sensitive": pr.Sensitive, "posting:default:language": lang,
+		"reading:expand:media": pr.Media, "reading:expand:spoilers": pr.Spoilers, "posting:default:quoted_policy": app.defaultQuotePolicy(c.Me.ID)})
 }
 
 func (app *App) apiGetMarkers(w http.ResponseWriter, r *http.Request, c *apiCtx) {

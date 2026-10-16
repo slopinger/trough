@@ -47,7 +47,7 @@ func (app *App) handleHome(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Title, p.Section, p.Heading, p.Timeline = "Home", "home", "Home", "home"
 	p.Statuses = app.applyFilters(p.Me, sts, "home")
 	p.NextURL = nextURL(r, sts)
-	p.Compose = &Compose{Visibility: "public"}
+	p.Compose = &Compose{}
 	p.Empty = "Your home timeline is empty. Follow some people! Use search to find accounts on other servers, e.g. @someone@mastodon.social."
 	app.render(w, "timeline", p)
 }
@@ -104,7 +104,7 @@ func (app *App) handleTag(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.NextURL = nextURL(r, sts)
 	p.Empty = "No public posts with this hashtag are known here."
 	if p.Me != nil {
-		p.Compose = &Compose{Visibility: "public", Text: "\n\n#" + tag}
+		p.Compose = &Compose{Text: "\n\n#" + tag}
 	}
 	app.render(w, "timeline", p)
 }
@@ -130,7 +130,7 @@ func (app *App) handleLink(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.NextURL = nextURL(r, sts)
 	p.Empty = "No public posts with this link are known here."
 	if p.Me != nil {
-		p.Compose = &Compose{Visibility: "public", Text: "\n\n" + link}
+		p.Compose = &Compose{Text: "\n\n" + link}
 	}
 	app.render(w, "timeline", p)
 }

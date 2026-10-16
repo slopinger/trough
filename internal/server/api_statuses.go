@@ -83,8 +83,16 @@ func (app *App) apiPostStatus(w http.ResponseWriter, r *http.Request, c *apiCtx)
 	if in.QuoteOf == "" {
 		in.QuoteOf = p.Get("quote_id")
 	}
+	// Mastodon fills what the client leaves out from the posting preferences.
+	pr := app.prefs(c.Me.ID)
 	if in.Visibility == "" {
-		in.Visibility = "public"
+		in.Visibility = pr.Visibility
+	}
+	if !p.Has("sensitive") && len(in.MediaIDs) > 0 {
+		in.Sensitive = pr.Sensitive
+	}
+	if in.Language == "" {
+		in.Language = pr.Language
 	}
 	if opts := p.List("poll.options"); len(opts) > 0 {
 		poll, err := newPollSeconds(opts, p.Int("poll.expires_in", 86400), p.Bool("poll.multiple"))

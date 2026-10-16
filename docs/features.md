@@ -204,6 +204,10 @@
 - Image viewer: attached images open large with their description; arrow keys go through a post's images
 - Browser notifications (Settings, per browser): the web UI subscribes through the browser's push service with the
   server's VAPID key; a service worker at `/sw.js` shows them and opens the post when clicked
+- Posting and reading preferences (Settings, like Mastodon's): default visibility (replies stay at least as
+  private as their parent), default language, always marking media as sensitive, showing or hiding all media
+  and expanding content warnings; clients see them in `/api/v1/preferences` and the credential account's
+  `source`, set them through `update_credentials` `source[...]`, and posts without those params use them
 - Appearance settings: theme (like the device, light or dark) and a larger text size
 - Light and dark theme, responsive layout with a bottom navigation bar on phones
 - Deleting your own account (Settings; password, 2FA code and username to confirm): removes posts, media and

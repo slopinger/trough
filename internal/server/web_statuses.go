@@ -64,7 +64,7 @@ func (app *App) showThread(w http.ResponseWriter, r *http.Request, p *Page, st *
 }
 
 func (app *App) replyCompose(me *Account, st *Status) *Compose {
-	c := &Compose{ReplyTo: st, Visibility: st.Visibility, Spoiler: st.Spoiler}
+	c := &Compose{ReplyTo: st, Spoiler: st.Spoiler}
 	var mentions []string
 	seen := map[string]bool{me.ID: true}
 	add := func(a *Account) {
@@ -102,7 +102,7 @@ func (app *App) replyCompose(me *Account, st *Status) *Compose {
 
 func (app *App) handleComposePage(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Title, p.Section = "New post", "compose"
-	p.Compose = &Compose{Visibility: "public"}
+	p.Compose = &Compose{}
 	if id := r.URL.Query().Get("reply_to"); id != "" {
 		if st, err := app.loadStatus(p.Me, id); err == nil {
 			if st.IsBoost() {
