@@ -50,6 +50,7 @@ Files are grouped by prefix:
 | `languages.go` | post languages offered in the web compose form |
 | `moderation.go` | report review and actions (delete posts, suspend accounts, block servers); local and origin-server suspensions |
 | `statussearch.go` | post search with Mastodon-style operators (web and API) |
+| `editdiff.go` | word-level differences between post versions for the edit history page |
 | `remoteinteract.go` | following and interacting from other servers (visitors) |
 | `ai.go`, `translate.go` | AI drafting and translation |
 | `fed_server.go` | federation endpoints: WebFinger, NodeInfo, actors, collections, objects |

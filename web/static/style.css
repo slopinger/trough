@@ -632,3 +632,12 @@ article.status.kbd-focus { outline: 2px solid var(--accent); outline-offset: 2px
 .content.translating { opacity: .5; }
 .translate-note { margin-top: 6px; }
 .translate-note .linklike { font-size: inherit; padding: 0; }
+
+/* edit history */
+.history-head { margin-bottom: 6px; }
+.history-head .muted { margin-left: 4px; }
+.diff ins, ins.legend { background: color-mix(in srgb, var(--accent) 22%, transparent); text-decoration: none; border-radius: 3px; }
+.diff del, del.legend { background: color-mix(in srgb, var(--danger) 18%, transparent); color: color-mix(in srgb, var(--danger) 70%, var(--text)); border-radius: 3px; }
+.history-full { margin-top: 8px; }
+.history-full summary { cursor: pointer; color: var(--muted); font-size: .9em; }
+.diff del + ins { margin-left: 3px; }

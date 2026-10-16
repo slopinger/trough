@@ -1,10 +1,22 @@
+{{define "diff"}}{{range .}}{{if eq .Op 1}}<ins>{{.Text}}</ins>{{else if eq .Op -1}}<del>{{.Text}}</del>{{else}}{{.Text}}{{end}}{{end}}{{end}}
 {{define "content"}}{{$p := .}}
 <div class="pagehead"><h2 class="pagetitle">Edit history</h2><a class="btn small" href="{{.Status.Path}}">Back to the post</a></div>
-{{range $i, $v := .Versions}}
-<article class="status">
-  <div class="muted small">{{if eq $i 0}}Original{{else}}Edit {{$i}}{{end}} · <time datetime="{{isotime $v.At}}" title="{{fulltime $v.At}}">{{fulltime $v.At}}</time></div>
-  {{if $v.Spoiler}}<p class="cwtext">⚠️ {{$v.Spoiler}}</p>{{end}}
-  <div class="content">{{versionHTML $p.Status $v.Content}}</div>
+<p class="muted small">{{len .History}} versions, newest first. <ins class="legend">Added</ins> and <del class="legend">removed</del> words are marked against the version before.</p>
+{{range .History}}
+<article class="status history-entry">
+  <div class="history-head"><b>{{.Label}}</b> · <time datetime="{{isotime .At}}" title="{{fulltime .At}}">{{fulltime .At}}</time>
+    {{if not .First}}<span class="muted small">{{if .Added}}+{{.Added}}{{end}}{{if and .Added .Removed}} {{end}}{{if .Removed}}−{{.Removed}}{{end}}{{if not (or .Added .Removed)}}no text changes{{end}}{{if .SensitiveChanged}} · {{if .Sensitive}}marked sensitive{{else}}no longer marked sensitive{{end}}{{end}}</span>{{end}}</div>
+  {{if .First}}
+  {{if .Spoiler}}<p class="cwtext">⚠️ {{.Spoiler}}</p>{{end}}
+  <div class="content">{{versionHTML $p.Status .Content}}</div>
+  {{else}}
+  {{if .CWDiff}}<p class="cwtext diff">⚠️ {{template "diff" .CWDiff}}</p>{{else if .Spoiler}}<p class="cwtext">⚠️ {{.Spoiler}}</p>{{end}}
+  <div class="content diff prewrap">{{template "diff" .Diff}}</div>
+  <details class="history-full"><summary>Show as posted</summary>
+    {{if .Spoiler}}<p class="cwtext">⚠️ {{.Spoiler}}</p>{{end}}
+    <div class="content">{{versionHTML $p.Status .Content}}</div>
+  </details>
+  {{end}}
 </article>
 {{end}}
 {{end}}

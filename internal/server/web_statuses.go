@@ -358,6 +358,6 @@ func (app *App) handleHistory(w http.ResponseWriter, r *http.Request, p *Page) {
 		return
 	}
 	p.Title, p.Status = "Edit history", st
-	p.Versions = app.history(st)
+	p.History = historyEntries(app.history(st))
 	app.render(w, "history", p)
 }

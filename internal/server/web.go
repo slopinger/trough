@@ -91,7 +91,7 @@ type Page struct {
 	FollowedTags    []string
 	BlockedDomains  []string
 	Import          *importState // settings: the running or last CSV import
-	Versions        []StatusVersion
+	History         []HistoryEntry
 	CustomEmojis    []CustomEmoji
 	Scheduled       []*ScheduledStatus
 	Apps            []ConnectedApp

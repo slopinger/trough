@@ -204,7 +204,7 @@ func TestEditHistory(t *testing.T) {
 	}
 	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
-	if !strings.Contains(string(body), "version one") || !strings.Contains(string(body), "Edit 2") {
+	if !strings.Contains(string(body), "version one") || !strings.Contains(string(body), "Edit 1") || !strings.Contains(string(body), "Current version") {
 		t.Error("history page incomplete")
 	}
 	// a remote edit is recorded too
