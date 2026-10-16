@@ -10,7 +10,7 @@ import (
 
 func (app *App) handleSearch(w http.ResponseWriter, r *http.Request, p *Page) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
-	p.Title, p.Section, p.Query = "Search", "search", q
+	p.Title, p.Section, p.Query, p.Empty = "Search", "search", q, "No matching posts."
 	if q == "" {
 		app.render(w, "search", p)
 		return
@@ -46,12 +46,24 @@ func (app *App) handleSearch(w http.ResponseWriter, r *http.Request, p *Page) {
 			p.Error = "Could not find " + q + " (" + err.Error() + ")."
 		}
 	}
-	like := "%" + strings.NewReplacer("%", `\%`, "_", `\_`).Replace(strings.TrimPrefix(q, "@")) + "%"
-	accs, _ := app.accountsQuery(`SELECT `+accountCols+` FROM accounts a WHERE a.suspended=0 AND a.actor_type != 'Application'
-		AND (a.username LIKE ? ESCAPE '\' OR a.display_name LIKE ? ESCAPE '\') ORDER BY a.domain != '', a.fetched_at DESC LIMIT 20`, like, like)
-	p.Accounts = accs
-	sts, _ := app.queryStatuses(p.Me, `s.boost_of_id='' AND s.visibility IN ('public','unlisted') AND s.content LIKE ? ESCAPE '\'`, []any{like}, "", 20, false)
-	p.Statuses = sts
+	sq := parseStatusQuery(q)
+	p.Advanced = sq.HasOperators()
+	if text := strings.TrimPrefix(q, "@"); !p.Advanced || sq.Text() != "" {
+		if p.Advanced {
+			text = sq.Text()
+		}
+		like := likePattern(text)
+		accs, _ := app.accountsQuery(`SELECT `+accountCols+` FROM accounts a WHERE a.suspended=0 AND a.actor_type != 'Application'
+			AND (a.username LIKE ? ESCAPE '\' OR a.display_name LIKE ? ESCAPE '\') ORDER BY a.domain != '', a.fetched_at DESC LIMIT 20`, like, like)
+		p.Accounts = accs
+	}
+	if strings.HasPrefix(q, "@") && !p.Advanced {
+		q = q[1:]
+	}
+	p.Statuses = app.searchStatuses(p.Me, q, "", r.URL.Query().Get("max_id"), 20)
+	if n := len(p.Statuses); n == 20 {
+		p.NextURL = "/search?" + url.Values{"q": {p.Query}, "max_id": {p.Statuses[n-1].ID}}.Encode()
+	}
 	app.render(w, "search", p)
 }
 

@@ -33,10 +33,15 @@ func (app *App) apiSearch(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 				}
 			}
 		} else if c.Me != nil && !strings.HasPrefix(term, "@") && !strings.HasPrefix(term, "#") {
-			like := "%" + strings.NewReplacer("%", `\%`, "_", `\_`).Replace(term) + "%"
-			sts, _ = app.queryStatuses(c.Me, `s.boost_of_id='' AND s.visibility IN ('public','unlisted') AND s.content LIKE ? ESCAPE '\'`, []any{like}, "", limit, false)
+			sts = app.searchStatuses(c.Me, term, q.Get("account_id"), q.Get("max_id"), limit)
 		}
 		res["statuses"] = app.apiStatuses(c.Me, sts)
+	}
+	// With operators (from:, has:, ...) only the plain words are matched against accounts and tags.
+	if sq := parseStatusQuery(term); sq.HasOperators() {
+		if term = sq.Text(); term == "" {
+			typ = "statuses"
+		}
 	}
 	if typ == "" || typ == "accounts" {
 		out := []any{}

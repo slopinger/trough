@@ -5,10 +5,24 @@
   <button class="btn primary">Search</button>
 </form>
 <p class="muted small">To follow someone on another server, enter their full handle like <code>@someone@mastodon.social</code> or paste a link to their profile or post.</p>
+<nav class="searchops" aria-label="Add a search operator">{{if .Me}}<a href="/search?q={{printf "%s from:me" .Query}}">from:me</a>{{end}}<a href="/search?q={{printf "%s has:media" .Query}}">has:media</a><a href="/search?q={{printf "%s has:poll" .Query}}">has:poll</a><a href="/search?q={{printf "%s has:link" .Query}}">has:link</a><a href="/search?q={{printf "%s is:reply" .Query}}">is:reply</a><a href="/search?q={{printf "%s -is:reply" .Query}}">-is:reply</a>{{if .Me}}<a href="/search?q={{printf "%s in:library" .Query}}">in:library</a>{{end}}</nav>
+<details class="searchhelp">
+  <summary>All search operators</summary>
+  <dl class="small">
+    <dt><code>"exact words"</code> <code>-word</code></dt><dd>match a phrase, leave out posts containing a word</dd>
+    <dt><code>from:user@server</code></dt><dd>posts by an account this server knows; <code>from:me</code> for your own</dd>
+    <dt><code>has:media</code> <code>has:image</code> <code>has:video</code> <code>has:audio</code> <code>has:poll</code> <code>has:link</code></dt><dd>posts with attachments, a poll or a link preview</dd>
+    <dt><code>is:reply</code> <code>is:sensitive</code></dt><dd>replies, posts with a content warning</dd>
+    <dt><code>language:de</code></dt><dd>posts written in a language</dd>
+    <dt><code>before:2026-10-01</code> <code>after:</code> <code>during:</code></dt><dd>by date (UTC)</dd>
+    <dt><code>in:library</code></dt><dd>only posts you wrote, favourited, boosted, bookmarked or were mentioned in</dd>
+  </dl>
+  <p class="muted small">Put <code>-</code> in front of any operator to exclude it. Without <code>in:library</code> you search public posts and your own.</p>
+</details>
 {{if .Query}}
-<h3 class="subtitle">Accounts</h3>
-{{range .Accounts}}{{template "accountrow" (dict "A" . "P" $p)}}{{else}}<div class="empty">No matching accounts known here.</div>{{end}}
+{{if or .Accounts (not .Advanced)}}<h3 class="subtitle">Accounts</h3>
+{{range .Accounts}}{{template "accountrow" (dict "A" . "P" $p)}}{{else}}<div class="empty">No matching accounts known here.</div>{{end}}{{end}}
 <h3 class="subtitle">Posts</h3>
-{{range .Statuses}}{{template "status" (dict "S" . "P" $p)}}{{else}}<div class="empty">No matching posts.</div>{{end}}
+{{template "statuslist" .}}
 {{end}}
 {{end}}

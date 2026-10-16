@@ -44,6 +44,7 @@ type Page struct {
 	Notifications   []*Notification
 	NextURL         string
 	Query           string
+	Advanced        bool // search: the query uses operators like from: or has:
 	Tab             string
 	Compose         *Compose
 	Users           []*User

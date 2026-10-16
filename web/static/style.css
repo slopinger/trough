@@ -396,6 +396,15 @@ details.sensitive > summary { cursor: pointer; padding: 18px; text-align: center
 
 .bigsearch { display: flex; gap: 8px; margin-bottom: 8px; }
 .bigsearch input { flex: 1; min-width: 0; }
+.searchhelp { margin: 0 0 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; }
+.searchhelp summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--muted); }
+.searchhelp[open] summary { margin-bottom: 8px; }
+.searchops { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.searchops a { padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; font: 13px ui-monospace, monospace; color: var(--text); background: var(--panel-2); }
+.searchops a:hover { border-color: var(--accent); text-decoration: none; }
+.searchhelp dl { display: grid; grid-template-columns: minmax(0, 2fr) 3fr; gap: 6px 14px; margin: 0 0 6px; }
+.searchhelp dd { margin: 0; color: var(--muted); }
+@media (max-width: 600px) { .searchhelp dl { grid-template-columns: 1fr; } .searchhelp dd { margin-bottom: 6px; } }
 .follow-hint { margin: 8px 16px 0; padding: 8px 12px; border-radius: 10px; background: var(--accent-soft); font-size: 14px; overflow-wrap: anywhere; }
 .follow-hint:target { outline: 2px solid var(--accent); }
 

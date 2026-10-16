@@ -145,6 +145,11 @@
   orientation. Remote media goes through an HMAC-signed caching proxy, so remote servers never see visitors'
   IP addresses and the page can use a strict CSP (`img-src 'self'`). Cache entries with missing data
   or invalid metadata are refetched; per-URL locks coordinate fetches and expiry cleanup.
+- Search operators (web search and `/api/v2/search`, which also takes `account_id` and `max_id`): `"phrases"`,
+  `-word`, `from:me`/`from:user@host`, `has:media|image|video|audio|poll|link`, `is:reply|sensitive`, `language:`,
+  `before:`/`after:`/`during:` dates and `in:library` (posts you wrote, favourited, boosted, bookmarked or were
+  mentioned in); any operator can be negated with `-`. Text matches content, content warnings and media
+  descriptions. Without `in:library` only public posts and your own are searched.
 - Keyboard shortcuts: j/k move between posts, o opens, r replies, f favourites, b boosts, n writes, / searches,
   ? shows the list
 - Image viewer: attached images open large with their description; arrow keys go through a post's images
