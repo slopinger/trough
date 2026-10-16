@@ -176,6 +176,9 @@ func (app *App) noteJSON(st *Status) obj {
 		if a.PreviewURL != "" {
 			o["icon"] = imageObj(a.PreviewURL)
 		}
+		if a.HasFocus() {
+			o["focalPoint"] = []float64{a.FocusX, a.FocusY}
+		}
 		atts = append(atts, o)
 	}
 	m := obj{

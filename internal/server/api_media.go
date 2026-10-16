@@ -24,6 +24,9 @@ func (app *App) apiUploadMedia(w http.ResponseWriter, r *http.Request, c *apiCtx
 		apiError(w, 422, "Validation failed: "+err.Error())
 		return
 	}
+	if f := r.FormValue("focus"); f != "" {
+		app.setFocus(at, f)
+	}
 	if thumb := formFile(r, "thumbnail"); thumb != nil && at.Kind() != "image" {
 		if err := app.setPoster(at, thumb); err != nil {
 			apiError(w, 422, "Validation failed: thumbnail: "+err.Error())
@@ -35,8 +38,8 @@ func (app *App) apiUploadMedia(w http.ResponseWriter, r *http.Request, c *apiCtx
 
 func (app *App) apiMediaByID(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 	at := &Attachment{}
-	err := app.db.QueryRow(`SELECT id, account_id, url, media_type, description, file, width, height, preview_url, preview_file FROM attachments WHERE id=? AND account_id=?`,
-		r.PathValue("id"), c.Me.ID).Scan(&at.ID, &at.AccountID, &at.URL, &at.MediaType, &at.Description, &at.File, &at.Width, &at.Height, &at.PreviewURL, &at.PreviewFile)
+	err := app.db.QueryRow(`SELECT id, account_id, url, media_type, description, file, width, height, preview_url, preview_file, focus_x, focus_y FROM attachments WHERE id=? AND account_id=?`,
+		r.PathValue("id"), c.Me.ID).Scan(&at.ID, &at.AccountID, &at.URL, &at.MediaType, &at.Description, &at.File, &at.Width, &at.Height, &at.PreviewURL, &at.PreviewFile, &at.FocusX, &at.FocusY)
 	if err != nil {
 		apiError(w, 404, "Record not found")
 		return
@@ -59,6 +62,9 @@ func (app *App) apiMediaByID(w http.ResponseWriter, r *http.Request, c *apiCtx) 
 		if p.Has("description") {
 			at.Description = truncateRunes(strings.TrimSpace(p.Get("description")), 1500)
 			app.db.Exec(`UPDATE attachments SET description=? WHERE id=?`, at.Description, at.ID)
+		}
+		if p.Has("focus") {
+			app.setFocus(at, p.Get("focus"))
 		}
 		if thumb := formFile(r, "thumbnail"); thumb != nil {
 			if err := app.setPoster(at, thumb); err != nil {

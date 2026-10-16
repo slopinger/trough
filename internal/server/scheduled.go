@@ -69,12 +69,12 @@ func (app *App) scheduledFor(me *Account, id string) ([]*ScheduledStatus, error)
 	rows.Close()
 	for _, s := range out {
 		if len(s.Input.MediaIDs) > 0 {
-			q, args := inClause(`SELECT id, status_id, account_id, url, media_type, description, file, width, height, preview_url, preview_file FROM attachments WHERE id IN (%s)`, s.Input.MediaIDs)
+			q, args := inClause(`SELECT id, status_id, account_id, url, media_type, description, file, width, height, preview_url, preview_file, focus_x, focus_y FROM attachments WHERE id IN (%s)`, s.Input.MediaIDs)
 			if r2, err := app.db.Query(q, args...); err == nil {
 				for r2.Next() {
 					at := &Attachment{}
 					var sid *string
-					r2.Scan(&at.ID, &sid, &at.AccountID, &at.URL, &at.MediaType, &at.Description, &at.File, &at.Width, &at.Height, &at.PreviewURL, &at.PreviewFile)
+					r2.Scan(&at.ID, &sid, &at.AccountID, &at.URL, &at.MediaType, &at.Description, &at.File, &at.Width, &at.Height, &at.PreviewURL, &at.PreviewFile, &at.FocusX, &at.FocusY)
 					s.Media = append(s.Media, at)
 				}
 				r2.Close()

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"html/template"
+	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -223,6 +225,45 @@ type Attachment struct {
 	Description, File       string
 	Width, Height           int
 	PreviewURL, PreviewFile string // poster image of a video or cover of an audio file
+	// FocusX, FocusY is the focal point Mastodon-style: -1..1, x to the right, y up; 0,0 is the center.
+	FocusX, FocusY float64
+}
+
+// HasFocus reports whether a focal point other than the center is set.
+func (at *Attachment) HasFocus() bool { return at.FocusX != 0 || at.FocusY != 0 }
+
+// FocusData is the focal point for the web UI's data-focus attribute
+// (app.js turns it into object-position; the CSP allows no inline styles).
+func (at *Attachment) FocusData() string {
+	if !at.HasFocus() {
+		return ""
+	}
+	return strconv.FormatFloat(at.FocusX, 'f', 2, 64) + "," + strconv.FormatFloat(at.FocusY, 'f', 2, 64)
+}
+
+// parseFocus reads a focal point "x,y" (each -1..1, clamped).
+func parseFocus(s string) (float64, float64, bool) {
+	xs, ys, ok := strings.Cut(strings.TrimSpace(s), ",")
+	if !ok {
+		return 0, 0, false
+	}
+	x, err1 := strconv.ParseFloat(strings.TrimSpace(xs), 64)
+	y, err2 := strconv.ParseFloat(strings.TrimSpace(ys), 64)
+	if err1 != nil || err2 != nil || math.IsNaN(x) || math.IsNaN(y) {
+		return 0, 0, false
+	}
+	return max(-1, min(1, x)), max(-1, min(1, y)), true
+}
+
+// setFocus stores an attachment's focal point from a "x,y" parameter.
+func (app *App) setFocus(at *Attachment, s string) bool {
+	x, y, ok := parseFocus(s)
+	if !ok {
+		return false
+	}
+	at.FocusX, at.FocusY = x, y
+	app.db.Exec(`UPDATE attachments SET focus_x=?, focus_y=? WHERE id=?`, x, y, at.ID)
+	return true
 }
 
 func (at *Attachment) Kind() string {
@@ -401,7 +442,7 @@ func (app *App) attachmentsFor(statusIDs []string) (map[string][]*Attachment, er
 	if len(statusIDs) == 0 {
 		return out, nil
 	}
-	q, args := inClause(`SELECT id,status_id,account_id,url,media_type,description,file,width,height,preview_url,preview_file FROM attachments WHERE status_id IN (%s) ORDER BY position`, statusIDs)
+	q, args := inClause(`SELECT id,status_id,account_id,url,media_type,description,file,width,height,preview_url,preview_file,focus_x,focus_y FROM attachments WHERE status_id IN (%s) ORDER BY position`, statusIDs)
 	rows, err := app.db.Query(q, args...)
 	if err != nil {
 		return nil, err
@@ -410,7 +451,7 @@ func (app *App) attachmentsFor(statusIDs []string) (map[string][]*Attachment, er
 	for rows.Next() {
 		at := &Attachment{}
 		var sid sql.NullString
-		if err := rows.Scan(&at.ID, &sid, &at.AccountID, &at.URL, &at.MediaType, &at.Description, &at.File, &at.Width, &at.Height, &at.PreviewURL, &at.PreviewFile); err != nil {
+		if err := rows.Scan(&at.ID, &sid, &at.AccountID, &at.URL, &at.MediaType, &at.Description, &at.File, &at.Width, &at.Height, &at.PreviewURL, &at.PreviewFile, &at.FocusX, &at.FocusY); err != nil {
 			return nil, err
 		}
 		at.StatusID = sid.String

@@ -206,6 +206,7 @@ var Context = []any{
 		"featuredTags":              obj{"@id": "toot:featuredTags", "@type": "@id"},
 		"indexable":                 "toot:indexable",
 		"Emoji":                     "toot:Emoji",
+		"focalPoint":                obj{"@container": "@list", "@id": "toot:focalPoint"},
 		"schema":                    "http://schema.org#",
 		"PropertyValue":             "schema:PropertyValue",
 		"value":                     "schema:value",

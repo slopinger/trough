@@ -195,6 +195,9 @@ func (app *App) handlePost(w http.ResponseWriter, r *http.Request, p *Page) {
 				fail(fhs[0].Filename + ": " + err.Error())
 				return
 			}
+			if f := r.FormValue("focus" + string(rune('0'+i))); f != "" && at.Kind() == "image" {
+				app.setFocus(at, f) // picked by clicking the preview (app.js)
+			}
 			// a poster frame the browser took from the video (see app.js); best effort
 			if thumb := formFile(r, "thumb"+string(rune('0'+i))); thumb != nil && at.Kind() != "image" {
 				if err := app.setPoster(at, thumb); err != nil {

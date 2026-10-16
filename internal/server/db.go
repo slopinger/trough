@@ -551,6 +551,9 @@ ALTER TABLE accounts ADD COLUMN remote_suspended INTEGER NOT NULL DEFAULT 0;
 `, `
 ALTER TABLE mutes ADD COLUMN expires_at INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE mutes ADD COLUMN notifications INTEGER NOT NULL DEFAULT 1;
+`, `
+ALTER TABLE attachments ADD COLUMN focus_x REAL NOT NULL DEFAULT 0;
+ALTER TABLE attachments ADD COLUMN focus_y REAL NOT NULL DEFAULT 0;
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

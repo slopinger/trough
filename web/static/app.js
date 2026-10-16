@@ -645,6 +645,51 @@
     });
   });
 
+  // Focal points: crop images around the point their author picked
+  // (data-focus "x,y", -1..1 with y up, like Mastodon's meta.focus).
+  document.querySelectorAll("img[data-focus]").forEach(function (img) {
+    var f = img.getAttribute("data-focus").split(","), x = parseFloat(f[0]), y = parseFloat(f[1]);
+    if (isNaN(x) || isNaN(y)) return;
+    img.style.objectPosition = ((x + 1) * 50).toFixed(1) + "% " + ((1 - y) * 50).toFixed(1) + "%";
+  });
+
+  // Picking a focal point: a chosen image shows a small preview; clicking it
+  // sends focusN along, so crops in timelines keep that part visible.
+  document.querySelectorAll('form.compose input[type=file][name^="media"]').forEach(function (input) {
+    if (!window.FileReader) return;
+    var n = input.name.slice(5), row = input.closest(".att-row") || input.parentNode;
+    input.addEventListener("change", function () {
+      var old = row.querySelector(".focus-pick"), field = input.form.querySelector('input[name="focus' + n + '"]');
+      if (old) old.remove();
+      if (field) field.remove();
+      var file = input.files && input.files[0];
+      if (!file || file.type.indexOf("image/") !== 0) return;
+      var box = document.createElement("div"), wrap = document.createElement("span"), img = document.createElement("img"), dot = document.createElement("span"), note = document.createElement("small");
+      box.className = "focus-pick"; wrap.className = "focus-wrap"; dot.className = "focus-dot"; dot.hidden = true;
+      img.alt = ""; img.title = "Click the part that should stay visible when the picture is cropped";
+      note.textContent = "Click the picture to set its focal point";
+      wrap.append(img, dot);
+      box.append(wrap, note);
+      row.appendChild(box);
+      var reader = new FileReader(); // data: URL, the CSP doesn't allow blob: images
+      reader.onload = function () { if (input.files[0] === file) img.src = reader.result; };
+      reader.readAsDataURL(file);
+      img.addEventListener("click", function (ev) {
+        var r = img.getBoundingClientRect(), fx = (ev.clientX - r.left) / r.width, fy = (ev.clientY - r.top) / r.height;
+        var hidden = input.form.querySelector('input[name="focus' + n + '"]');
+        if (!hidden) {
+          hidden = document.createElement("input");
+          hidden.type = "hidden"; hidden.name = "focus" + n;
+          input.form.appendChild(hidden);
+        }
+        hidden.value = (fx * 2 - 1).toFixed(2) + "," + (1 - fy * 2).toFixed(2);
+        dot.style.left = (fx * 100).toFixed(1) + "%"; dot.style.top = (fy * 100).toFixed(1) + "%";
+        dot.hidden = false;
+        note.textContent = "Focal point set, click again to move it";
+      });
+    });
+  });
+
   // Remind people to describe images before posting.
   document.querySelectorAll("form.compose").forEach(function (form) {
     form.addEventListener("submit", function (ev) {

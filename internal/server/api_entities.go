@@ -150,6 +150,11 @@ func (app *App) apiMedia(at *Attachment) obj {
 		orig := obj{"width": at.Width, "height": at.Height, "size": fmt.Sprintf("%dx%d", at.Width, at.Height), "aspect": float64(at.Width) / float64(at.Height)}
 		m["meta"] = obj{"original": orig, "small": orig}
 	}
+	if at.HasFocus() {
+		meta, _ := m["meta"].(obj)
+		meta["focus"] = obj{"x": at.FocusX, "y": at.FocusY}
+		m["meta"] = meta
+	}
 	return m
 }
 

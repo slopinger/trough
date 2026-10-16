@@ -291,8 +291,14 @@ func (app *App) replaceNoteExtras(ctx context.Context, st *Status, note obj) map
 				poster = p
 			}
 		}
-		app.db.Exec(`INSERT INTO attachments (id,status_id,account_id,url,media_type,description,width,height,position,created_at,preview_url) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-			ulid.New(), st.ID, st.AccountID, u, mt, truncateRunes(ap.Str(a, "name"), 1500), int(w), int(h), i, time.Now().Unix(), poster)
+		var fx, fy float64
+		if fp, ok := a["focalPoint"].([]any); ok && len(fp) == 2 {
+			x, _ := fp[0].(float64)
+			y, _ := fp[1].(float64)
+			fx, fy = max(-1, min(1, x)), max(-1, min(1, y))
+		}
+		app.db.Exec(`INSERT INTO attachments (id,status_id,account_id,url,media_type,description,width,height,position,created_at,preview_url,focus_x,focus_y) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+			ulid.New(), st.ID, st.AccountID, u, mt, truncateRunes(ap.Str(a, "name"), 1500), int(w), int(h), i, time.Now().Unix(), poster, fx, fy)
 	}
 	return local
 }
