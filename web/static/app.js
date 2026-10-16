@@ -565,4 +565,33 @@
       return reg.pushManager.getSubscription().then(function (sub) { show(reg, sub); });
     }).catch(function () { wp.hidden = true; });
   }
+
+  // Translate a post in place (AI); without JS the link opens the post translated.
+  document.addEventListener("click", function (ev) {
+    var a = ev.target.closest && ev.target.closest("a.translate-link");
+    if (!a || ev.ctrlKey || ev.metaKey) return;
+    var art = a.closest("article.status"), box = art && art.querySelector(".content");
+    if (!box) return;
+    ev.preventDefault();
+    var menu = a.closest("details");
+    if (menu) menu.open = false;
+    var original = box.innerHTML;
+    box.classList.add("translating");
+    fetch("/s/" + a.dataset.id + "/translation", { credentials: "same-origin" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        box.classList.remove("translating");
+        if (d.error) { window.alert("Couldn't translate: " + d.error); return; }
+        box.innerHTML = d.content;
+        var note = document.createElement("p");
+        note.className = "translate-note muted small";
+        note.textContent = "Translated to English by AI" + (d.source ? " from " + d.source : "") + " · ";
+        var back = document.createElement("button");
+        back.type = "button"; back.className = "linklike"; back.textContent = "show original";
+        back.addEventListener("click", function () { box.innerHTML = original; });
+        note.appendChild(back);
+        box.appendChild(note);
+      })
+      .catch(function () { box.classList.remove("translating"); });
+  });
 })();

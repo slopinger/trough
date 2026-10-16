@@ -72,6 +72,8 @@
   instructions. 30 requests per user and hour; admins switch it on and off and pick the model on `/admin`.
   The same model translates posts for Mastodon apps (`POST /api/v1/statuses/:id/translate`, cached per
   post version and language; the instance advertises translation while AI is on).
+- "Translate" in a post's menu (with AI on): the English translation replaces the text in place, with a way back;
+  without JavaScript the post's page opens translated
 - Private notes on other people's profiles (also `POST /api/v1/accounts/:id/note` for apps)
 - Edit your posts (with an edit history), pin up to 5 to your profile (featured collection, `Add`/`Remove`), bookmarks
 - Polls (2-4 options, single or multiple choice) federated as `Question`; vote in remote polls; poll results

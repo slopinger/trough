@@ -160,3 +160,21 @@ func (app *App) apiLanguages(w http.ResponseWriter, r *http.Request, c *apiCtx) 
 func (app *App) apiExtendedDescription(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 	apiJSON(w, 200, obj{"updated_at": apiTime(app.instanceActor().CreatedAt), "content": textToHTML(app.getSetting("description"))})
 }
+
+// webTranslation translates st into English for the web UI: JSON for the
+// page's script, or the thread page with the translation shown (no JS).
+func (app *App) handleTranslation(w http.ResponseWriter, r *http.Request, p *Page) {
+	st, err := app.loadStatus(p.Me, r.PathValue("id"))
+	if err != nil || st.IsBoost() || !app.aiEnabled() {
+		http.Error(w, `{"error":"not available"}`, http.StatusNotFound)
+		return
+	}
+	t, err := app.translateStatus(r.Context(), p.Me, st, "en")
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(obj{"error": err.Error()})
+		return
+	}
+	json.NewEncoder(w).Encode(obj{"content": textToHTML(t.Content), "spoiler": t.Spoiler, "source": t.SourceLang})
+}

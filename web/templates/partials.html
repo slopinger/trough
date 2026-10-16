@@ -57,6 +57,7 @@
           <form method="post" action="/accounts/{{$o.AccountID}}/mute"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button>{{template "icon" "mute"}} Mute {{handle $o.Account}}</button></form>
           <a href="/report?account={{$o.AccountID}}&amp;status={{$o.ID}}">{{template "icon" "flag"}} Report…</a>
         {{end}}
+        {{if and $p.AI $o.Content (ne $o.Language "en")}}<a class="translate-link" data-id="{{$o.ID}}" href="{{$o.Path}}?translate=en">{{template "icon" "globe"}} Translate</a>{{end}}
         <form method="post" action="/statuses/{{$o.ID}}/{{if convMuted $o $p.Me}}unmute{{else}}mute{{end}}"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button>{{template "icon" "bell"}} {{if convMuted $o $p.Me}}Unmute conversation{{else}}Mute conversation{{end}}</button></form>
         <button type="button" class="copy-link" data-url="{{if $o.Local}}{{$o.URL}}{{else}}{{$o.URI}}{{end}}">{{template "icon" "link"}} Copy link</button>
         {{if not $o.Local}}<a href="{{$o.URL}}" target="_blank" rel="noopener noreferrer">{{template "icon" "external"}} Open on {{hostOf $o.URL}}</a>{{end}}
@@ -71,7 +72,8 @@
 </article>{{end}}
 
 {{define "statusbody"}}{{$s := .S}}{{$p := .P}}
-  {{if $s.Content}}<div class="content{{if $s.QuoteURI}} has-quote{{end}}">{{content $s}}</div>{{end}}
+  {{if $s.Translated}}<div class="content translated">{{$s.Translated}}<p class="translate-note muted small">Translated to English by AI · <a href="{{$s.Path}}">show original</a></p></div>
+  {{else if $s.Content}}<div class="content{{if $s.QuoteURI}} has-quote{{end}}">{{content $s}}</div>{{end}}
   {{if $s.Poll}}{{$poll := $s.Poll}}<div class="poll">
     {{if and $p.Me (not $poll.Closed) (not $s.MyVotes) (ne $s.AccountID $p.Me.ID)}}
     <form method="post" action="/statuses/{{$s.ID}}/vote" class="poll-form">

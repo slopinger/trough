@@ -2,6 +2,9 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"io"
+	"net/http"
 	"net/url"
 	"strings"
 	"testing"
@@ -61,5 +64,35 @@ func TestAPIMiscEndpoints(t *testing.T) {
 	c.ok("GET", "/api/v1/instance/extended_description", nil)
 	if langs := c.ok("GET", "/api/v1/instance/languages", nil).([]any); len(langs) == 0 {
 		t.Error("no languages")
+	}
+}
+
+func TestTranslateWeb(t *testing.T) {
+	la, f, bob := aiFixture(t)
+	f.text = []string{`{"content": "Hello world", "spoiler_text": "", "detected_source_language": "de"}`}
+	st, _ := la.PostStatus(context.Background(), bob, PostInput{Text: "Hallo Welt", Visibility: "public"})
+	c := webClient(t, la, "bob", "password123")
+	resp, err := c.Get(la.base + "/s/" + st.ID + "/translation")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tr map[string]any
+	json.NewDecoder(resp.Body).Decode(&tr)
+	resp.Body.Close()
+	if tr["content"] != "<p>Hello world</p>" || tr["source"] != "de" {
+		t.Fatalf("translation = %v", tr)
+	}
+	// without JavaScript: the post's page shows the translation
+	resp, err = c.Get(la.base + st.Path() + "?translate=en")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if !strings.Contains(string(b), "<p>Hello world</p>") || !strings.Contains(string(b), "Translated to English by AI") {
+		t.Fatal("thread page doesn't show the translation")
+	}
+	if resp, _ := http.Get(la.base + "/s/" + st.ID + "/translation"); resp.Request.URL.Path != "/login" {
+		t.Fatal("logged-out visitors can translate")
 	}
 }

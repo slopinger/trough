@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"html/template"
 	"io"
 	"net/http"
 	"net/url"
@@ -41,6 +42,13 @@ func (app *App) showThread(w http.ResponseWriter, r *http.Request, p *Page, st *
 			st.InReplyToID = parent.ID
 		}
 		cancel()
+	}
+	if p.Me != nil && r.URL.Query().Get("translate") != "" && app.aiEnabled() {
+		if t, err := app.translateStatus(r.Context(), p.Me, st, "en"); err == nil {
+			st.Translated = template.HTML(textToHTML(t.Content))
+		} else {
+			p.Error = "Couldn't translate: " + err.Error()
+		}
 	}
 	p.Status = st
 	p.Ancestors, p.Descendants = app.thread(p.Me, st)

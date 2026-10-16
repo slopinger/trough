@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"html/template"
 	"strings"
 	"time"
 
@@ -263,6 +264,7 @@ type Status struct {
 	QuotePolicy               string // who may quote this post: public, followers, nobody, "" unknown
 
 	// hydrated
+	Translated       template.HTML // web UI: an English translation to show instead
 	Account          *Account
 	BoostOf          *Status
 	InReplyToAccount *Account

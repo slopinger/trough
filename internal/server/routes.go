@@ -71,6 +71,7 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("GET /about", pub(app.handleAbout))
 	mux.HandleFunc("GET /s/{id}", pub(app.handleThread))
 	mux.HandleFunc("GET /s/{id}/history", pub(app.handleHistory))
+	mux.HandleFunc("GET /s/{id}/translation", auth(app.handleTranslation))
 	mux.HandleFunc("GET /compose", auth(app.handleComposePage))
 	mux.HandleFunc("POST /statuses", auth(app.handlePost))
 	mux.HandleFunc("POST /compose/ai", auth(app.handleAICompose))
