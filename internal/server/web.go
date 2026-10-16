@@ -27,6 +27,7 @@ type Page struct {
 	CSRF     string
 	Unread   int
 	Requests int
+	DMs      int // unread conversations
 	Flash    string
 	Error    string
 	Instance string
@@ -179,6 +180,7 @@ func (app *App) web(requireLogin bool, h handler) http.HandlerFunc {
 					p.Admin = app.isAdmin(acc.ID)
 					p.Unread = app.unreadNotifications(acc.ID)
 					p.Requests = app.followRequestCount(acc.ID)
+					p.DMs = app.unreadConversations(acc)
 					p.AI = app.aiEnabled()
 					p.CustomEmojis = app.customEmojis()
 					p.Announcements = app.unreadAnnouncements(acc)

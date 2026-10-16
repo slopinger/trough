@@ -3,6 +3,9 @@ package server
 import (
 	"net/http"
 	"sort"
+	"strconv"
+	"sync"
+	"time"
 )
 
 // Conversations for the Mastodon API: direct-message threads, keyed by the
@@ -74,6 +77,47 @@ func (app *App) conversations(me *Account) []*conversation {
 	return shown
 }
 
+// The sidebar badge counts unread conversations on every page view, so the
+// count is cached per account until a direct message arrives or is deleted,
+// a conversation is marked, or a minute passes (mutes and blocks change it too).
+var (
+	dmUnreadMu    sync.Mutex
+	dmUnreadCache = map[string]dmUnread{}
+)
+
+type dmUnread struct {
+	key string
+	at  time.Time
+	n   int
+}
+
+func (app *App) unreadConversations(me *Account) int {
+	var count int
+	var last string
+	app.db.QueryRow(`SELECT COUNT(*), COALESCE(MAX(id),'') FROM statuses WHERE visibility='direct'
+		AND (account_id=? OR id IN (SELECT status_id FROM mentions WHERE account_id=?))`, me.ID, me.ID).Scan(&count, &last)
+	if count == 0 {
+		return 0
+	}
+	key := last + "/" + strconv.Itoa(count)
+	dmUnreadMu.Lock()
+	c, ok := dmUnreadCache[me.ID]
+	dmUnreadMu.Unlock()
+	if ok && c.key == key && time.Since(c.at) < time.Minute {
+		return c.n
+	}
+	n := 0
+	for _, cv := range app.conversations(me) {
+		if cv.Unread {
+			n++
+		}
+	}
+	dmUnreadMu.Lock()
+	dmUnreadCache[me.ID] = dmUnread{key, time.Now(), n}
+	dmUnreadMu.Unlock()
+	return n
+}
+
 func (app *App) apiConversation(me *Account, c *conversation) obj {
 	accs := []any{}
 	for _, a := range c.Participants {
@@ -124,6 +168,9 @@ func (app *App) findConversation(me *Account, id string) *conversation {
 func (app *App) markConversation(me *Account, c *conversation, column string) {
 	app.db.Exec(`INSERT INTO conversation_marks (account_id, root_id, `+column+`) VALUES (?,?,?)
 		ON CONFLICT (account_id, root_id) DO UPDATE SET `+column+`=excluded.`+column, me.ID, c.RootID, c.Last.ID)
+	dmUnreadMu.Lock()
+	delete(dmUnreadCache, me.ID)
+	dmUnreadMu.Unlock()
 }
 
 // POST /api/v1/conversations/:id/read

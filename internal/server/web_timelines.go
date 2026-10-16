@@ -185,5 +185,5 @@ func (app *App) handleNewCount(w http.ResponseWriter, r *http.Request, p *Page) 
 		}
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	writeJSON(w, "application/json", obj{"new": n, "notifications": app.unreadNotifications(p.Me.ID), "requests": app.followRequestCount(p.Me.ID)})
+	writeJSON(w, "application/json", obj{"new": n, "notifications": app.unreadNotifications(p.Me.ID), "requests": app.followRequestCount(p.Me.ID), "dms": app.unreadConversations(p.Me)})
 }

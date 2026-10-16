@@ -282,6 +282,7 @@
   if (document.body.dataset.live && window.fetch) {
     var banner = document.querySelector(".new-posts");
     var badge = document.querySelector(".notif-badge");
+    var dmBadge = document.querySelector(".dm-badge");
     var poll = function () {
       if (document.hidden) return;
       var q = banner && banner.dataset.since ? "?tl=" + banner.dataset.timeline + "&since=" + banner.dataset.since : "";
@@ -296,6 +297,10 @@
           if (badge) {
             badge.textContent = String(d.notifications);
             badge.hidden = !d.notifications;
+          }
+          if (dmBadge) {
+            dmBadge.textContent = String(d.dms);
+            dmBadge.hidden = !d.dms;
           }
           document.title = document.title.replace(/^\(\d+\) /, "");
           if (d.notifications) document.title = "(" + d.notifications + ") " + document.title;
