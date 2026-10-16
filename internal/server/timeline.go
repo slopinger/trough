@@ -316,6 +316,10 @@ func (app *App) accountTimeline(v *Account, acc *Account, withReplies, mediaOnly
 	return app.queryStatuses(v, where, []any{acc.ID}, maxID, pageSize, false)
 }
 
+func (app *App) favouritesTimeline(v *Account, maxID string) ([]*Status, error) {
+	return app.queryStatuses(v, `s.id IN (SELECT status_id FROM likes WHERE account_id=?)`, []any{v.ID}, maxID, pageSize, false)
+}
+
 func (app *App) bookmarksTimeline(v *Account, maxID string) ([]*Status, error) {
 	return app.queryStatuses(v, `s.id IN (SELECT status_id FROM bookmarks WHERE account_id=?)`, []any{v.ID}, maxID, pageSize, false)
 }

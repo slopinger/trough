@@ -135,6 +135,19 @@ func (app *App) handleLink(w http.ResponseWriter, r *http.Request, p *Page) {
 	app.render(w, "timeline", p)
 }
 
+func (app *App) handleFavourites(w http.ResponseWriter, r *http.Request, p *Page) {
+	sts, err := app.favouritesTimeline(p.Me, r.URL.Query().Get("max_id"))
+	if err != nil {
+		http.Error(w, "db error", 500)
+		return
+	}
+	p.Title, p.Section, p.Heading = "Favourites", "favourites", "Favourites"
+	p.Statuses = sts
+	p.NextURL = nextURL(r, sts)
+	p.Empty = "Nothing favourited yet. Posts you favourite with the star show up here."
+	app.render(w, "timeline", p)
+}
+
 func (app *App) handleBookmarks(w http.ResponseWriter, r *http.Request, p *Page) {
 	sts, err := app.bookmarksTimeline(p.Me, r.URL.Query().Get("max_id"))
 	if err != nil {

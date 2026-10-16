@@ -84,6 +84,7 @@
 - "Translate" in a post's menu (with AI on): the English translation replaces the text in place, with a way back;
   without JavaScript the post's page opens translated
 - Private notes on other people's profiles (also `POST /api/v1/accounts/:id/note` for apps)
+- A Favourites page (`/favourites`) with the posts you starred, like Mastodon's
 - Edit your posts (with an edit history page that marks the words added and removed in each edit), pin up to 5 to your profile (featured collection, `Add`/`Remove`), bookmarks
 - Polls (2-4 options, single or multiple choice) federated as `Question`; vote in remote polls; poll results
   and end notifications

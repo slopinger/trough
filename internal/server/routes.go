@@ -115,6 +115,7 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("POST /settings/filters", auth(app.handleAddFilter))
 	mux.HandleFunc("POST /settings/filters/{id}/delete", auth(app.handleDeleteFilter))
 	mux.HandleFunc("GET /bookmarks", auth(app.handleBookmarks))
+	mux.HandleFunc("GET /favourites", auth(app.handleFavourites))
 	mux.HandleFunc("GET /scheduled", auth(app.handleScheduled))
 	mux.HandleFunc("POST /scheduled/{id}/cancel", auth(app.handleCancelScheduled))
 	mux.HandleFunc("GET /lists", auth(app.handleLists))

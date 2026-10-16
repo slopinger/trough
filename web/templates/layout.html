@@ -36,6 +36,7 @@
     <a href="/followed_tags" class="{{if eq .Section "tags"}}active{{end}} hide-narrow">{{template "icon" "hash"}}<span>Hashtags</span></a>
     <a href="/scheduled" class="{{if eq .Section "scheduled"}}active{{end}} hide-narrow">{{template "icon" "clock"}}<span>Scheduled</span></a>
     <a href="/bookmarks" class="{{if eq .Section "bookmarks"}}active{{end}} hide-narrow">{{template "icon" "bookmark"}}<span>Bookmarks</span></a>
+    <a href="/favourites" class="{{if eq .Section "favourites"}}active{{end}} hide-narrow">{{template "icon" "star"}}<span>Favourites</span></a>
     <a href="{{.Me.Path}}" class="{{if eq .Section "profile"}}active{{end}} hide-narrow">{{template "icon" "user"}}<span>Profile</span></a>
     <a href="/settings" class="{{if eq .Section "settings"}}active{{end}} hide-narrow">{{template "icon" "gear"}}<span>Settings</span></a>
     {{if .Admin}}<a href="/admin" class="{{if eq .Section "admin"}}active{{end}} hide-narrow">{{template "icon" "shield"}}<span>Admin</span></a>{{end}}
