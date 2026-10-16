@@ -506,6 +506,86 @@
     ev.stopImmediatePropagation();
   }, true);
 
+  // Drafts: unsent text is kept in this browser (per account and per new post,
+  // reply or quote) and offered again when the form comes back. A draft is only
+  // forgotten once a post went through, i.e. the next page shows no error.
+  (function () {
+    var store;
+    try { store = window.localStorage; store.getItem("x"); } catch (e) { return; }
+    var prefix = "trough-draft:", maxAge = 30 * 864e5;
+    try {
+      var sent = sessionStorage.getItem("trough-draft-sent");
+      if (sent) {
+        sessionStorage.removeItem("trough-draft-sent");
+        if (!document.querySelector(".flash.error")) store.removeItem(sent);
+      }
+      for (var i = store.length - 1; i >= 0; i--) {
+        var k = store.key(i);
+        if (k && k.indexOf(prefix) === 0) {
+          var old = null;
+          try { old = JSON.parse(store.getItem(k)); } catch (e) {}
+          if (!old || !(Date.now() - old.at < maxAge)) store.removeItem(k);
+        }
+      }
+    } catch (e) {}
+    function ago(t) {
+      var m = Math.round((Date.now() - t) / 6e4);
+      return m < 1 ? "just now" : m < 60 ? m + " min ago" : m < 1440 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " d ago";
+    }
+    document.querySelectorAll("form.compose[data-draft]").forEach(function (form) {
+      var key = prefix + form.dataset.draft;
+      var ta = form.querySelector("textarea"), cw = form.querySelector(".cw-input"), vis = form.querySelector("select[name=visibility]");
+      var status = form.querySelector(".draft-status");
+      var initial = { text: ta.value, spoiler: cw ? cw.value : "", visibility: vis ? vis.value : "" };
+      var timer = null;
+      function show(html) { status.innerHTML = html; status.hidden = !html; }
+      function save() {
+        timer = null;
+        var text = ta.value, spoiler = cw ? cw.value : "";
+        try {
+          if (text.trim() === initial.text.trim() && spoiler === initial.spoiler) { store.removeItem(key); show(""); return; }
+          store.setItem(key, JSON.stringify({ text: text, spoiler: spoiler, visibility: vis ? vis.value : "", at: Date.now() }));
+          show("Draft saved");
+        } catch (e) {}
+      }
+      function later() { if (timer) clearTimeout(timer); timer = setTimeout(save, 600); }
+      [ta, cw, vis].forEach(function (el) { el && el.addEventListener(el === vis ? "change" : "input", later); });
+      window.addEventListener("pagehide", function () { if (timer) { clearTimeout(timer); save(); } });
+      form.addEventListener("submit", function (ev) {
+        if (ev.defaultPrevented || (ev.submitter && ev.submitter.getAttribute("formaction"))) return; // AI drafting, not posting
+        if (timer) { clearTimeout(timer); save(); }
+        try { sessionStorage.setItem("trough-draft-sent", key); } catch (e) {}
+      });
+      var d = null;
+      try { d = JSON.parse(store.getItem(key)); } catch (e) {}
+      // Only fill an empty form (or one with just the reply's @mentions): never replace
+      // text the server filled in, such as an AI draft or the form after an error.
+      var onlyMentions = /^(\s*@[\w.\-]+(@[\w.\-:]+)?)*\s*$/.test(initial.text);
+      if (!d || (!d.text.trim() && !d.spoiler) || !onlyMentions || (cw && initial.spoiler) || document.querySelector(".flash.error")) return;
+      ta.value = d.text;
+      if (cw) cw.value = d.spoiler || "";
+      if (vis && d.visibility) vis.value = d.visibility;
+      ta.setSelectionRange(0, 0); // so autocomplete doesn't pop up for the restored text
+      ta.dispatchEvent(new Event("input"));
+      if (timer) { clearTimeout(timer); timer = null; }
+      show("Draft from " + ago(d.at) + " · ");
+      var discard = document.createElement("button");
+      discard.type = "button";
+      discard.textContent = "Discard";
+      discard.addEventListener("click", function () {
+        ta.value = initial.text;
+        if (cw) cw.value = initial.spoiler;
+        if (vis) vis.value = initial.visibility;
+        ta.dispatchEvent(new Event("input"));
+        if (timer) { clearTimeout(timer); timer = null; }
+        try { store.removeItem(key); } catch (e) {}
+        show("");
+        ta.focus();
+      });
+      status.appendChild(discard);
+    });
+  })();
+
   // Remind people to describe images before posting.
   document.querySelectorAll("form.compose").forEach(function (form) {
     form.addEventListener("submit", function (ev) {

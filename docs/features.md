@@ -150,6 +150,9 @@
   `before:`/`after:`/`during:` dates and `in:library` (posts you wrote, favourited, boosted, bookmarked or were
   mentioned in); any operator can be negated with `-`. Text matches content, content warnings and media
   descriptions. Without `in:library` only public posts and your own are searched.
+- Drafts: unsent text, content warning and visibility are saved in the browser as you type (per account, and
+  separately for a new post, each reply and each quote) and offered again with a "Discard" link; a draft is
+  forgotten once the post went through. Nothing is stored on the server.
 - Keyboard shortcuts: j/k move between posts, o opens, r replies, f favourites, b boosts, n writes, / searches,
   ? shows the list
 - Image viewer: attached images open large with their description; arrow keys go through a post's images

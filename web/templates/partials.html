@@ -112,7 +112,7 @@
 </div>{{end}}
 
 {{define "compose"}}{{$c := .C}}{{$p := .P}}
-<form class="compose" id="compose" method="post" action="{{if $c.EditOf}}/statuses/{{$c.EditOf.ID}}/edit{{else}}/statuses{{end}}" enctype="multipart/form-data">
+<form class="compose" id="compose" method="post" action="{{if $c.EditOf}}/statuses/{{$c.EditOf.ID}}/edit{{else}}/statuses{{end}}" enctype="multipart/form-data"{{if and $p.Me (not $c.EditOf)}} data-draft="{{$p.Me.ID}}:{{if $c.ReplyTo}}reply:{{$c.ReplyTo.ID}}{{else if $c.QuoteOf}}quote:{{$c.QuoteOf.ID}}{{else}}new{{end}}"{{end}}>
   {{if $c.QuoteOf}}<input type="hidden" name="quote_of" value="{{$c.QuoteOf.ID}}">
   <div class="replying">{{template "icon" "quote"}} Quoting <a href="{{$c.QuoteOf.Account.Path}}">{{handle $c.QuoteOf.Account}}</a>: <span class="muted">{{plain $c.QuoteOf.Content}}</span></div>{{end}}
   {{if $c.EditOf}}<input type="hidden" name="edit" value="{{$c.EditOf.ID}}">
@@ -178,6 +178,7 @@
       <option value="private"{{if eq $c.Visibility "private"}} selected{{end}}>🔒 Followers only</option>
       <option value="direct"{{if eq $c.Visibility "direct"}} selected{{end}}>✉️ Mentioned people only</option>
     </select>{{end}}
+    <span class="draft-status muted small" hidden></span>
     <span class="counter" aria-live="polite"></span>
     {{if and $p.AI (not $c.ReplyTo) (not $c.EditOf)}}<button class="btn lucky" type="submit" formaction="/compose/ai" name="ai_mode" value="lucky" title="Let the AI write a random post for you. Click again for another one.">🎲<span class="lucky-label"> I'm feeling lucky</span></button>{{end}}
     <button class="btn primary post-btn" type="submit">{{if $c.EditOf}}Save{{else if $c.ReplyTo}}Reply{{else}}Post{{end}}</button>

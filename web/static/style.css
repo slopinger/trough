@@ -229,6 +229,7 @@ legend { color: var(--muted); padding: 0 4px; }
 .compose-row select { max-width: 60%; }
 .compose-row .btn { margin-left: auto; }
 .counter { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.draft-status button { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; }
 .counter.over { color: var(--danger); font-weight: 700; }
 .attach summary { cursor: pointer; color: var(--muted); padding: 2px 0; }
 .att-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 8px; margin: 8px 0; }
