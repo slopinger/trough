@@ -1,0 +1,16 @@
+{{define "content"}}{{$p := .}}
+<h2 class="pagetitle">Direct messages</h2>
+{{template "compose" (dict "C" .Compose "P" .)}}
+{{range .Conversations}}<div class="conv{{if .Unread}} unread{{end}}">
+  <a class="conv-main" href="/conversations/{{.RootID}}">
+    <span class="conv-avatars">{{range $i, $a := .Participants}}{{if lt $i 3}}<img src="{{template "avatarsrc" $a}}" alt="" width="36" height="36" loading="lazy">{{end}}{{end}}</span>
+    <span class="conv-text">
+      <span class="conv-who">{{range $i, $a := .Participants}}{{if $i}}, {{end}}<b>{{name $a}}</b>{{else}}<b>Just you</b>{{end}}{{if .Unread}} <span class="conv-dot" title="Unread">●</span>{{end}}</span>
+      <span class="conv-last muted">{{if eq .Last.AccountID $p.Me.ID}}You: {{end}}{{if .Last.Spoiler}}⚠️ {{.Last.Spoiler}}{{else}}{{plain .Last.Content}}{{end}}</span>
+    </span>
+    <span class="muted small" title="{{fulltime .Last.CreatedAt}}">{{ago .Last.CreatedAt}}</span>
+  </a>
+  <form method="post" action="/conversations/{{.RootID}}/hide"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button class="btn small" title="Hide until a new message arrives">Hide</button></form>
+</div>
+{{else}}<div class="empty">No direct messages yet. Write one above: mention someone and keep the visibility at "Mentioned people only".</div>{{end}}
+{{end}}

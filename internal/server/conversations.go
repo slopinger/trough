@@ -148,3 +148,35 @@ func (app *App) apiConversationDelete(w http.ResponseWriter, r *http.Request, c 
 	app.markConversation(c.Me, cv, "hidden_id")
 	apiJSON(w, 200, obj{})
 }
+
+// ---- web UI: the Direct messages page ----
+
+func (app *App) handleConversations(w http.ResponseWriter, r *http.Request, p *Page) {
+	p.Title, p.Section, p.Heading = "Direct messages", "conversations", "Direct messages"
+	all := app.conversations(p.Me)
+	if len(all) > 50 {
+		all = all[:50]
+	}
+	p.Conversations = all
+	p.Compose = &Compose{Visibility: "direct"}
+	app.render(w, "conversations", p)
+}
+
+// handleConversationOpen marks a conversation read and shows its newest message in its thread.
+func (app *App) handleConversationOpen(w http.ResponseWriter, r *http.Request, p *Page) {
+	cv := app.findConversation(p.Me, r.PathValue("id"))
+	if cv == nil {
+		app.notFound(w, p)
+		return
+	}
+	app.markConversation(p.Me, cv, "read_id")
+	http.Redirect(w, r, cv.Last.Path()+"#s-"+cv.Last.ID, http.StatusSeeOther)
+}
+
+// handleConversationHide hides a conversation until a new message arrives.
+func (app *App) handleConversationHide(w http.ResponseWriter, r *http.Request, p *Page) {
+	if cv := app.findConversation(p.Me, r.PathValue("id")); cv != nil {
+		app.markConversation(p.Me, cv, "hidden_id")
+	}
+	http.Redirect(w, r, "/conversations", http.StatusSeeOther)
+}

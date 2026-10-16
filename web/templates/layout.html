@@ -32,6 +32,7 @@
     <a href="/explore" class="{{if eq .Section "explore"}}active{{end}} hide-narrow">{{template "icon" "trend"}}<span>Explore</span></a>
     <a href="/search" class="{{if eq .Section "search"}}active{{end}} hide-wide">{{template "icon" "search"}}<span>Search</span></a>
     {{if .Requests}}<a href="/follow_requests" class="{{if eq .Section "requests"}}active{{end}}">{{template "icon" "userplus"}}<span>Requests</span><b class="badge">{{.Requests}}</b></a>{{end}}
+    <a href="/conversations" class="{{if eq .Section "conversations"}}active{{end}} hide-narrow">{{template "icon" "mail"}}<span>Direct messages</span></a>
     <a href="/lists" class="{{if eq .Section "lists"}}active{{end}} hide-narrow">{{template "icon" "list"}}<span>Lists</span></a>
     <a href="/followed_tags" class="{{if eq .Section "tags"}}active{{end}} hide-narrow">{{template "icon" "hash"}}<span>Hashtags</span></a>
     <a href="/scheduled" class="{{if eq .Section "scheduled"}}active{{end}} hide-narrow">{{template "icon" "clock"}}<span>Scheduled</span></a>

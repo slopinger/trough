@@ -70,6 +70,7 @@ type Page struct {
 	Timeline        string // home/local/federated: enables live "new posts"
 	OAuth           *authorizeReq
 	Lists           []List
+	Conversations   []*conversation // direct messages page
 	List            *List
 	Relays          []Relay
 	Tag             string

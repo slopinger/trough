@@ -690,3 +690,13 @@ form.compose.dropping { outline: 2px dashed var(--accent); outline-offset: 2px; 
 .s-stats { display: flex; gap: 16px; padding: 8px 0 2px; font-size: 14px; color: var(--muted); border-top: 1px solid var(--line); margin-top: 8px; }
 .s-stats a { color: var(--muted); }
 .s-stats b { color: var(--text); }
+.conv { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.conv.unread { border-color: var(--accent); }
+.conv-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; color: var(--text); }
+.conv-main:hover { text-decoration: none; }
+.conv-avatars { display: flex; flex: none; }
+.conv-avatars img { width: 36px; height: 36px; border-radius: 9px; border: 2px solid var(--panel); object-fit: cover; }
+.conv-avatars img + img { margin-left: -14px; }
+.conv-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.conv-last { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.conv-dot { color: var(--accent); font-size: 10px; vertical-align: 2px; }
