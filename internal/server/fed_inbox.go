@@ -653,10 +653,14 @@ func (app *App) inForwarded(ctx context.Context, act obj) error {
 		return nil
 	}
 	st, err := app.storeFetchedNote(ctx, note, 1)
-	if err == nil && st.Visibility != "public" && st.Visibility != "unlisted" {
+	if err != nil {
+		return err
+	}
+	if st.Visibility != "public" && st.Visibility != "unlisted" {
 		return app.purgeStatus(st.ID) // only public posts are forwarded
 	}
-	return err
+	log.Printf("inbox: stored forwarded post %s", iri)
+	return nil
 }
 
 // concernsUs reports whether a remote post answers a post we have or
