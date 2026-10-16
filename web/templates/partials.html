@@ -220,6 +220,7 @@
           <form method="post" action="/accounts/{{$a.ID}}/unblock"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn">Unblock</button></form>
         {{else}}
           {{if .Rel.Following}}<form method="post" action="/accounts/{{$a.ID}}/unfollow"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn">Unfollow</button></form>
+          <form method="post" action="/accounts/{{$a.ID}}/{{if .Rel.Notifying}}unnotify{{else}}notify{{end}}"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn icon-btn{{if .Rel.Notifying}} on{{end}}" title="{{if .Rel.Notifying}}Stop notifying me when {{name $a}} posts{{else}}Notify me when {{name $a}} posts{{end}}" aria-pressed="{{.Rel.Notifying}}">{{template "icon" "bell"}}</button></form>
           {{else if .Rel.Requested}}<form method="post" action="/accounts/{{$a.ID}}/unfollow"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn" title="Cancel request">Requested</button></form>
           {{else if not .Rel.BlockedBy}}<form method="post" action="/accounts/{{$a.ID}}/follow"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn primary">Follow</button></form>{{end}}
           <a class="btn" href="/compose?text={{handle $a}}%20" title="Mention">@</a>
@@ -235,6 +236,9 @@
           <form method="post" action="/accounts/{{$a.ID}}/block" class="confirm" data-confirm="Block {{handle $a}}? They won't be able to follow you or see your posts here."><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn danger-outline" title="Block">Block</button></form>
           {{if not $a.IsLocal}}{{if .Rel.DomainBlocking}}<form method="post" action="/settings/domain_blocks"><input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="unblock" value="{{$a.Domain}}"><button class="btn" title="Show posts from {{$a.Domain}} again">Unblock {{$a.Domain}}</button></form>
           {{else}}<form method="post" action="/settings/domain_blocks" class="confirm" data-confirm="Block everything from {{$a.Domain}}? You won't see posts or notifications from there, and your followers there will be removed."><input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="domain" value="{{$a.Domain}}"><button class="btn danger-outline" title="Hide everything from {{$a.Domain}}">Block server</button></form>{{end}}{{end}}
+          {{if .Rel.Following}}<details class="menu"><summary class="btn icon-btn" title="More">{{template "icon" "dots"}}</summary><div class="menu-list">
+            <form method="post" action="/accounts/{{$a.ID}}/{{if .Rel.ShowingReblogs}}hide_boosts{{else}}show_boosts{{end}}"><input type="hidden" name="csrf" value="{{.CSRF}}"><button>{{template "icon" "boost"}} {{if .Rel.ShowingReblogs}}Hide boosts from {{name $a}}{{else}}Show boosts from {{name $a}}{{end}}</button></form>
+          </div></details>{{end}}
         {{end}}
         {{if .Rel.RequestedBy}}
           <form method="post" action="/accounts/{{$a.ID}}/accept"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="btn primary">Accept follow request</button></form>

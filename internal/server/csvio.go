@@ -53,7 +53,8 @@ func (app *App) exportCSV(me *Account, kind string, w io.Writer) error {
 		}
 		cw.Write([]string{"Account address", "Show boosts", "Notify on new posts", "Languages"})
 		for _, a := range accs {
-			cw.Write([]string{app.fullAcct(a), "true", "false", ""})
+			r := app.relationship(me.ID, a.ID)
+			cw.Write([]string{app.fullAcct(a), strconv.FormatBool(r.ShowingReblogs), strconv.FormatBool(r.Notifying), ""})
 		}
 	case "blocks", "mutes":
 		accs, err := accounts(kind + ` x JOIN accounts a ON a.id=x.target_id WHERE x.account_id=?`)
@@ -224,11 +225,23 @@ func (app *App) importRow(me *Account, kind string, rec []string, lists map[stri
 		return nil
 	}
 	switch kind {
-	case "following":
-		if r := app.relationship(me.ID, acc.ID); r.Following || r.Requested {
-			return nil
+	case "following": // Mastodon's columns: address, Show boosts, Notify on new posts
+		if r := app.relationship(me.ID, acc.ID); !r.Following && !r.Requested {
+			if err := app.Follow(me, acc); err != nil {
+				return err
+			}
 		}
-		return app.Follow(me, acc)
+		var reblogs, notify *bool
+		if len(rec) > 1 && strings.TrimSpace(rec[1]) != "" {
+			b := strings.TrimSpace(rec[1]) != "false"
+			reblogs = &b
+		}
+		if len(rec) > 2 && strings.TrimSpace(rec[2]) != "" {
+			b := strings.TrimSpace(rec[2]) == "true"
+			notify = &b
+		}
+		app.SetFollowOptions(me, acc, reblogs, notify)
+		return nil
 	case "blocks":
 		return app.Block(me, acc)
 	case "mutes": // Mastodon's second column is "Hide notifications"

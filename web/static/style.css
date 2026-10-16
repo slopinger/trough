@@ -700,3 +700,6 @@ form.compose.dropping { outline: 2px dashed var(--accent); outline-offset: 2px; 
 .conv-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .conv-last { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
 .conv-dot { color: var(--accent); font-size: 10px; vertical-align: 2px; }
+.btn.icon-btn { padding-left: 10px; padding-right: 10px; display: inline-flex; align-items: center; }
+.btn.icon-btn .ico { width: 18px; height: 18px; vertical-align: 0; }
+.btn.on { color: var(--accent); border-color: var(--accent); }

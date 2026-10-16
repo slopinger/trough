@@ -155,6 +155,7 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 	}
 	app.queueCard(full)
 	app.publishStatus(full.ID, false)
+	app.notifySubscribers(full)
 	return full, nil
 }
 
@@ -308,6 +309,42 @@ func (app *App) Unboost(me *Account, st *Status) error {
 }
 
 // ---- follows ----
+
+// SetFollowOptions changes Mastodon's per-follow options: whether target's
+// boosts show in Home, and whether their new posts notify me.
+func (app *App) SetFollowOptions(me, target *Account, reblogs, notify *bool) {
+	if reblogs != nil {
+		app.db.Exec(`UPDATE follows SET show_reblogs=? WHERE account_id=? AND target_id=?`, *reblogs, me.ID, target.ID)
+	}
+	if notify != nil {
+		app.db.Exec(`UPDATE follows SET notify=? WHERE account_id=? AND target_id=?`, *notify, me.ID, target.ID)
+	}
+}
+
+// notifySubscribers sends "status" notifications to local followers who
+// rang the bell on st's author, like Mastodon: for new posts and threads of
+// their own, not for boosts, direct messages or replies to others.
+func (app *App) notifySubscribers(st *Status) {
+	if st.BoostOfID != "" || st.Visibility == "direct" || (st.InReplyToURI != "" && st.InReplyToAccountID != st.AccountID) {
+		return
+	}
+	rows, err := app.db.Query(`SELECT f.account_id FROM follows f JOIN users u ON u.account_id=f.account_id
+		WHERE f.target_id=? AND f.accepted=1 AND f.notify=1`, st.AccountID)
+	if err != nil {
+		return
+	}
+	var ids []string
+	for rows.Next() {
+		var id string
+		if rows.Scan(&id) == nil {
+			ids = append(ids, id)
+		}
+	}
+	rows.Close()
+	for _, id := range ids {
+		app.notify(id, "status", st.AccountID, st.ID)
+	}
+}
 
 func (app *App) Follow(me, target *Account) error {
 	if me.ID == target.ID {

@@ -60,7 +60,8 @@ func homeSQL(v *Account) (string, []any) {
 		OR EXISTS(SELECT 1 FROM mentions m2 WHERE m2.status_id=s.id AND m2.account_id=?)
 		OR (s.visibility='public' AND s.id IN (SELECT status_id FROM status_tags WHERE tag IN (SELECT tag FROM followed_tags WHERE account_id=?))))
 		AND (s.account_id=? OR s.account_id NOT IN (SELECT la.account_id FROM list_accounts la JOIN lists l ON l.id=la.list_id WHERE l.account_id=? AND l.exclusive=1))
-		AND ` + mute, append([]any{v.ID, v.ID, v.ID, v.ID, v.ID, v.ID}, margs...)
+		AND (s.boost_of_id='' OR s.account_id NOT IN (SELECT target_id FROM follows WHERE account_id=? AND show_reblogs=0))
+		AND ` + mute, append([]any{v.ID, v.ID, v.ID, v.ID, v.ID, v.ID, v.ID}, margs...)
 }
 
 func (app *App) handleTagFollow(w http.ResponseWriter, r *http.Request, p *Page) {

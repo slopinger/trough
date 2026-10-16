@@ -126,6 +126,8 @@
 - Blocking whole servers for yourself (Settings, a profile's "Block server" button, `/api/v1/domain_blocks`):
   hides their posts, boosts of them and notifications, removes followers there and refuses new ones;
   the list of servers the instance blocks is public (`/api/v1/instance/domain_blocks`)
+- Per-follow options (profile bell and "…" menu, API `reblogs`/`notify` on follow, CSV columns): get a
+  `status` notification (and web push) when someone posts, or hide their boosts from the home timeline
 - Muting a conversation (post menu, `POST /api/v1/statuses/:id/mute`): no more notifications about replies, likes
   or boosts in that thread
 - Mutes (indefinitely or for 1 hour/1 day/7 days, optionally posts only; API `duration` and `notifications`,

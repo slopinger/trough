@@ -303,7 +303,7 @@ func (app *App) apiStatuses(v *Account, sts []*Status) []any {
 var notificationTypes = map[string]string{
 	"favourite": "favourite", "reblog": "reblog", "mention": "mention", "follow": "follow", "follow_request": "follow_request",
 	"poll": "poll", "quote": "quote", "reaction": "pleroma:emoji_reaction", "signup": "admin.sign_up", "move": "move",
-	"update": "update", "quoted_update": "quoted_update",
+	"update": "update", "quoted_update": "quoted_update", "status": "status",
 }
 
 func (app *App) apiNotification(v *Account, n *Notification) obj {
@@ -324,7 +324,7 @@ func (app *App) apiNotification(v *Account, n *Notification) obj {
 func (app *App) apiRelationship(me *Account, other *Account) obj {
 	r := app.relationship(me.ID, other.ID)
 	return obj{
-		"id": other.ID, "following": r.Following, "showing_reblogs": r.Following, "notifying": false, "languages": nil,
+		"id": other.ID, "following": r.Following, "showing_reblogs": (r.Following || r.Requested) && r.ShowingReblogs, "notifying": r.Notifying, "languages": nil,
 		"followed_by": r.FollowedBy, "blocking": r.Blocking, "blocked_by": r.BlockedBy, "muting": r.Muting,
 		"muting_notifications": r.MutingNotifications, "requested": r.Requested, "requested_by": r.RequestedBy,
 		"domain_blocking": app.blocksDomain(me.ID, other.Domain), "endorsed": r.Endorsed, "note": app.accountNote(me, other),

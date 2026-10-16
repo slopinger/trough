@@ -237,6 +237,19 @@ func (app *App) apiAccountAction(w http.ResponseWriter, r *http.Request, c *apiC
 	switch r.PathValue("action") {
 	case "follow":
 		err = app.Follow(c.Me, target)
+		if err == nil {
+			p := readParams(r)
+			var reblogs, notify *bool
+			if p.Has("reblogs") {
+				b := p.Get("reblogs") != "false"
+				reblogs = &b
+			}
+			if p.Has("notify") {
+				b := p.Get("notify") == "true"
+				notify = &b
+			}
+			app.SetFollowOptions(c.Me, target, reblogs, notify)
+		}
 	case "unfollow":
 		err = app.Unfollow(c.Me, target)
 	case "block":

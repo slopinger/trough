@@ -197,6 +197,13 @@ func (app *App) handleAccountAction(w http.ResponseWriter, r *http.Request, p *P
 		err = app.MuteFor(p.Me, target, r.FormValue("notifications") != "keep", muteDuration(r.FormValue("duration")))
 	case "unmute":
 		err = app.Unmute(p.Me, target)
+	case "notify", "unnotify", "show_boosts", "hide_boosts":
+		on := r.PathValue("action") == "notify" || r.PathValue("action") == "show_boosts"
+		if strings.HasSuffix(r.PathValue("action"), "notify") {
+			app.SetFollowOptions(p.Me, target, nil, &on)
+		} else {
+			app.SetFollowOptions(p.Me, target, &on, nil)
+		}
 	case "note":
 		err = app.SetAccountNote(p.Me, target, r.FormValue("comment"))
 	case "endorse":

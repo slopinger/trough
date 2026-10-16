@@ -476,13 +476,15 @@ type Relationship struct {
 	Endorsed                                                                   bool // featured on my profile
 	DomainBlocking                                                             bool // I blocked their server (set by the web UI)
 	MutingNotifications                                                        bool
+	ShowingReblogs, Notifying                                                  bool // options of my follow
 	MuteExpiresAt                                                              time.Time // zero: muted indefinitely
 }
 
 func (app *App) relationship(me, other string) Relationship {
 	var r Relationship
 	var acc sql.NullBool
-	if err := app.db.QueryRow(`SELECT accepted FROM follows WHERE account_id=? AND target_id=?`, me, other).Scan(&acc); err == nil {
+	r.ShowingReblogs = true
+	if err := app.db.QueryRow(`SELECT accepted, show_reblogs, notify FROM follows WHERE account_id=? AND target_id=?`, me, other).Scan(&acc, &r.ShowingReblogs, &r.Notifying); err == nil {
 		r.Following = acc.Bool
 		r.Requested = !acc.Bool
 	}

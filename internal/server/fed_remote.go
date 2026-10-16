@@ -101,6 +101,9 @@ func (app *App) storeNote(ctx context.Context, author *Account, note obj, depth 
 	mentioned := app.replaceNoteExtras(ctx, st, note)
 	app.queueCard(st)
 	app.publishStatus(st.ID, false)
+	if time.Since(st.CreatedAt) < 15*time.Minute { // new posts, not backfilled or fetched old ones
+		app.notifySubscribers(st)
+	}
 	for id := range mentioned {
 		app.notify(id, "mention", author.ID, st.ID)
 	}

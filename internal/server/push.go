@@ -367,6 +367,8 @@ func pushText(n *Notification) (string, string) {
 	switch n.Type {
 	case "mention":
 		return who + " mentioned you", body
+	case "status":
+		return who + " just posted", body
 	case "favourite":
 		return who + " favourited your post", body
 	case "reblog":
