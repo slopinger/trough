@@ -281,6 +281,19 @@ func (app *App) handleStatusAction(w http.ResponseWriter, r *http.Request, p *Pa
 	case "unpin":
 		err = app.Unpin(p.Me, target)
 	case "edit":
+		// alt text and focal points of the post's media, from the edit form's tiles
+		var attrs []map[string]string
+		for _, at := range target.Attachments {
+			a := map[string]string{"id": at.ID}
+			if v, ok := r.Form["edit_alt_"+at.ID]; ok {
+				a["description"] = v[0]
+			}
+			if f := r.FormValue("edit_focus_" + at.ID); f != "" {
+				a["focus"] = f
+			}
+			attrs = append(attrs, a)
+		}
+		app.applyMediaAttributes(target, attrs)
 		var edited *Status
 		edited, err = app.EditStatus(r.Context(), p.Me, target, r.FormValue("text"), r.FormValue("spoiler"), r.FormValue("sensitive") != "")
 		if err == nil && !isFetch(r) {

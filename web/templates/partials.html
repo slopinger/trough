@@ -169,7 +169,12 @@
     <div class="att-row"><input type="file" name="media2" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/quicktime,video/webm,audio/*"><input name="alt2" maxlength="1500" placeholder="Describe it for people who can't see or hear it (alt text)"></div>
     <div class="att-row"><input type="file" name="media3" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/quicktime,video/webm,audio/*"><input name="alt3" maxlength="1500" placeholder="Describe it for people who can't see or hear it (alt text)"></div>
     <label class="check"><input type="checkbox" name="sensitive"{{if $c.Sensitive}} checked{{end}}> Mark media as sensitive</label>
-  </details>{{else}}<input type="hidden" name="sensitive" value="{{if $c.Sensitive}}1{{end}}">{{end}}
+  </details>{{else}}{{if $c.EditOf.Attachments}}<div class="att-tiles edit-media">{{range $c.EditOf.Attachments}}
+    <div class="att-tile">
+      <div class="att-thumb{{if ne .Kind "image"}} att-{{.Kind}}{{end}}"><span class="att-wrap"{{if eq .Kind "video"}} data-label="Video"{{else if eq .Kind "audio"}} data-label="Audio"{{end}}>{{if eq .Kind "image"}}<img src="{{media .URL}}" alt="" data-focus-pick="{{.ID}}"><span class="focus-dot" data-point="{{.FocusData}}"{{if not .HasFocus}} hidden{{end}}></span>{{else if .PreviewURL}}<img src="{{media .PreviewURL}}" alt="">{{end}}</span></div>
+      <textarea class="att-alt" name="edit_alt_{{.ID}}" rows="2" maxlength="1500" aria-label="Description of this attachment" placeholder="Alt text: describe it for people who can't {{if eq .Kind "audio"}}hear{{else}}see{{end}} it">{{.Description}}</textarea>
+      {{if eq .Kind "image"}}<input type="hidden" name="edit_focus_{{.ID}}" value="{{.FocusData}}"><small class="muted" hidden>Click the picture to choose what stays in view when it's cropped</small>{{end}}
+    </div>{{end}}</div>{{end}}<input type="hidden" name="sensitive" value="{{if $c.Sensitive}}1{{end}}">{{end}}
   <div class="compose-row">
     {{if $c.EditOf}}<span class="muted small">{{visIcon $c.Visibility}} {{visLabel $c.Visibility}}</span>{{else}}
     <select name="visibility" aria-label="Visibility">

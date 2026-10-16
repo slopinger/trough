@@ -147,3 +147,54 @@ func TestEditMediaAttributes(t *testing.T) {
 		t.Errorf("form edit: %v", got)
 	}
 }
+
+func TestWebEditMedia(t *testing.T) {
+	la, _, _, _ := featureFixture(t)
+	token := oauthLogin(t, la, "bob", "password123", "read write")
+	c := &apiClient{t: t, base: la.base, token: token}
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	fw, _ := mw.CreateFormFile("file", "pic.png")
+	fw.Write(pngBytes())
+	mw.WriteField("description", "old words")
+	mw.Close()
+	req, _ := http.NewRequest("POST", la.base+"/api/v2/media", &body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var media map[string]any
+	json.NewDecoder(resp.Body).Decode(&media)
+	resp.Body.Close()
+	id := media["id"].(string)
+	st := c.ok("POST", "/api/v1/statuses", url.Values{"status": {"a pic"}, "media_ids[]": {id}, "visibility": {"public"}}).(map[string]any)
+	sid := st["id"].(string)
+
+	web := webClient(t, la, "bob", "password123")
+	resp, err = web.Get(la.base + "/compose?edit=" + sid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	page := string(b)
+	if !strings.Contains(page, `name="edit_alt_`+id+`"`) || !strings.Contains(page, ">old words</textarea>") {
+		t.Fatal("edit form doesn't offer the attachment's alt text")
+	}
+	csrf := strings.SplitN(strings.SplitN(page, `name="csrf" value="`, 2)[1], `"`, 2)[0]
+	form := url.Values{"csrf": {csrf}, "text": {"a pic, edited"}, "edit_alt_" + id: {"a pig in a field"}, "edit_focus_" + id: {"0.5,-0.5"}}
+	req, _ = http.NewRequest("POST", la.base+"/statuses/"+sid+"/edit", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Origin", la.base)
+	if resp, err = web.Do(req); err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	got := c.ok("GET", "/api/v1/statuses/"+sid, nil).(map[string]any)
+	m := got["media_attachments"].([]any)[0].(map[string]any)
+	if m["description"] != "a pig in a field" || m["meta"].(map[string]any)["focus"].(map[string]any)["x"] != 0.5 || got["edited_at"] == nil {
+		t.Errorf("after web edit: %v", m)
+	}
+}

@@ -733,6 +733,23 @@
     img.style.objectPosition = ((x + 1) * 50).toFixed(1) + "% " + ((1 - y) * 50).toFixed(1) + "%";
   });
 
+  // Editing a post: click an image tile to move its focal point.
+  document.querySelectorAll("form.compose .edit-media img[data-focus-pick]").forEach(function (img) {
+    var tile = img.closest(".att-tile"), dot = tile.querySelector(".focus-dot"), hint = tile.querySelector("small");
+    var field = tile.querySelector('input[name="edit_focus_' + img.getAttribute("data-focus-pick") + '"]');
+    var p = (dot.getAttribute("data-point") || "").split(",");
+    if (p.length === 2) { dot.style.left = ((+p[0] + 1) * 50) + "%"; dot.style.top = ((1 - p[1]) * 50) + "%"; }
+    img.classList.add("pickable");
+    img.title = "Click to set the focal point";
+    if (hint) hint.hidden = false;
+    img.addEventListener("click", function (ev) {
+      var r = img.getBoundingClientRect(), fx = (ev.clientX - r.left) / r.width, fy = (ev.clientY - r.top) / r.height;
+      field.value = (fx * 2 - 1).toFixed(2) + "," + (1 - fy * 2).toFixed(2);
+      dot.style.left = (fx * 100).toFixed(1) + "%"; dot.style.top = (fy * 100).toFixed(1) + "%"; dot.hidden = false;
+      if (hint) hint.textContent = "Focal point set. Click again to move it";
+    });
+  });
+
   // Remind people to describe images before posting.
   document.querySelectorAll("form.compose").forEach(function (form) {
     form.addEventListener("submit", function (ev) {
