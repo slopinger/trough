@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,13 +25,39 @@ const (
 
 var (
 	repliesMu   sync.Mutex
-	repliesSeen = map[string]time.Time{}
+	repliesRuns = map[string]*repliesRun{} // by root status id
 	repliesSem  = make(chan struct{}, 2)
 )
 
+// repliesRun is one background fetch of a thread's replies; the client API
+// reports it as a Mastodon 4.4 async refresh.
+type repliesRun struct {
+	Started  time.Time
+	Finished bool
+	Count    int // replies stored
+}
+
+// asyncRefreshID names the refresh of a thread for the client API.
+func asyncRefreshID(rootID string) string { return "context-" + rootID }
+
+// repliesState returns a copy of the latest run for an async refresh id.
+func repliesState(refreshID string) (repliesRun, bool) {
+	rootID, ok := strings.CutPrefix(refreshID, "context-")
+	if !ok {
+		return repliesRun{}, false
+	}
+	repliesMu.Lock()
+	defer repliesMu.Unlock()
+	if r := repliesRuns[rootID]; r != nil {
+		return *r, true
+	}
+	return repliesRun{}, false
+}
+
 // fetchRepliesLater starts fetching the replies of st's thread, at most once
-// per repliesEvery. It reports whether a fetch was started.
-func (app *App) fetchRepliesLater(st *Status) bool {
+// per repliesEvery. It returns the thread's async refresh id ("" for local
+// threads) and whether this call started a fetch.
+func (app *App) fetchRepliesLater(st *Status) (string, bool) {
 	root := st
 	if id := app.threadRoot(st.ID); id != "" && id != st.ID {
 		if r, err := app.StatusByID(id); err == nil {
@@ -37,17 +65,19 @@ func (app *App) fetchRepliesLater(st *Status) bool {
 		}
 	}
 	if root.Local || root.URI == "" {
-		return false
+		return "", false
 	}
+	id := asyncRefreshID(root.ID)
 	repliesMu.Lock()
-	if t, ok := repliesSeen[root.ID]; ok && time.Since(t) < repliesEvery {
+	if r, ok := repliesRuns[root.ID]; ok && time.Since(r.Started) < repliesEvery {
 		repliesMu.Unlock()
-		return false
+		return id, false
 	}
-	repliesSeen[root.ID] = time.Now()
-	for id, t := range repliesSeen { // keep the map small
-		if time.Since(t) > repliesEvery {
-			delete(repliesSeen, id)
+	run := &repliesRun{Started: time.Now()}
+	repliesRuns[root.ID] = run
+	for k, r := range repliesRuns { // keep the map small
+		if time.Since(r.Started) > repliesEvery {
+			delete(repliesRuns, k)
 		}
 	}
 	repliesMu.Unlock()
@@ -56,9 +86,28 @@ func (app *App) fetchRepliesLater(st *Status) bool {
 		defer func() { <-repliesSem }()
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
-		app.fetchReplies(ctx, root.URI)
+		n := app.fetchReplies(ctx, root.URI)
+		repliesMu.Lock()
+		run.Finished, run.Count = true, n
+		repliesMu.Unlock()
 	}()
-	return true
+	return id, true
+}
+
+// apiAsyncRefresh reports a background fetch of a thread's replies
+// (GET /api/v1_alpha/async_refreshes/:id, Mastodon 4.4).
+func (app *App) apiAsyncRefresh(w http.ResponseWriter, r *http.Request, c *apiCtx) {
+	id := r.PathValue("id")
+	run, ok := repliesState(id)
+	if !ok {
+		apiError(w, 404, "Record not found")
+		return
+	}
+	status := "running"
+	if run.Finished {
+		status = "finished"
+	}
+	apiJSON(w, 200, obj{"async_refresh": obj{"id": id, "status": status, "result_count": run.Count}})
 }
 
 // fetchReplies walks the replies collections below rootURI breadth first.

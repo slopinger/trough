@@ -66,4 +66,26 @@ func TestFetchReplies(t *testing.T) {
 	if strings.Contains(page(), "Looking for more replies") {
 		t.Error("second view fetched again")
 	}
+
+	// Clients see the fetch as a Mastodon 4.4 async refresh they can poll.
+	repliesMu.Lock()
+	delete(repliesRuns, root.ID)
+	repliesMu.Unlock()
+	c := &apiClient{t: t, base: la.base, token: oauthLogin(t, la, "bob", "password123", "read")}
+	code, _, hdr := c.do("GET", "/api/v1/statuses/"+root.ID+"/context", nil)
+	ref := hdr.Get("Mastodon-Async-Refresh")
+	if code != 200 || !strings.HasPrefix(ref, `id="context-`+root.ID+`"`) || !strings.Contains(hdr.Get("Access-Control-Expose-Headers"), "Mastodon-Async-Refresh") {
+		t.Fatalf("context: %d, refresh header %q", code, ref)
+	}
+	id := strings.SplitN(strings.TrimPrefix(ref, `id="`), `"`, 2)[0]
+	waitFor(t, "the refresh to finish", func() bool {
+		m := c.ok("GET", "/api/v1_alpha/async_refreshes/"+id, nil).(map[string]any)["async_refresh"].(map[string]any)
+		return m["status"] == "finished"
+	})
+	if _, _, hdr := c.do("GET", "/api/v1/statuses/"+root.ID+"/context", nil); hdr.Get("Mastodon-Async-Refresh") != "" {
+		t.Error("finished refresh still announced")
+	}
+	if code, _, _ := c.do("GET", "/api/v1_alpha/async_refreshes/context-nope", nil); code != 404 {
+		t.Errorf("unknown refresh: %d", code)
+	}
 }

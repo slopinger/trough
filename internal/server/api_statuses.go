@@ -226,7 +226,12 @@ func (app *App) apiContext(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 		cancel()
 	}
 	if c.Me != nil {
-		app.fetchRepliesLater(st)
+		// Mastodon 4.4: tell clients a fetch of more replies is running, so they can poll it
+		if id, started := app.fetchRepliesLater(st); id != "" {
+			if run, ok := repliesState(id); started || (ok && !run.Finished) {
+				w.Header().Set("Mastodon-Async-Refresh", `id="`+id+`", retry=3`)
+			}
+		}
 	}
 	anc, desc := app.thread(c.Me, st)
 	anc, desc = app.applyFilters(c.Me, anc, "thread"), app.applyFilters(c.Me, desc, "thread")

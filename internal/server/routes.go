@@ -315,6 +315,7 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	h("PUT /api/v1/statuses/{id}", write(app.apiEditStatus))
 	h("DELETE /api/v1/statuses/{id}", write(app.apiDeleteStatus))
 	h("GET /api/v1/statuses/{id}/context", pub(app.apiContext))
+	h("GET /api/v1_alpha/async_refreshes/{id}", read(app.apiAsyncRefresh))
 	h("GET /api/v1/statuses/{id}/source", read(app.apiStatusSource))
 	h("GET /api/v1/statuses/{id}/history", pub(app.apiStatusHistory))
 	h("GET /api/v1/statuses/{id}/favourited_by", pub(app.apiStatusAccounts(true)))

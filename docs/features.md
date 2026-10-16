@@ -26,7 +26,8 @@
   from the outbox when you follow someone or open their profile. Opening a remote thread (signed in, web or
   `/api/v1/statuses/:id/context`) fetches the replies its server lists in the `replies` collection in the
   background, like Mastodon 4.4: three levels deep, at most 60 posts, once per thread every 15 minutes; each reply
-  comes from its own origin and is only kept if it answers the post it was listed under
+  comes from its own origin and is only kept if it answers the post it was listed under. While it runs, the
+  context API sends Mastodon 4.4's `Mastodon-Async-Refresh` header and `/api/v1_alpha/async_refreshes/:id` reports it
 - SSRF protection: remote fetches never connect to loopback/private/link-local addresses
 - Remote HTML is sanitized (bluemonday); custom emoji, polls (read-only), content warnings,
   sensitive media, Articles and other object types are displayed

@@ -53,7 +53,7 @@ func (app *App) showThread(w http.ResponseWriter, r *http.Request, p *Page, st *
 	}
 	p.Status = st
 	if p.Me != nil {
-		p.FetchingReplies = app.fetchRepliesLater(st)
+		_, p.FetchingReplies = app.fetchRepliesLater(st)
 	}
 	p.Ancestors, p.Descendants = app.thread(p.Me, st)
 	p.Title = st.Account.Name() + ": " + truncateRunes(plainText(st.Content), 60)
