@@ -2,6 +2,7 @@ package server
 
 import (
 	"database/sql"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -403,6 +404,31 @@ type Notification struct {
 	Status    *Status
 	CreatedAt time.Time
 	Read      bool
+	Others    []*Account // web UI: more people in this group (likes/boosts of a post, follows of a day)
+}
+
+// groupNotifications folds a newest-first page of notifications into groups with the
+// API's keys: the newest notification of a group stays, with the other accounts in Others.
+func groupNotifications(ns []*Notification) []*Notification {
+	var out []*Notification
+	heads := map[string]*Notification{}
+	for _, n := range ns {
+		key := groupKey(n, defaultGroupedTypes)
+		head := heads[key]
+		if head == nil {
+			heads[key] = n
+			out = append(out, n)
+			continue
+		}
+		if !n.Read {
+			head.Read = false
+		}
+		if n.From.ID == head.From.ID || slices.ContainsFunc(head.Others, func(a *Account) bool { return a.ID == n.From.ID }) {
+			continue
+		}
+		head.Others = append(head.Others, n.From)
+	}
+	return out
 }
 
 func (app *App) notifications(v *Account, maxID string) ([]*Notification, error) {

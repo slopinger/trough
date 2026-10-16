@@ -389,6 +389,9 @@ details.sensitive > summary { cursor: pointer; padding: 18px; text-align: center
 .notif.unread { border-left: 4px solid var(--accent); }
 .notif .status { border: 0; box-shadow: none; padding: 6px 0 0; margin: 0; }
 .ntop { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nfaces { display: inline-flex; align-items: center; }
+.nfaces .avatar + .avatar { margin-left: -8px; }
+.nfaces .avatar img { box-shadow: 0 0 0 2px var(--panel); }
 .nicon .ico { width: 18px; height: 18px; }
 .n-favourite { color: var(--like); }
 .n-favourite .ico { fill: currentColor; }
