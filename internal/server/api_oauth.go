@@ -239,6 +239,7 @@ func (app *App) apiAuth(r *http.Request) *apiCtx {
 		if now := time.Now().Unix(); now-lastUsed > 3600 {
 			app.db.Exec(`UPDATE oauth_tokens SET last_used=? WHERE id=?`, now, id)
 			app.db.Exec(`UPDATE users SET last_seen=? WHERE account_id=?`, now, acc.ID)
+			app.markActive(acc.ID, time.Unix(now, 0))
 		}
 	}
 	return c

@@ -19,6 +19,12 @@
     <li><b>{{index .Stats "new_accounts"}}</b> remote accounts discovered</li>
   </ul>
   {{if .TopServers}}<p class="muted small">Most posts from: {{range $i, $s := .TopServers}}{{if $i}}, {{end}}<b>{{$s.Domain}}</b> ({{$s.Posts}}){{end}}</p>{{end}}
+  <h4>Last 12 weeks</h4>
+  <div class="activity-charts">{{range .ActivityCharts}}<figure class="activity-chart">
+    <figcaption><b>{{.Title}}</b><span class="muted small">{{.ThisWeek}} this week</span></figcaption>
+    <svg viewBox="0 0 236 60" preserveAspectRatio="none" role="img" aria-label="{{.Title}} per week, last 12 weeks">{{range .Bars}}<rect x="{{.X}}" y="{{.Y}}" width="16" height="{{.H}}" rx="2"><title>{{.Title}}</title></rect>{{end}}</svg>
+    <div class="activity-axis muted small"><span>{{.FirstWeek.Format "2 Jan"}}</span><span>this week</span></div>
+  </figure>{{end}}</div>
   {{if .Deliveries}}<details><summary>Failing deliveries</summary>
   <table class="tbl"><tr><th>Inbox</th><th>Attempts</th><th>Next try</th><th>Error</th></tr>
   {{range .Deliveries}}<tr><td>{{.Inbox}}</td><td>{{.Attempts}}</td><td>{{fulltime .NextTry}}</td><td class="small">{{.LastError}}</td></tr>{{end}}</table></details>{{end}}

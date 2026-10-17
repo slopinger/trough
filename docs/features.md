@@ -175,7 +175,11 @@
 - Search by `@user@server`, by profile/post URL, by `#tag`, or full text over known posts
 - Admin page: create users, reset passwords, instance title/description, domain blocks (including
   subdomains), federation stats and failing deliveries, and the last 7 days (new and active users, local posts,
-  likes/boosts/replies on them, newly seen remote accounts, the servers most posts came from)
+  likes/boosts/replies on them, newly seen remote accounts, the servers most posts came from) and bar charts of
+  the last 12 weeks (local posts, active users, sign-ups; hover a bar for its number)
+- Weekly activity for apps and directories (`/api/v1/instance/activity`, like Mastodon): local posts, active users
+  and sign-ups for each of the last 12 weeks (Monday to Sunday, UTC). A user counts as active in a week once they
+  used the web UI or an app in it
 - Server rules (on About and sign-up, `/api/v1/instance/rules`, in the instance entity) and announcements
   (a banner until each user dismisses it; `/api/v1/announcements` with dismissing and emoji reactions)
 - Video and audio uploads (web, Mastodon API, C2S): MP4/MOV, WebM, MP3, Ogg, WAV and FLAC up to 40 MB, recognised

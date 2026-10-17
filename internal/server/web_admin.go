@@ -79,6 +79,7 @@ func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Description = app.getSetting("description")
 	p.PolicySource, _, p.PolicyDefault = app.privacyPolicy()
 	app.adminTerms(p)
+	p.ActivityCharts = activityCharts(app.weeklyActivity(time.Now()))
 	p.AIKeySource, p.AIModel = app.aiKeySource(), app.aiModel()
 	p.Reports = app.openReports()
 	p.Invites = app.invites()

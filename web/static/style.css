@@ -737,3 +737,12 @@ body.embed { margin: 0; background: transparent; }
 .terms-next { padding: 10px 12px; background: var(--accent-soft); border-radius: 8px; }
 .terms-versions { padding-left: 18px; }
 .terms-versions li { margin: 4px 0; }
+
+/* Admin: weekly activity charts */
+.activity-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px 20px; margin: 8px 0 12px; }
+.activity-chart { margin: 0; min-width: 0; }
+.activity-chart figcaption { display: flex; flex-direction: column; margin-bottom: 6px; }
+.activity-chart svg { display: block; width: 100%; height: 60px; }
+.activity-chart rect { fill: var(--accent); }
+.activity-chart rect:last-child { fill: var(--accent-strong); }
+.activity-axis { display: flex; justify-content: space-between; margin-top: 4px; }

@@ -581,6 +581,15 @@ CREATE TABLE cleanup_policies (
 );
 `, `
 ALTER TABLE sessions ADD COLUMN last_used INTEGER NOT NULL DEFAULT 0;
+`, `
+CREATE TABLE weekly_logins (
+	week INTEGER NOT NULL,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	PRIMARY KEY (week, account_id)
+) WITHOUT ROWID;
+INSERT OR IGNORE INTO weekly_logins (week, account_id)
+	SELECT CAST(strftime('%s', date(last_seen, 'unixepoch', 'weekday 0', '-6 days')) AS INTEGER), account_id
+	FROM users WHERE last_seen > 0;
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

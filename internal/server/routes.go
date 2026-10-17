@@ -225,7 +225,7 @@ func (app *App) apiRoutes(mux *http.ServeMux) {
 	h("GET /api/v1/instance", pub(app.apiInstance))
 	h("GET /api/v2/instance", pub(app.apiInstance2))
 	h("GET /api/v1/instance/peers", pub(app.apiPeers))
-	h("GET /api/v1/instance/activity", pub(emptyList))
+	h("GET /api/v1/instance/activity", pub(app.apiInstanceActivity))
 	h("GET /api/v1/instance/rules", pub(app.apiRules))
 	h("GET /api/v1/instance/domain_blocks", pub(app.apiInstanceDomainBlocks))
 	h("GET /api/v1/instance/translation_languages", pub(app.apiTranslationLanguages))

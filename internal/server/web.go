@@ -52,7 +52,8 @@ type Page struct {
 	Users           []*User
 	DomainBlocks    []DomainBlock
 	Stats           map[string]int
-	TopServers      []ServerCount // admin: where this week's remote posts came from
+	TopServers      []ServerCount   // admin: where this week's remote posts came from
+	ActivityCharts  []ActivityChart // admin: the last 12 weeks
 	Counts          struct{ Posts, Following, Followers int }
 	Description     string
 	Admins          []*Account
@@ -204,7 +205,11 @@ func (app *App) web(requireLogin bool, h handler) http.HandlerFunc {
 					p.Announcements = app.unreadAnnouncements(acc)
 					app.db.QueryRow(`SELECT theme, text_size FROM users WHERE account_id=?`, acc.ID).Scan(&p.Theme, &p.TextSize)
 					now := time.Now().Unix()
-					app.db.Exec(`UPDATE users SET last_seen=? WHERE account_id=? AND last_seen < ?`, now, acc.ID, now-3600)
+					if res, err := app.db.Exec(`UPDATE users SET last_seen=? WHERE account_id=? AND last_seen < ?`, now, acc.ID, now-3600); err == nil {
+						if n, _ := res.RowsAffected(); n > 0 {
+							app.markActive(acc.ID, time.Unix(now, 0))
+						}
+					}
 					app.db.Exec(`UPDATE sessions SET last_used=? WHERE id=? AND last_used < ?`, now, sessID, now-3600)
 				}
 			}
