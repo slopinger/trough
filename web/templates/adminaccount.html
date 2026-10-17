@@ -1,0 +1,57 @@
+{{define "content"}}{{$p := .}}{{with .AdminAccount}}{{$a := .Account}}
+<div class="pagehead"><h2 class="pagetitle">Moderation</h2><a class="btn small" href="/admin/reports">Reports</a></div>
+<section class="card admin-account">
+  <div class="admin-account-head">
+    <a href="{{$a.Path}}" class="avatar"><img src="{{template "avatarsrc" $a}}" alt="" width="56" height="56"></a>
+    <div><b>{{name $a}}</b><br><a href="{{$a.Path}}">{{handle $a}}</a>
+      <div class="badges">{{if .IsAdmin}}<span class="badge">admin</span>{{end}}{{if .Pending}}<span class="badge">waiting for approval</span>{{else if $a.Suspended}}<span class="badge">suspended</span>{{end}}{{if $a.Limited}}<span class="badge">limited</span>{{end}}{{if $a.IsBot}}<span class="badge">bot</span>{{end}}</div></div>
+  </div>
+  <dl class="facts">
+    <dt>{{if $a.IsLocal}}Joined{{else}}First seen{{end}}</dt><dd title="{{fulltime $a.CreatedAt}}">{{day $a.CreatedAt}}</dd>
+    {{if .IsUser}}<dt>Last active</dt><dd>{{if .LastSeen.IsZero}}never{{else}}<span title="{{fulltime .LastSeen}}">{{ago .LastSeen}}</span>{{end}}</dd>{{end}}
+    <dt>Posts</dt><dd>{{.Posts}}{{if not $a.IsLocal}} known here{{end}}</dd>
+    <dt>Followers</dt><dd>{{.Followers}}{{if not $a.IsLocal}} here{{end}}</dd>
+    <dt>Following</dt><dd>{{.Following}}{{if not $a.IsLocal}} here{{end}}</dd>
+    {{if not $a.IsLocal}}<dt>Server</dt><dd>{{$a.Domain}}</dd>{{end}}
+    {{if .SignupReason}}<dt>Reason to join</dt><dd class="prewrap">{{.SignupReason}}</dd>{{end}}
+  </dl>
+</section>
+{{if not (and $a.IsLocal (eq $a.ID $p.Me.ID))}}<section class="card" id="actions">
+  <h3>Actions</h3>
+  <form method="post" action="/admin/accounts/{{$a.ID}}/action" class="stack">
+    <input type="hidden" name="csrf" value="{{$p.CSRF}}">
+    {{if .IsUser}}<label>Message to {{handle $a}} (optional) <textarea name="message" rows="2" maxlength="2000" placeholder="Shown with the warning they get for warning, limiting or suspending"></textarea></label>{{end}}
+    <div class="row-actions">
+      {{if .IsUser}}<button class="btn small" name="action" value="warn">Send a warning</button>{{end}}
+      {{if $a.Limited}}<button class="btn small" name="action" value="unlimit">Lift limit</button>
+      {{else if not (or $a.Suspended .IsAdmin)}}<button class="btn small danger-outline" name="action" value="limit" data-confirm="Limit {{handle $a}}? Their posts leave public timelines, hashtags and search for people who don't follow them, and their notifications to those people are filtered.">Limit</button>{{end}}
+      {{if $a.Suspended}}{{if not .Pending}}<button class="btn small" name="action" value="unsuspend">Lift suspension</button>{{end}}
+      {{else}}<button class="btn small danger-outline" name="action" value="suspend" data-confirm="Suspend {{handle $a}}?{{if $a.IsLocal}} They can't log in, and their profile and posts are hidden until you lift it. Nothing is deleted.{{else}} Their posts disappear here and follows in both directions end.{{end}}">Suspend</button>{{end}}
+    </div>
+  </form>
+  {{if .Pending}}<p class="muted small">This sign-up waits for approval on <a href="/admin#signups">the admin page</a>.</p>{{end}}
+</section>{{end}}
+<section class="card" id="notes">
+  <h3>Moderation notes</h3>
+  <p class="muted small">Only admins see these.</p>
+  {{range .Notes}}<div class="modnote"><div class="muted small"><a href="{{.Author.Path}}">{{handle .Author}}</a> · <span title="{{fulltime .CreatedAt}}">{{ago .CreatedAt}}</span>
+    {{if eq .Author.ID $p.Me.ID}}<form method="post" action="/admin/accounts/{{$a.ID}}/notes" class="inline confirm" data-confirm="Delete this note?"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><input type="hidden" name="delete" value="{{.ID}}"><button class="linklike small">delete</button></form>{{end}}</div>
+    <p class="prewrap">{{.Content}}</p></div>{{end}}
+  <form method="post" action="/admin/accounts/{{$a.ID}}/notes" class="stack">
+    <input type="hidden" name="csrf" value="{{$p.CSRF}}">
+    <textarea aria-label="New note" name="content" rows="2" maxlength="2000" placeholder="Context for the other admins" required></textarea>
+    <button class="btn small">Add note</button>
+  </form>
+</section>
+{{if .Warnings}}<section class="card">
+  <h3>Warnings</h3>
+  <ul class="strike-list">{{range .Warnings}}<li><b>{{.Label}}</b> <span class="muted small">· {{day .CreatedAt}}{{if not .Overruled.IsZero}} · overruled{{else if eq .AppealState "pending"}} · <a href="/admin/reports?tab=appeals">appeal pending</a>{{else if eq .AppealState "rejected"}} · appeal rejected{{end}}</span>
+    {{if .Text}}<blockquote class="prewrap small">{{.Text}}</blockquote>{{end}}</li>{{end}}</ul>
+</section>{{end}}
+<section class="card">
+  <h3>Reports</h3>
+  {{if .Reports}}<ul class="strike-list">{{range .Reports}}<li><a href="/admin/reports{{if not .Resolved.IsZero}}?tab=resolved{{end}}#r-{{.ID}}">{{day .CreatedAt}}</a> by {{handle .Reporter}}
+    <span class="muted small">· {{if .Resolved.IsZero}}open{{else}}{{.ActionLabel}}{{end}}</span>{{if .Comment}}<blockquote class="prewrap small">{{.Comment}}</blockquote>{{end}}</li>{{end}}</ul>
+  {{else}}<p class="muted small">Nobody has reported this account.</p>{{end}}
+</section>
+{{end}}{{end}}

@@ -146,7 +146,7 @@
 {{if .LimitedAccounts}}<section class="card" id="limited">
   <h3>Limited accounts</h3>
   <p class="muted small">Their posts are only shown to their followers, and their notifications to others are filtered. Limit accounts from a report.</p>
-  <table class="tbl">{{range .LimitedAccounts}}<tr><td><a href="{{.Path}}">{{handle .}}</a></td>
+  <table class="tbl">{{range .LimitedAccounts}}<tr><td><a href="/admin/accounts/{{.ID}}">{{handle .}}</a></td>
     <td><form method="post" action="/admin/accounts/{{.ID}}/unlimit"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small">Lift limit</button></form></td></tr>{{end}}</table>
 </section>
 {{end}}<section class="card" id="reports">
@@ -175,7 +175,7 @@
   <table class="tbl">
     <tr><th>User</th><th>Role</th><th>Last seen</th><th></th></tr>
     {{range .Users}}<tr>
-      <td>{{if .Account.Suspended}}@{{.Account.Username}} <span class="badge">suspended</span>{{else}}<a href="{{.Account.Path}}">@{{.Account.Username}}</a>{{end}}</td>
+      <td><a href="/admin/accounts/{{.Account.ID}}">@{{.Account.Username}}</a>{{if .Account.Suspended}} <span class="badge">suspended</span>{{end}}</td>
       <td>{{if .Admin}}admin{{else}}user{{end}}</td>
       <td>{{if .LastSeen.Unix}}{{ago .LastSeen}}{{else}}never{{end}}</td>
       <td class="row-actions"><form method="post" action="/admin/users/{{.Account.ID}}/password" class="confirm" data-confirm="Generate a new password for @{{.Account.Username}}? Existing sessions are logged out."><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small">Reset password</button></form>

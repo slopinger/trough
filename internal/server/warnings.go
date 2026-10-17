@@ -56,6 +56,19 @@ func (w *Warning) Summary() string {
 	return "Your account received a moderation warning"
 }
 
+// Label names the decision in the admins' list of an account's warnings.
+func (w *Warning) Label() string {
+	switch w.Action {
+	case "delete_statuses":
+		return "Posts removed"
+	case "silence":
+		return "Limited"
+	case "suspend":
+		return "Suspended"
+	}
+	return "Warning"
+}
+
 // AdminSummary is the decision as the admins see it on an appeal.
 func (w *Warning) AdminSummary() string {
 	switch w.Action {

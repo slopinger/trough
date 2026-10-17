@@ -632,6 +632,15 @@ CREATE TABLE severed_follows (
 );
 CREATE INDEX severed_follows_account ON severed_follows(account_id, severance_id);
 ALTER TABLE notifications ADD COLUMN event_id TEXT NOT NULL DEFAULT '';
+`, `
+CREATE TABLE moderation_notes (
+	id TEXT PRIMARY KEY,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	author_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	content TEXT NOT NULL,
+	created_at INTEGER NOT NULL
+);
+CREATE INDEX moderation_notes_account ON moderation_notes(account_id, id);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

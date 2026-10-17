@@ -68,14 +68,15 @@ type Page struct {
 	Reports         []*Report
 	Invites         []Invite
 	Registrations   string
-	SignupApproval  bool            // sign-up form: asks why they want to join
-	NoIndex         bool            // the page belongs to someone who opted out of search engines
-	PendingSignups  []PendingSignup // admin: sign-ups waiting for approval
-	LimitedAccounts []*Account      // admin: accounts limited by the moderators
-	Warnings        []*Warning      // account status page; admin: appeals
-	Warning         *Warning        // one moderation warning
-	Severances      []*Severance    // severed relationships page
-	LimitedNotice   bool            // profile: limited and the viewer doesn't follow
+	SignupApproval  bool              // sign-up form: asks why they want to join
+	NoIndex         bool              // the page belongs to someone who opted out of search engines
+	PendingSignups  []PendingSignup   // admin: sign-ups waiting for approval
+	LimitedAccounts []*Account        // admin: accounts limited by the moderators
+	Warnings        []*Warning        // account status page; admin: appeals
+	Warning         *Warning          // one moderation warning
+	Severances      []*Severance      // severed relationships page
+	AdminAccount    *AdminAccountView // admin page of one account
+	LimitedNotice   bool              // profile: limited and the viewer doesn't follow
 	Aliases         []*Account
 	MovedTo         *Account
 	Timeline        string // home/local/federated: enables live "new posts"

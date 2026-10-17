@@ -763,3 +763,14 @@ body.embed { margin: 0; background: transparent; }
 .strike-posts li { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; overflow-wrap: anywhere; }
 .strike-posts p { margin: 2px 0 0; }
 .strike-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+
+/* admin account page */
+.admin-account-head { display: flex; gap: 12px; align-items: center; overflow-wrap: anywhere; }
+.admin-account-head .badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 14px 0 0; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; overflow-wrap: anywhere; }
+.modnote { border-bottom: 1px solid var(--line); padding-bottom: 6px; margin-bottom: 8px; }
+.modnote p { margin: 2px 0; }
+form.inline { display: inline; }
+.modnote .linklike { width: auto; padding: 0; color: var(--muted); text-decoration: underline; }

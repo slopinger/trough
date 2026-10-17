@@ -7,7 +7,7 @@
 </nav>
 {{if eq .Tab "appeals"}}{{range .Warnings}}
 <section class="card report-card" id="a-{{.ID}}">
-  <p class="report-head"><a href="{{.Account.Path}}"><b>{{handle .Account}}</b></a> appealed {{.AdminSummary}}
+  <p class="report-head"><a href="/admin/accounts/{{.Account.ID}}"><b>{{handle .Account}}</b></a> appealed {{.AdminSummary}}
     <span class="muted small">· warned {{ago .CreatedAt}}, appealed {{ago .AppealAt}}</span></p>
   {{if .Text}}<p class="muted small">The moderators' message:</p><blockquote class="prewrap small">{{.Text}}</blockquote>{{end}}
   {{if .Statuses}}<p class="muted small">The posts:</p><ul class="strike-posts small">{{range .Statuses}}<li>{{.Text}}</li>{{end}}</ul>{{end}}
@@ -21,7 +21,7 @@
 {{range .Reports}}{{$r := .}}
 <section class="card report-card" id="r-{{.ID}}">
   <p class="report-head"><a href="{{.Reporter.Path}}">{{handle .Reporter}}</a>{{if .Remote}} <span class="muted">(from another server)</span>{{end}} reported
-    <a href="{{.Target.Path}}"><b>{{handle .Target}}</b></a>{{if .Target.Suspended}} <span class="badge">suspended</span>{{else if .Target.Limited}} <span class="badge">limited</span>{{end}}
+    <a href="/admin/accounts/{{.Target.ID}}"><b>{{handle .Target}}</b></a>{{if .Target.Suspended}} <span class="badge">suspended</span>{{else if .Target.Limited}} <span class="badge">limited</span>{{end}}
     <span class="muted small">· {{ago .CreatedAt}}{{if .Forwarded}} · forwarded to {{.Target.Domain}}{{end}}{{if .Earlier}} · {{.Earlier}} other {{if eq .Earlier 1}}report{{else}}reports{{end}} about this account{{end}}</span></p>
   {{if .Comment}}<blockquote class="prewrap">{{.Comment}}</blockquote>{{else}}<p class="muted small">No comment.</p>{{end}}
   {{if .Statuses}}<div class="report-statuses">{{range .Statuses}}{{template "status" (dict "S" . "P" $p)}}{{end}}</div>

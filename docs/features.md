@@ -161,6 +161,10 @@
   the posts concerned, and can be appealed once within 20 days. Admins decide appeals on
   `/admin/reports?tab=appeals`; approving lifts the limit or suspension the warning came with. Suspended accounts
   can't log in, so they only see theirs once the suspension is lifted.
+- Admin account pages (`/admin/accounts/{id}`, linked from reports, the user list and a shield button on profiles):
+  join date, last activity, counts and sign-up reason, the account's reports and warnings, moderation notes only
+  admins see, and the actions without a report (warn, limit, suspend and lifting them; local accounts get the
+  optional message as a warning).
 - Severed relationships (Mastodon 4.3): when admins block a server or suspend a remote account, local accounts that
   lose follows or followers get a `severed_relationships` notification (with Mastodon's `event` entity), and
   `/severed_relationships` offers the lost follows (import format) and followers as CSV downloads.
