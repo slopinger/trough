@@ -596,6 +596,8 @@ ALTER TABLE users ADD COLUMN signup_reason TEXT NOT NULL DEFAULT '';
 `, `
 ALTER TABLE accounts ADD COLUMN indexable INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE accounts ADD COLUMN noindex INTEGER NOT NULL DEFAULT 0;
+`, `
+ALTER TABLE accounts ADD COLUMN limited INTEGER NOT NULL DEFAULT 0;
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

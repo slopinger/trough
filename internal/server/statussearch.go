@@ -207,12 +207,12 @@ func (app *App) statusQuerySQL(v *Account, sq statusQuery) (where string, args [
 		if sq.Library {
 			return "", nil, false
 		}
-		conds = append(conds, `s.visibility IN ('public','unlisted') AND a.indexable=1`)
+		conds = append(conds, `s.visibility IN ('public','unlisted') AND a.indexable=1 AND a.limited=0`)
 	} else if sq.Library {
 		conds = append(conds, library)
 		args = append(args, v.ID, v.ID, v.ID, v.ID, v.ID)
 	} else {
-		conds = append(conds, `((s.visibility IN ('public','unlisted') AND a.indexable=1) OR `+library+`)`)
+		conds = append(conds, `((s.visibility IN ('public','unlisted') AND a.indexable=1 AND a.limited=0) OR `+library+`)`)
 		args = append(args, v.ID, v.ID, v.ID, v.ID, v.ID)
 	}
 	return strings.Join(conds, " AND "), args, true

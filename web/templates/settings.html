@@ -131,6 +131,7 @@
     {{template "policyrow" (dict "Name" "not_followers" "Label" "People who don't follow you (or only for less than 3 days)" "Value" .NotifPolicy.NotFollowers)}}
     {{template "policyrow" (dict "Name" "new_accounts" "Label" "Accounts younger than 30 days" "Value" .NotifPolicy.NewAccounts)}}
     {{template "policyrow" (dict "Name" "private_mentions" "Label" "Private mentions from people you don't follow" "Value" .NotifPolicy.PrivateMentions)}}
+    {{template "policyrow" (dict "Name" "limited_accounts" "Label" "Accounts limited by the moderators (that you don't follow)" "Value" .NotifPolicy.LimitedAccounts)}}
     <button class="btn">Save</button>
   </form>
 </section>

@@ -149,6 +149,7 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("POST /admin/reports/{id}", admin(app.handleReportAction))
 	mux.HandleFunc("POST /admin/accounts/{id}/unsuspend", admin(app.handleUnsuspend))
 	mux.HandleFunc("POST /admin/accounts/{id}/suspend", admin(app.handleSuspend))
+	mux.HandleFunc("POST /admin/accounts/{id}/unlimit", admin(app.handleUnlimit))
 	mux.HandleFunc("GET /admin", admin(app.handleAdmin))
 	mux.HandleFunc("POST /admin/users", admin(app.handleAdminCreateUser))
 	mux.HandleFunc("POST /admin/users/{id}/password", admin(app.handleAdminResetPassword))

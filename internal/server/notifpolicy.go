@@ -19,9 +19,10 @@ type NotificationPolicy struct {
 	NotFollowers    string `json:"for_not_followers"`
 	NewAccounts     string `json:"for_new_accounts"`
 	PrivateMentions string `json:"for_private_mentions"`
+	LimitedAccounts string `json:"for_limited_accounts"`
 }
 
-var defaultNotificationPolicy = NotificationPolicy{"accept", "accept", "accept", "filter"}
+var defaultNotificationPolicy = NotificationPolicy{"accept", "accept", "accept", "filter", "filter"}
 
 var policyValues = map[string]int{"accept": 0, "filter": 1, "drop": 2}
 
@@ -33,7 +34,7 @@ func (app *App) notificationPolicy(accountID string) NotificationPolicy {
 	var raw string
 	app.db.QueryRow(`SELECT notification_policy FROM users WHERE account_id=?`, accountID).Scan(&raw)
 	json.Unmarshal([]byte(raw), &p)
-	for _, v := range []*string{&p.NotFollowing, &p.NotFollowers, &p.NewAccounts, &p.PrivateMentions} {
+	for _, v := range []*string{&p.NotFollowing, &p.NotFollowers, &p.NewAccounts, &p.PrivateMentions, &p.LimitedAccounts} {
 		if _, ok := policyValues[*v]; !ok {
 			*v = "accept"
 		}
@@ -62,6 +63,9 @@ func (app *App) notificationDecision(recipientID, typ string, from *Account, sta
 	}
 	if !rel.Following {
 		consider(p.NotFollowing)
+		if from.Limited {
+			consider(p.LimitedAccounts)
+		}
 	}
 	followsSince := int64(0)
 	app.db.QueryRow(`SELECT created_at FROM follows WHERE account_id=? AND target_id=? AND accepted=1`, from.ID, recipientID).Scan(&followsSince)
@@ -158,7 +162,7 @@ func (app *App) apiNotificationPolicy(w http.ResponseWriter, r *http.Request, c 
 		p := app.notificationPolicy(c.Me.ID)
 		params := readParams(r)
 		for key, field := range map[string]*string{"for_not_following": &p.NotFollowing, "for_not_followers": &p.NotFollowers,
-			"for_new_accounts": &p.NewAccounts, "for_private_mentions": &p.PrivateMentions} {
+			"for_new_accounts": &p.NewAccounts, "for_private_mentions": &p.PrivateMentions, "for_limited_accounts": &p.LimitedAccounts} {
 			if v := params.Get(key); v != "" {
 				if _, ok := policyValues[v]; !ok {
 					apiError(w, 422, "Validation failed: "+key+" must be accept, filter or drop")
@@ -180,7 +184,7 @@ func (app *App) apiNotificationPolicy(w http.ResponseWriter, r *http.Request, c 
 	reqs, notifs := app.pendingNotificationCounts(c.Me)
 	apiJSON(w, 200, obj{
 		"for_not_following": p.NotFollowing, "for_not_followers": p.NotFollowers, "for_new_accounts": p.NewAccounts,
-		"for_private_mentions": p.PrivateMentions, "for_limited_accounts": "filter",
+		"for_private_mentions": p.PrivateMentions, "for_limited_accounts": p.LimitedAccounts,
 		"filter_not_following": p.NotFollowing != "accept", "filter_not_followers": p.NotFollowers != "accept",
 		"filter_new_accounts": p.NewAccounts != "accept", "filter_private_mentions": p.PrivateMentions != "accept",
 		"summary": obj{"pending_requests_count": reqs, "pending_notifications_count": notifs},
@@ -261,7 +265,7 @@ func (app *App) handleNotificationRequests(w http.ResponseWriter, r *http.Reques
 func (app *App) handleNotificationPolicy(w http.ResponseWriter, r *http.Request, p *Page) {
 	pol := app.notificationPolicy(p.Me.ID)
 	for key, field := range map[string]*string{"not_following": &pol.NotFollowing, "not_followers": &pol.NotFollowers,
-		"new_accounts": &pol.NewAccounts, "private_mentions": &pol.PrivateMentions} {
+		"new_accounts": &pol.NewAccounts, "private_mentions": &pol.PrivateMentions, "limited_accounts": &pol.LimitedAccounts} {
 		if v := r.FormValue(key); policyValues[v] > 0 || v == "accept" {
 			*field = v
 		}

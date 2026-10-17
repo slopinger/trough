@@ -143,7 +143,13 @@
     <button class="btn primary">Subscribe</button>
   </form>
 </section>
-<section class="card" id="reports">
+{{if .LimitedAccounts}}<section class="card" id="limited">
+  <h3>Limited accounts</h3>
+  <p class="muted small">Their posts are only shown to their followers, and their notifications to others are filtered. Limit accounts from a report.</p>
+  <table class="tbl">{{range .LimitedAccounts}}<tr><td><a href="{{.Path}}">{{handle .}}</a></td>
+    <td><form method="post" action="/admin/accounts/{{.ID}}/unlimit"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small">Lift limit</button></form></td></tr>{{end}}</table>
+</section>
+{{end}}<section class="card" id="reports">
   <h3>Reports</h3>
   {{$p := .}}{{if .Reports}}<p><b>{{len .Reports}} open {{if eq (len .Reports) 1}}report{{else}}reports{{end}}</b>, the newest from {{handle (index .Reports 0).Reporter}} about {{handle (index .Reports 0).Target}} ({{ago (index .Reports 0).CreatedAt}}).</p>
   <a class="btn primary small" href="/admin/reports">Review reports</a>{{else}}<p class="muted small">No open reports. <a href="/admin/reports?tab=resolved">Resolved reports</a></p>{{end}}

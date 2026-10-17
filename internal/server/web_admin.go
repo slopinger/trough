@@ -80,6 +80,7 @@ func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.PolicySource, _, p.PolicyDefault = app.privacyPolicy()
 	app.adminTerms(p)
 	p.PendingSignups = app.pendingSignups()
+	p.LimitedAccounts = app.limitedAccounts()
 	if len(p.PendingSignups) > 0 { // they are listed on their own
 		users := p.Users[:0]
 		for _, u := range p.Users {

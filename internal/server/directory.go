@@ -10,7 +10,7 @@ import (
 // (Mastodon's /api/v1/directory and the web UI's /directory).
 
 func (app *App) directory(order string, localOnly bool, limit, offset int) []*Account {
-	where := `a.discoverable=1 AND a.suspended=0 AND a.moved_to='' AND a.actor_type IN ('Person','Service')
+	where := `a.discoverable=1 AND a.suspended=0 AND a.limited=0 AND a.moved_to='' AND a.actor_type IN ('Person','Service')
 		AND NOT EXISTS(SELECT 1 FROM domain_blocks d WHERE d.domain=a.domain)`
 	if localOnly {
 		where += ` AND a.domain=''`

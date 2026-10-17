@@ -71,6 +71,8 @@ type Page struct {
 	SignupApproval  bool            // sign-up form: asks why they want to join
 	NoIndex         bool            // the page belongs to someone who opted out of search engines
 	PendingSignups  []PendingSignup // admin: sign-ups waiting for approval
+	LimitedAccounts []*Account      // admin: accounts limited by the moderators
+	LimitedNotice   bool            // profile: limited and the viewer doesn't follow
 	Aliases         []*Account
 	MovedTo         *Account
 	Timeline        string // home/local/federated: enables live "new posts"

@@ -753,3 +753,7 @@ body.embed { margin: 0; background: transparent; }
 .signup-item:first-of-type { border-top: 0; }
 .signup-item p { margin: 4px 0 0; }
 @media (max-width: 600px) { .signup-item { flex-direction: column; } }
+
+/* Profile of a limited account */
+.limited-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.limited-notice p { margin: 0; flex: 1 1 260px; }

@@ -149,6 +149,11 @@
   get an actor `Update` with `"suspended": true` and an empty profile, and another one when it's lifted.
   Accounts that their own server suspends that way are hidden here too, until that server lifts it
   (suspensions by our admins stay).
+- Limiting accounts (Mastodon's "limit", from a report): a softer step than suspending, local or remote. The
+  account's posts stay visible to its followers but leave public, hashtag, link and list timelines, trends,
+  search, the directory and suggestions for everyone else; its profile shows a notice with "Show posts anyway";
+  its notifications to people who don't follow it are filtered (the policy's "limited accounts"). Listed on
+  `/admin` to lift it; not federated, and refetching a remote actor keeps it. The API account has `limited`.
 - Archive download (Settings, once an hour): a zip in Mastodon's archive layout with actor.json, outbox.json (all
   your posts and boosts, private ones included), likes.json, bookmarks.json, avatar, header and uploaded media
 - Import and export (Settings) of follows, lists, blocks, mutes, blocked servers and bookmarks as CSV files in
@@ -172,7 +177,7 @@
   once the page links back with `rel="me"`. Checked in the background when a local user saves the profile and
   when a remote actor's field changes; a remote actor's own `url` only counts on its own host
 - Notification filters (Mastodon 4.3 policy: people you don't follow, who don't follow you, new accounts, private
-  mentions from strangers; each show, filter or ignore; stranger DMs are filtered by default): filtered
+  mentions from strangers, limited accounts; each show, filter or ignore; stranger DMs are filtered by default): filtered
   notifications wait as per-account requests to accept (which lets that account through) or dismiss, on the web
   and through `/api/v1/notifications/requests` and `/api/v2/notifications/policy`
 - Notifications (mentions, replies, likes, boosts, follows, follow requests), follow request management

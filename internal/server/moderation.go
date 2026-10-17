@@ -12,6 +12,7 @@ var reportActions = map[string]string{
 	"none":    "Resolved without action",
 	"delete":  "Deleted the reported posts",
 	"suspend": "Suspended the account",
+	"limit":   "Limited the account",
 	"block":   "Blocked the server",
 }
 
@@ -52,6 +53,14 @@ func (app *App) ResolveReport(admin *Account, id, action, note string) (string, 
 			return "", err
 		}
 		msg = "Suspended " + t.Acct() + " and resolved the report."
+	case "limit":
+		if t.IsLocal() && t.ID == admin.ID {
+			return "", errors.New("you can't limit yourself")
+		}
+		if err := app.setLimited(t, true); err != nil {
+			return "", err
+		}
+		msg = "Limited " + t.Acct() + " and resolved the report."
 	case "block":
 		if t.IsLocal() {
 			return "", errors.New("that account is on this server")
