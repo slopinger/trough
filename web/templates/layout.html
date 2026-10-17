@@ -59,7 +59,7 @@
   </main>
 </div>
 <footer class="foot">
-  <a href="/about">{{.Host}}</a> · <a href="/privacy-policy">privacy</a> · powered by <a href="https://git.freifick.net/slop/trough">trough</a>, a tiny fediverse server
+  <a href="/about">{{.Host}}</a> · <a href="/privacy-policy">privacy</a>{{if setting "terms_of_service"}} · <a href="/terms-of-service">terms</a>{{end}} · powered by <a href="https://git.freifick.net/slop/trough">trough</a>, a tiny fediverse server
 </footer>
 </body>
 </html>{{end}}

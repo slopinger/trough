@@ -41,6 +41,19 @@
     <button class="btn">Save</button>
   </form>
 </section>
+<section class="card" id="terms">
+  <h3>Terms of service</h3>
+  <p class="muted small">Published versions are shown on <a href="/terms-of-service">/terms-of-service</a> and to apps from the date they take effect; until the first one, there are no terms. Versions in effect can't be changed, so publish changes ahead of time (the suggested date gives people 30 days' notice). Formatting works like the privacy policy.</p>
+  {{if .TermsRows}}<table class="tbl"><tr><th>Takes effect</th><th>Status</th><th></th></tr>
+  {{range .TermsRows}}<tr><td><a href="/terms-of-service/{{.Date}}">{{.Long}}</a></td><td>{{.Status}}</td>
+    <td>{{if eq .Status "upcoming"}}<form method="post" action="/admin/terms" class="confirm" data-confirm="Remove the terms that would take effect on {{.Long}}?"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="date" value="{{.Date}}"><input type="hidden" name="delete" value="1"><button class="btn small">Remove</button></form>{{end}}</td></tr>{{end}}</table>{{end}}
+  <form method="post" action="/admin/terms" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Takes effect on <input type="date" name="date" value="{{.TermsDate}}" required></label>
+    <textarea name="text" rows="12" maxlength="20000" required aria-label="Terms of service">{{.TermsSource}}</textarea>
+    <button class="btn">Publish</button>
+  </form>
+</section>
 <section class="card" id="rules">
   <h3>Server rules</h3>
   <p class="muted small">Shown on the About and sign-up pages and in apps.</p>

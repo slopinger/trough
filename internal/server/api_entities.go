@@ -358,7 +358,8 @@ const mastodonVersion = "4.5.0 (compatible; trough " + SoftwareVersion + ")"
 
 func (app *App) apiConfiguration() obj {
 	return obj{
-		"urls":     obj{"streaming": strings.Replace(app.cfg.BaseURL(), "http", "ws", 1), "status": nil},
+		"urls": obj{"streaming": strings.Replace(app.cfg.BaseURL(), "http", "ws", 1), "status": nil, "about": app.cfg.BaseURL() + "/about",
+			"privacy_policy": app.cfg.BaseURL() + "/privacy-policy", "terms_of_service": app.termsURL()},
 		"accounts": obj{"max_featured_tags": 0, "max_pinned_statuses": maxPins},
 		"statuses": obj{"max_characters": maxStatusChars, "max_media_attachments": 4, "characters_reserved_per_url": 23},
 		"media_attachments": obj{

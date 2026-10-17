@@ -99,12 +99,16 @@ type Page struct {
 	PolicyHTML      template.HTML // privacy policy page
 	PolicyUpdated   time.Time
 	PolicyDefault   bool
-	PolicySource    string // admin: the policy text being edited
-	EmbedCode       string // embedding a post
-	sessID          string // the viewer's session
-	CleanupCount    int    // posts it would delete now
-	Theme, TextSize string // appearance: auto/light/dark, normal/large
-	Prefs           Prefs  // posting and reading preferences of the viewer
+	PolicySource    string     // admin: the policy text being edited
+	Terms           *termsPage // terms of service page
+	TermsRows       []termsRow // admin: published terms versions
+	TermsSource     string     // admin: the newest terms text, to edit
+	TermsDate       string     // admin: suggested effective date
+	EmbedCode       string     // embedding a post
+	sessID          string     // the viewer's session
+	CleanupCount    int        // posts it would delete now
+	Theme, TextSize string     // appearance: auto/light/dark, normal/large
+	Prefs           Prefs      // posting and reading preferences of the viewer
 	FeaturedTags    []FeaturedTag
 	FollowedTags    []string
 	FollowedTagRows []FollowedTag

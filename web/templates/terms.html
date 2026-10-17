@@ -1,0 +1,11 @@
+{{define "content"}}
+<section class="card policy">
+  <h2>Terms of service</h2>
+  <p class="muted small">{{.Instance}} · {{if .Terms.Effective}}in effect since{{else}}takes effect on{{end}} {{.Terms.Long}}</p>
+  {{if .Terms.Next}}<p class="terms-next">These terms are replaced on {{.Terms.NextLong}}: <a href="/terms-of-service/{{.Terms.Next}}">read the new version</a>.</p>{{end}}
+  {{.PolicyHTML}}
+  {{if gt (len .Terms.Versions) 1}}<h3>All versions</h3>
+  <ul class="terms-versions">{{range .Terms.Versions}}<li>{{if eq .Date $.Terms.Date}}<b>{{.Long}}</b>{{else}}<a href="/terms-of-service/{{.Date}}">{{.Long}}</a>{{end}} <span class="muted small">{{.Status}}</span></li>{{end}}</ul>{{end}}
+  <p class="muted small">See also the <a href="/privacy-policy">privacy policy</a> and the <a href="/about">server rules</a>.</p>
+</section>
+{{end}}

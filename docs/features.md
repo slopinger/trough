@@ -219,6 +219,11 @@
 - A privacy policy (`/privacy-policy`, linked in the footer and on About; `/api/v1/instance/privacy_policy`):
   admins write it on `/admin` (headings, paragraphs and lists as plain text); until then a default describes
   what trough stores and shares
+- Terms of service like Mastodon 4.4's (`/terms-of-service`, `/terms-of-service/:date`,
+  `/api/v1/instance/terms_of_service[/:date]` with `effective_date`, `effective`, `succeeded_by`): admins publish
+  versions on `/admin` with the date they take effect (30 days ahead suggested once terms exist); the page
+  announces an upcoming version and lists all of them. Versions in effect can't be changed, upcoming ones can be
+  withdrawn. Without published terms there are none (404), and the footer and About link them only when they exist
 - Logged-in browsers (Settings): each browser session with its browser and system (from the user agent; no IP
   addresses are stored), when it logged in and was last used, logging out single ones or all others
 - Automated post deletion (Settings, like Mastodon's): your posts older than 1 week to 2 years are deleted

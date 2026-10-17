@@ -732,3 +732,8 @@ body.embed { margin: 0; background: transparent; }
 .embed-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; }
 .embed-code { width: 100%; font-family: ui-monospace, monospace; font-size: 13px; }
 .embed-preview { display: block; border: 0; max-width: 100%; }
+
+/* Terms of service */
+.terms-next { padding: 10px 12px; background: var(--accent-soft); border-radius: 8px; }
+.terms-versions { padding-left: 18px; }
+.terms-versions li { margin: 4px 0; }

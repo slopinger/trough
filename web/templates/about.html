@@ -9,7 +9,7 @@
     <li><b>{{index .Stats "instances"}}</b> known servers</li>
     <li>Sign-ups: {{if eq .Registrations "open"}}open{{else if eq .Registrations "invite"}}by invite{{else}}closed{{end}}</li>
   </ul>
-  <p><a href="/directory">Profile directory</a> · <a href="/explore">Explore</a> · <a href="/privacy-policy">Privacy policy</a></p>
+  <p><a href="/directory">Profile directory</a> · <a href="/explore">Explore</a> · <a href="/privacy-policy">Privacy policy</a>{{if setting "terms_of_service"}} · <a href="/terms-of-service">Terms of service</a>{{end}}</p>
   {{if .Rules}}<h3>Server rules</h3>{{template "rules" .Rules}}{{end}}
   {{if .Admins}}<h3>Administered by</h3>{{$p := .}}{{range .Admins}}{{template "accountrow" (dict "A" . "P" $p)}}{{end}}{{end}}
   {{if .DomainBlocks}}<h3>Blocked servers</h3>
