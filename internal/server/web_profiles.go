@@ -111,7 +111,7 @@ func (app *App) showProfile(w http.ResponseWriter, r *http.Request, p *Page, acc
 	app.profileCommon(p, acc)
 	p.Tab = r.URL.Query().Get("tab")
 	p.FeaturedTags = app.featuredTags(acc)
-	if acc.Limited && (p.Me == nil || (p.Me.ID != acc.ID && !p.Rel.Following)) && r.URL.Query().Get("show") != "1" {
+	if acc.IsLimited() && (p.Me == nil || (p.Me.ID != acc.ID && !p.Rel.Following)) && r.URL.Query().Get("show") != "1" {
 		p.LimitedNotice = true // like Mastodon: posts only after clicking through
 		p.Title = acc.Name() + " (@" + acc.Username + "@" + app.accountHost(acc) + ")"
 		p.Empty = "Posts are hidden."

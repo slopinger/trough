@@ -50,6 +50,7 @@ Files are grouped by prefix:
 | `activity.go` | weekly activity (`/api/v1/instance/activity`, admin charts) |
 | `signupapproval.go` | sign-ups that wait for an admin's approval |
 | `limit.go` | limiting accounts (hidden from non-followers, filtered notifications) |
+| `domainlimit.go` | limiting whole servers (`domain_limits`, `notLimitedSQL`) |
 | `warnings.go` | moderation warnings (strikes), the account status page and appeals |
 | `adminaccount.go` | the admin page of one account: facts, history, moderation notes, direct actions |
 | `sever.go` | severed relationships: follows ended by server blocks or suspensions, CSV downloads |

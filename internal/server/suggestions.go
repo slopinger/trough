@@ -18,7 +18,7 @@ type Suggestion struct {
 }
 
 func (app *App) suggestions(me *Account, limit int) []Suggestion {
-	exclude := `a.id != ? AND a.suspended=0 AND a.limited=0 AND a.discoverable=1 AND a.moved_to='' AND a.actor_type IN ('Person','Service')
+	exclude := `a.id != ? AND a.suspended=0 AND ` + notLimitedSQL + ` AND a.discoverable=1 AND a.moved_to='' AND a.actor_type IN ('Person','Service')
 		AND NOT EXISTS(SELECT 1 FROM follows x WHERE x.account_id=? AND x.target_id=a.id)
 		AND NOT EXISTS(SELECT 1 FROM blocks x WHERE (x.account_id=? AND x.target_id=a.id) OR (x.account_id=a.id AND x.target_id=?))
 		AND NOT EXISTS(SELECT 1 FROM mutes x WHERE x.account_id=? AND x.target_id=a.id)

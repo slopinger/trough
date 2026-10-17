@@ -102,7 +102,11 @@ func (app *App) apiBlockDomain(w http.ResponseWriter, r *http.Request, c *apiCtx
 func (app *App) apiInstanceDomainBlocks(w http.ResponseWriter, r *http.Request, c *apiCtx) {
 	out := []any{}
 	for _, b := range app.domainBlockList() {
-		out = append(out, obj{"domain": b.Domain, "digest": sha256Hex(b.Domain), "severity": "suspend", "comment": b.Reason})
+		severity := "suspend"
+		if b.Severity == "limit" {
+			severity = "silence" // Mastodon's API name for limiting
+		}
+		out = append(out, obj{"domain": b.Domain, "digest": sha256Hex(b.Domain), "severity": severity, "comment": b.Reason})
 	}
 	apiJSON(w, 200, out)
 }

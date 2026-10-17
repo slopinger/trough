@@ -17,9 +17,9 @@ import (
 // limitedSQL hides limited accounts' posts from viewers who don't follow them.
 func limitedSQL(v *Account) (string, []any) {
 	if v == nil {
-		return `NOT EXISTS(SELECT 1 FROM accounts la WHERE la.id=s.account_id AND la.limited=1)`, nil
+		return `NOT EXISTS(SELECT 1 FROM accounts a WHERE a.id=s.account_id AND (a.limited=1 OR ` + domainLimitedSQL + `))`, nil
 	}
-	return `(s.account_id=? OR NOT EXISTS(SELECT 1 FROM accounts la WHERE la.id=s.account_id AND la.limited=1)
+	return `(s.account_id=? OR NOT EXISTS(SELECT 1 FROM accounts a WHERE a.id=s.account_id AND (a.limited=1 OR ` + domainLimitedSQL + `))
 		OR EXISTS(SELECT 1 FROM follows lf WHERE lf.account_id=? AND lf.target_id=s.account_id AND lf.accepted=1))`, []any{v.ID, v.ID}
 }
 

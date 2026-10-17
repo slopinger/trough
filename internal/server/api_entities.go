@@ -101,7 +101,7 @@ func (app *App) apiAccountDepth(a *Account, depth int) obj {
 		"statuses_count":   statuses,
 		"last_status_at":   lastStatus,
 		"noindex":          a.NoIndex,
-		"limited":          a.Limited,
+		"limited":          a.IsLimited(),
 		"emojis":           app.apiEmojis(a.Emojis),
 		"fields":           fields,
 		"roles":            []any{},

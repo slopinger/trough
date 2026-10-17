@@ -148,6 +148,7 @@ type Compose struct {
 
 type DomainBlock struct {
 	Domain, Reason string
+	Severity       string // suspend (blocked) or limit
 	CreatedAt      time.Time
 }
 

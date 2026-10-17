@@ -4,7 +4,7 @@
   <div class="admin-account-head">
     <a href="{{$a.Path}}" class="avatar"><img src="{{template "avatarsrc" $a}}" alt="" width="56" height="56"></a>
     <div><b>{{name $a}}</b><br><a href="{{$a.Path}}">{{handle $a}}</a>
-      <div class="badges">{{if .IsAdmin}}<span class="badge">admin</span>{{end}}{{if .Pending}}<span class="badge">waiting for approval</span>{{else if $a.Suspended}}<span class="badge">suspended</span>{{end}}{{if $a.Limited}}<span class="badge">limited</span>{{end}}{{if $a.IsBot}}<span class="badge">bot</span>{{end}}</div></div>
+      <div class="badges">{{if .IsAdmin}}<span class="badge">admin</span>{{end}}{{if .Pending}}<span class="badge">waiting for approval</span>{{else if $a.Suspended}}<span class="badge">suspended</span>{{end}}{{if $a.Limited}}<span class="badge">limited</span>{{end}}{{if $a.DomainLimited}}<span class="badge">server limited</span>{{end}}{{if $a.IsBot}}<span class="badge">bot</span>{{end}}</div></div>
   </div>
   <dl class="facts">
     <dt>{{if $a.IsLocal}}Joined{{else}}First seen{{end}}</dt><dd title="{{fulltime $a.CreatedAt}}">{{day $a.CreatedAt}}</dd>

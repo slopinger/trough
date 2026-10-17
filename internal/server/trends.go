@@ -54,14 +54,14 @@ func dayHistory(rows map[int64][2]int) []TagDay {
 }
 
 const trendBase = ` FROM statuses s JOIN accounts a ON a.id=s.account_id
-	WHERE s.visibility='public' AND s.boost_of_id='' AND a.suspended=0 AND a.limited=0 AND s.created_at >= ?`
+	WHERE s.visibility='public' AND s.boost_of_id='' AND a.suspended=0 AND ` + notLimitedSQL + ` AND s.created_at >= ?`
 
 // trendingTags returns hashtags used by at least trendMinAccounts accounts
 // in the last trendDays days, most accounts first.
 func (app *App) trendingTags(limit, offset int) []TrendTag {
 	since := trendSince()
 	rows, err := app.db.Query(`SELECT t.tag, COUNT(DISTINCT s.account_id) n FROM status_tags t JOIN statuses s ON s.id=t.status_id
-		JOIN accounts a ON a.id=s.account_id WHERE s.visibility='public' AND s.boost_of_id='' AND a.suspended=0 AND a.limited=0 AND s.created_at >= ?
+		JOIN accounts a ON a.id=s.account_id WHERE s.visibility='public' AND s.boost_of_id='' AND a.suspended=0 AND `+notLimitedSQL+` AND s.created_at >= ?
 		GROUP BY t.tag HAVING n >= ? ORDER BY n DESC, MAX(s.created_at) DESC LIMIT ? OFFSET ?`, since, trendMinAccounts, limit, offset)
 	if err != nil {
 		return nil
@@ -76,7 +76,7 @@ func (app *App) trendingTags(limit, offset int) []TrendTag {
 	for i := range out {
 		out[i].History = app.dayCounts(`SELECT s.created_at/86400*86400 d, COUNT(*), COUNT(DISTINCT s.account_id) FROM status_tags t
 			JOIN statuses s ON s.id=t.status_id JOIN accounts a ON a.id=s.account_id
-			WHERE t.tag=? AND s.visibility='public' AND s.boost_of_id='' AND a.suspended=0 AND a.limited=0 AND s.created_at >= ? GROUP BY d`, out[i].Name, since)
+			WHERE t.tag=? AND s.visibility='public' AND s.boost_of_id='' AND a.suspended=0 AND `+notLimitedSQL+` AND s.created_at >= ? GROUP BY d`, out[i].Name, since)
 	}
 	return out
 }
@@ -85,7 +85,7 @@ func (app *App) trendingTags(limit, offset int) []TrendTag {
 func (app *App) tagHistory(tag string) []TagDay {
 	return app.dayCounts(`SELECT s.created_at/86400*86400 d, COUNT(*), COUNT(DISTINCT s.account_id) FROM status_tags t
 		JOIN statuses s ON s.id=t.status_id JOIN accounts a ON a.id=s.account_id
-		WHERE t.tag=? AND s.visibility='public' AND s.boost_of_id='' AND a.suspended=0 AND a.limited=0 AND s.created_at >= ? GROUP BY d`, tag, trendSince())
+		WHERE t.tag=? AND s.visibility='public' AND s.boost_of_id='' AND a.suspended=0 AND `+notLimitedSQL+` AND s.created_at >= ? GROUP BY d`, tag, trendSince())
 }
 
 // TagStats is the header of a hashtag page: this week's public posts and
@@ -99,7 +99,7 @@ func (app *App) tagStats(tag string) *TagStats {
 	t := &TagStats{History: app.tagHistory(tag)}
 	app.db.QueryRow(`SELECT COUNT(*), COUNT(DISTINCT s.account_id) FROM status_tags t
 		JOIN statuses s ON s.id=t.status_id JOIN accounts a ON a.id=s.account_id
-		WHERE t.tag=? AND s.visibility='public' AND s.boost_of_id='' AND a.suspended=0 AND a.limited=0 AND s.created_at >= ?`, tag, trendSince()).Scan(&t.Posts, &t.People)
+		WHERE t.tag=? AND s.visibility='public' AND s.boost_of_id='' AND a.suspended=0 AND `+notLimitedSQL+` AND s.created_at >= ?`, tag, trendSince()).Scan(&t.Posts, &t.People)
 	if len(t.History) > 0 {
 		t.Today = t.History[0].Uses
 	}

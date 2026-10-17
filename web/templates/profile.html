@@ -3,7 +3,7 @@
 <link rel="alternate" type="application/rss+xml" title="Posts by {{handle .Account}}" href="{{.Account.Path}}.rss">{{end}}{{end}}
 {{define "content"}}
 {{template "profilehead" .}}
-{{if .LimitedNotice}}<div class="card limited-notice" role="note"><p><b>The moderators of {{.Host}} have limited this account.</b> Its posts don't show up in public timelines or search here.</p>
+{{if .LimitedNotice}}<div class="card limited-notice" role="note"><p><b>The moderators of {{.Host}} have limited {{if .Account.Limited}}this account{{else}}accounts from {{.Account.Domain}}{{end}}.</b> Its posts don't show up in public timelines or search here.</p>
   <a class="btn small" href="{{.Account.Path}}?show=1">Show posts anyway</a></div>{{end}}
 {{if and .Tag .FeaturedTags}}<nav class="featured-tags" aria-label="Featured hashtags">{{range .FeaturedTags}}<a href="{{$.Account.Path}}/tagged/{{.Name}}" class="{{if eq $.Tag .Name}}active{{end}}"><b>#{{.Name}}</b><small>{{.StatusesCount}} {{if eq .StatusesCount 1}}post{{else}}posts{{end}}{{if not .LastStatusAt.IsZero}} · {{date .LastStatusAt}}{{end}}</small></a>{{end}}</nav>{{end}}
 <nav class="tabs">

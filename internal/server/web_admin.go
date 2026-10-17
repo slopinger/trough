@@ -21,7 +21,8 @@ func (app *App) requireAdmin(h handler) handler {
 }
 
 func (app *App) domainBlockList() []DomainBlock {
-	rows, err := app.db.Query(`SELECT domain, reason, created_at FROM domain_blocks ORDER BY domain`)
+	rows, err := app.db.Query(`SELECT domain, reason, created_at, 'suspend' FROM domain_blocks
+		UNION ALL SELECT domain, reason, created_at, 'limit' FROM domain_limits ORDER BY 1`)
 	if err != nil {
 		return nil
 	}
@@ -30,7 +31,7 @@ func (app *App) domainBlockList() []DomainBlock {
 	for rows.Next() {
 		var d DomainBlock
 		var t int64
-		rows.Scan(&d.Domain, &d.Reason, &t)
+		rows.Scan(&d.Domain, &d.Reason, &t, &d.Severity)
 		d.CreatedAt = time.Unix(t, 0)
 		out = append(out, d)
 	}
@@ -265,10 +266,23 @@ func (app *App) handleAdminDomainBlock(w http.ResponseWriter, r *http.Request, p
 	domain = strings.TrimPrefix(strings.TrimPrefix(domain, "https://"), "http://")
 	domain = strings.Trim(domain, "/ ")
 	if r.FormValue("remove") != "" {
-		app.db.Exec(`DELETE FROM domain_blocks WHERE domain=?`, domain)
-		app.db.Exec(`UPDATE accounts SET suspended=0 WHERE domain=? OR domain LIKE ?`, domain, "%."+domain)
-		setFlash(w, "Unblocked "+domain+".")
-		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		if res, err := app.db.Exec(`DELETE FROM domain_limits WHERE domain=?`, domain); err == nil && affected(res) > 0 {
+			setFlash(w, "Lifted the limit on "+domain+".")
+		} else {
+			app.db.Exec(`DELETE FROM domain_blocks WHERE domain=?`, domain)
+			app.db.Exec(`UPDATE accounts SET suspended=0 WHERE domain=? OR domain LIKE ?`, domain, "%."+domain)
+			setFlash(w, "Unblocked "+domain+".")
+		}
+		http.Redirect(w, r, "/admin#servers", http.StatusSeeOther)
+		return
+	}
+	if r.FormValue("severity") == "limit" {
+		if err := app.limitServer(domain, r.FormValue("reason")); err != nil {
+			setFlash(w, "Couldn't limit it: "+err.Error()+".")
+		} else {
+			setFlash(w, "Limited "+domain+".")
+		}
+		http.Redirect(w, r, "/admin#servers", http.StatusSeeOther)
 		return
 	}
 	if err := app.BlockServer(domain, r.FormValue("reason")); err != nil {
@@ -289,6 +303,7 @@ func (app *App) BlockServer(domain, reason string) error {
 	app.db.Exec(`INSERT INTO domain_blocks (domain, reason, created_at) VALUES (?,?,?) ON CONFLICT(domain) DO UPDATE SET reason=excluded.reason`,
 		domain, truncateRunes(reason, 500), time.Now().Unix())
 	match := []any{domain, "%." + domain}
+	app.db.Exec(`DELETE FROM domain_limits WHERE domain=?`, domain)
 	app.severFollows("domain_block", domain, `a.domain=? OR a.domain LIKE ?`, match...)
 	app.db.Exec(`UPDATE accounts SET suspended=1 WHERE domain=? OR domain LIKE ?`, match...)
 	app.db.Exec(`DELETE FROM follows WHERE account_id IN (SELECT id FROM accounts WHERE domain=? OR domain LIKE ?)

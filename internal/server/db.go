@@ -641,6 +641,12 @@ CREATE TABLE moderation_notes (
 	created_at INTEGER NOT NULL
 );
 CREATE INDEX moderation_notes_account ON moderation_notes(account_id, id);
+`, `
+CREATE TABLE domain_limits (
+	domain TEXT PRIMARY KEY,
+	reason TEXT NOT NULL DEFAULT '',
+	created_at INTEGER NOT NULL
+);
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

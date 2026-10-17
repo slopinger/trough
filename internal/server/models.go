@@ -49,6 +49,7 @@ type Account struct {
 	Indexable                          bool     // public posts may be found by full-text search (toot:indexable)
 	NoIndex                            bool     // local: asks search engines not to index the profile and posts
 	Limited                            bool     // limited by our moderators (limit.go)
+	DomainLimited                      bool     // its server is limited (domainlimit.go); not stored
 }
 
 func (a *Account) IsLocal() bool { return a.Domain == "" }
@@ -82,7 +83,7 @@ func (a *Account) DeliveryInbox() string {
 const accountCols = `a.id,a.username,a.domain,a.uri,a.url,a.display_name,a.note,a.note_source,a.avatar,a.header,
 a.inbox,a.shared_inbox,a.outbox,a.followers_uri,a.following_uri,a.public_key_id,a.public_key,a.private_key,
 a.actor_type,a.locked,a.fields,a.emojis,a.created_at,a.fetched_at,a.suspended,a.featured_uri,a.also_known_as,a.moved_to,
-a.attribution_domains,a.discoverable,a.hide_collections,a.indexable,a.noindex,a.limited`
+a.attribution_domains,a.discoverable,a.hide_collections,a.indexable,a.noindex,a.limited,` + domainLimitedSQL
 
 type scanner interface{ Scan(...any) error }
 
@@ -92,7 +93,7 @@ func scanAccount(r scanner) (*Account, error) {
 	var created, fetched int64
 	err := r.Scan(&a.ID, &a.Username, &a.Domain, &a.URI, &a.URL, &a.DisplayName, &a.Note, &a.NoteSource, &a.Avatar, &a.Header,
 		&a.Inbox, &a.SharedInbox, &a.Outbox, &a.FollowersURI, &a.FollowingURI, &a.PublicKeyID, &a.PublicKey, &a.PrivateKey,
-		&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &a.Discoverable, &a.HideCollections, &a.Indexable, &a.NoIndex, &a.Limited)
+		&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &a.Discoverable, &a.HideCollections, &a.Indexable, &a.NoIndex, &a.Limited, &a.DomainLimited)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errNotFound
 	}
@@ -206,7 +207,7 @@ func (app *App) ListUsers() ([]*User, error) {
 		var created, fetched, seen int64
 		if err := rows.Scan(&a.ID, &a.Username, &a.Domain, &a.URI, &a.URL, &a.DisplayName, &a.Note, &a.NoteSource, &a.Avatar, &a.Header,
 			&a.Inbox, &a.SharedInbox, &a.Outbox, &a.FollowersURI, &a.FollowingURI, &a.PublicKeyID, &a.PublicKey, &a.PrivateKey,
-			&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &a.Discoverable, &a.HideCollections, &a.Indexable, &a.NoIndex, &a.Limited, &u.Admin, &seen); err != nil {
+			&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &a.Discoverable, &a.HideCollections, &a.Indexable, &a.NoIndex, &a.Limited, &a.DomainLimited, &u.Admin, &seen); err != nil {
 			return nil, err
 		}
 		a.CreatedAt = time.Unix(created, 0)

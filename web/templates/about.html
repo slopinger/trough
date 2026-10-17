@@ -12,7 +12,8 @@
   <p><a href="/directory">Profile directory</a> · <a href="/explore">Explore</a> · <a href="/privacy-policy">Privacy policy</a>{{if setting "terms_of_service"}} · <a href="/terms-of-service">Terms of service</a>{{end}}</p>
   {{if .Rules}}<h3>Server rules</h3>{{template "rules" .Rules}}{{end}}
   {{if .Admins}}<h3>Administered by</h3>{{$p := .}}{{range .Admins}}{{template "accountrow" (dict "A" . "P" $p)}}{{end}}{{end}}
-  {{if .DomainBlocks}}<h3>Blocked servers</h3>
-  <table class="tbl"><tr><th>Domain</th><th>Reason</th></tr>{{range .DomainBlocks}}<tr><td>{{.Domain}}</td><td>{{.Reason}}</td></tr>{{end}}</table>{{end}}
+  {{if .DomainBlocks}}<h3>Moderated servers</h3>
+  <p class="muted small">Posts from limited servers only reach people here who follow their accounts; blocked servers can't interact with this one at all.</p>
+  <table class="tbl"><tr><th>Server</th><th>Reason</th></tr>{{range .DomainBlocks}}<tr><td class="server-cell">{{.Domain}} <span class="badge">{{if eq .Severity "limit"}}limited{{else}}blocked{{end}}</span></td><td>{{.Reason}}</td></tr>{{end}}</table>{{end}}
 </section>
 {{end}}

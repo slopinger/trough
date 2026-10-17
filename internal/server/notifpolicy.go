@@ -63,7 +63,7 @@ func (app *App) notificationDecision(recipientID, typ string, from *Account, sta
 	}
 	if !rel.Following {
 		consider(p.NotFollowing)
-		if from.Limited {
+		if from.IsLimited() {
 			consider(p.LimitedAccounts)
 		}
 	}
