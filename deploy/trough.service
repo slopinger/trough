@@ -1,6 +1,6 @@
 [Unit]
 Description=trough fediverse server
-Documentation=https://git.freifick.net/slop/trough
+Documentation=https://github.com/slopinger/trough
 After=network-online.target
 Wants=network-online.target
 

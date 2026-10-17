@@ -569,7 +569,7 @@ func (app *App) handleOAuthMetadata(w http.ResponseWriter, r *http.Request) {
 		"grant_types_supported":                 []string{"authorization_code", "client_credentials", "password"},
 		"code_challenge_methods_supported":      []string{"S256", "plain"},
 		"token_endpoint_auth_methods_supported": []string{"client_secret_basic", "client_secret_post", "none"},
-		"service_documentation":                 "https://git.freifick.net/slop/trough",
+		"service_documentation":                 SourceURL,
 	})
 }
 

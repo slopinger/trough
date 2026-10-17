@@ -100,8 +100,8 @@ func (app *App) handleNodeInfo(w http.ResponseWriter, r *http.Request) {
 	half := app.countInt(`SELECT COUNT(*) FROM users WHERE last_seen > strftime('%s','now') - 182*86400`)
 	sw := obj{"name": SoftwareName, "version": SoftwareVersion}
 	if version == "2.1" {
-		sw["repository"] = "https://git.freifick.net/slop/trough"
-		sw["homepage"] = "https://git.freifick.net/slop/trough"
+		sw["repository"] = SourceURL
+		sw["homepage"] = SourceURL
 	}
 	writeJSON(w, `application/json; profile="http://nodeinfo.diaspora.software/ns/schema/`+version+`#"`, obj{
 		"version":           version,

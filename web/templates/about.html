@@ -3,7 +3,7 @@
   {{with setting "thumbnail"}}<img class="server-thumb" src="{{localPath .}}" alt="">{{end}}
   <h2>{{.Instance}}</h2>
   {{if .Description}}<p class="prewrap">{{.Description}}</p>{{end}}
-  <p>This is a <a href="https://git.freifick.net/slop/trough">trough</a> server, a small ActivityPub implementation. It is part of the fediverse: people here can follow and be followed by accounts on Mastodon, GoToSocial, Misskey, Pleroma and other compatible servers.</p>
+  <p>This is a <a href="https://github.com/slopinger/trough">trough</a> server, a small ActivityPub implementation. It is part of the fediverse: people here can follow and be followed by accounts on Mastodon, GoToSocial, Misskey, Pleroma and other compatible servers.</p>
   <ul class="facts">
     <li><b>{{index .Stats "users"}}</b> local accounts</li>
     <li><b>{{index .Stats "posts"}}</b> local posts</li>

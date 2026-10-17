@@ -39,7 +39,7 @@ troughctl user list
 journalctl -u trough -f                # logs
 ```
 
-[server-backups](https://git.freifick.net/slop/server-backups) takes daily verified online snapshots
+[server-backups](https://github.com/slopinger/server-backups) takes daily verified online snapshots
 with `slop-services-backup.timer`, retaining 14 archives in root-only `/srv/backups/slop-services/`.
 That repo documents manual verification and restore. The backups are local/same-disk; no off-site
 copy is configured.

@@ -11,6 +11,7 @@ import (
 const (
 	SoftwareName    = "trough"
 	SoftwareVersion = "0.1.0"
+	SourceURL       = "https://github.com/slopinger/trough"
 	maxStatusChars  = 5000
 )
 

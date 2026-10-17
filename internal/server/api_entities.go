@@ -391,7 +391,7 @@ func (app *App) apiInstanceV2() obj {
 	}
 	return obj{
 		"domain": app.cfg.Host, "title": app.instanceTitle(), "version": mastodonVersion,
-		"source_url": "https://git.freifick.net/slop/trough", "description": app.getSetting("description"),
+		"source_url": SourceURL, "description": app.getSetting("description"),
 		"usage":     obj{"users": obj{"active_month": app.countInt(`SELECT COUNT(*) FROM users WHERE last_seen > strftime('%s','now') - 30*86400`)}},
 		"thumbnail": obj{"url": app.thumbnailURL()},
 		"icon":      []any{obj{"src": app.cfg.BaseURL() + "/static/favicon.svg", "size": "64x64"}},
