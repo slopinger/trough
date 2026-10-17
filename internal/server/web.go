@@ -68,6 +68,8 @@ type Page struct {
 	Reports         []*Report
 	Invites         []Invite
 	Registrations   string
+	SignupApproval  bool            // sign-up form: asks why they want to join
+	PendingSignups  []PendingSignup // admin: sign-ups waiting for approval
 	Aliases         []*Account
 	MovedTo         *Account
 	Timeline        string // home/local/federated: enables live "new posts"

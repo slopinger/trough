@@ -8,9 +8,11 @@
       <span class="muted small">Your address will be @name@{{.Host}}. Letters, numbers and _ only.</span></label>
     <label>Password <input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
     <label>Confirm password <input type="password" name="confirm" minlength="8" autocomplete="new-password" required></label>
+    {{if .SignupApproval}}<label>Why do you want to join? <textarea name="reason" rows="3" maxlength="1000" required></textarea>
+      <span class="muted small">The admins approve each new account by hand. You can log in once they have.</span></label>{{end}}
     {{if .Rules}}<div class="rules-box"><b>Server rules</b>{{template "rules" .Rules}}</div>{{end}}
-    <label class="check"><input type="checkbox" name="rules" required> I'll be nice and follow the {{if .Rules}}rules above{{else}}<a href="/about" target="_blank">server rules</a>{{end}}.</label>
-    <button class="btn primary">Create account</button>
+    <label class="check"><input type="checkbox" name="rules" required> <span>I'll be nice and follow the {{if .Rules}}rules above{{else}}<a href="/about" target="_blank">server rules</a>{{end}}.</span></label>
+    <button class="btn primary">{{if .SignupApproval}}Send request{{else}}Create account{{end}}</button>
   </form>
   {{end}}
   <p class="muted small">Already have an account? <a href="/login">Log in</a>.</p>

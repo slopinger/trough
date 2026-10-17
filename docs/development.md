@@ -48,6 +48,7 @@ Files are grouped by prefix:
 | `privacy.go` | the privacy policy page and its default text |
 | `terms.go` | terms of service versions with effective dates (page, API, admin) |
 | `activity.go` | weekly activity (`/api/v1/instance/activity`, admin charts) |
+| `signupapproval.go` | sign-ups that wait for an admin's approval |
 | `embed.go` | embedding posts on other websites (iframe page, oEmbed, `/embed.js`) |
 | `twofactor.go` | two-factor authentication (TOTP, recovery codes) |
 | `accountdelete.go` | deleting your own account |

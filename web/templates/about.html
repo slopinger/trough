@@ -7,7 +7,7 @@
     <li><b>{{index .Stats "users"}}</b> local accounts</li>
     <li><b>{{index .Stats "posts"}}</b> local posts</li>
     <li><b>{{index .Stats "instances"}}</b> known servers</li>
-    <li>Sign-ups: {{if eq .Registrations "open"}}open{{else if eq .Registrations "invite"}}by invite{{else}}closed{{end}}</li>
+    <li>Sign-ups: {{if eq .Registrations "open"}}open{{else if eq .Registrations "invite"}}by invite{{else if eq .Registrations "approval"}}open, approved by the admins{{else}}closed{{end}}</li>
   </ul>
   <p><a href="/directory">Profile directory</a> · <a href="/explore">Explore</a> · <a href="/privacy-policy">Privacy policy</a>{{if setting "terms_of_service"}} · <a href="/terms-of-service">Terms of service</a>{{end}}</p>
   {{if .Rules}}<h3>Server rules</h3>{{template "rules" .Rules}}{{end}}

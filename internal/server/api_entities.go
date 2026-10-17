@@ -345,7 +345,7 @@ func (app *App) apiInstanceV1() obj {
 		"stats":         obj{"user_count": users, "status_count": app.countInt(`SELECT COUNT(*) FROM statuses WHERE local=1 AND boost_of_id=''`), "domain_count": app.countInt(`SELECT COUNT(DISTINCT domain) FROM accounts WHERE domain != ''`)},
 		"thumbnail":     app.cfg.BaseURL() + "/static/favicon.svg",
 		"languages":     []string{"en"},
-		"registrations": app.registrationMode() == "open", "approval_required": false, "invites_enabled": app.registrationMode() == "invite",
+		"registrations": app.registrationMode() == "open" || app.registrationMode() == "approval", "approval_required": app.registrationMode() == "approval", "invites_enabled": app.registrationMode() == "invite",
 		"configuration": app.apiConfiguration(), "contact_account": contact, "rules": app.apiRuleList(),
 	}
 }
@@ -388,7 +388,7 @@ func (app *App) apiInstanceV2() obj {
 		"thumbnail": obj{"url": app.cfg.BaseURL() + "/static/favicon.svg"},
 		"icon":      []any{obj{"src": app.cfg.BaseURL() + "/static/favicon.svg", "size": "64x64"}},
 		"languages": []string{"en"}, "configuration": app.apiConfiguration(),
-		"registrations": obj{"enabled": app.registrationMode() != "closed", "approval_required": false, "message": nil, "url": nil},
+		"registrations": obj{"enabled": app.registrationMode() != "closed", "approval_required": app.registrationMode() == "approval", "message": nil, "url": nil},
 		"api_versions":  obj{"mastodon": 7},
 		"contact":       obj{"email": "", "account": contact},
 		"rules":         app.apiRuleList(),

@@ -86,13 +86,25 @@
     <button class="btn primary">Publish announcement</button>
   </form>
 </section>
-<section class="card" id="registrations">
+{{if .PendingSignups}}<section class="card" id="signups">
+  <h3>Waiting for approval</h3>
+  {{range .PendingSignups}}<div class="signup-item">
+    <div><b>@{{.Account.Username}}</b> <span class="muted small">asked {{ago .Created}}</span>
+      {{if .Reason}}<p class="prewrap">{{.Reason}}</p>{{else}}<p class="muted small">No reason given.</p>{{end}}</div>
+    <div class="row-actions">
+      <form method="post" action="/admin/signups/{{.Account.ID}}/approve"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small primary">Approve</button></form>
+      <form method="post" action="/admin/signups/{{.Account.ID}}/reject" class="confirm" data-confirm="Reject @{{.Account.Username}}? The account is deleted and the name becomes free again."><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="btn small danger-outline">Reject</button></form>
+    </div>
+  </div>{{end}}
+</section>
+{{end}}<section class="card" id="registrations">
   <h3>Sign-ups</h3>
   <form method="post" action="/admin/registrations" class="inline-form">
     <input type="hidden" name="csrf" value="{{.CSRF}}">
     <select name="mode">
       <option value="closed"{{if eq .Registrations "closed"}} selected{{end}}>Closed (admins create accounts)</option>
       <option value="invite"{{if eq .Registrations "invite"}} selected{{end}}>Invite links only</option>
+      <option value="approval"{{if eq .Registrations "approval"}} selected{{end}}>Anyone can apply, admins approve</option>
       <option value="open"{{if eq .Registrations "open"}} selected{{end}}>Open to everyone</option>
     </select>
     <button class="btn">Save</button>

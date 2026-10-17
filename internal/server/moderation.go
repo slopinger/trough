@@ -101,6 +101,9 @@ func (app *App) UnsuspendAccount(a *Account) error {
 		if !app.isUser(a.ID) {
 			return errors.New("that account was deleted")
 		}
+		if app.signupPending(a.ID) {
+			return errors.New("@" + a.Username + " is waiting for sign-up approval; approve it on /admin")
+		}
 		app.suspendLocal(a, false)
 		return nil
 	}

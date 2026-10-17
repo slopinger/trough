@@ -590,6 +590,9 @@ CREATE TABLE weekly_logins (
 INSERT OR IGNORE INTO weekly_logins (week, account_id)
 	SELECT CAST(strftime('%s', date(last_seen, 'unixepoch', 'weekday 0', '-6 days')) AS INTEGER), account_id
 	FROM users WHERE last_seen > 0;
+`, `
+ALTER TABLE users ADD COLUMN approved INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE users ADD COLUMN signup_reason TEXT NOT NULL DEFAULT '';
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

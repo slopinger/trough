@@ -8,6 +8,7 @@
     <button class="btn primary">Log in</button>
   </form>
   {{if eq .Registrations "open"}}<p class="muted small">New here? <a href="/signup">Create an account</a>.</p>
+  {{else if eq .Registrations "approval"}}<p class="muted small">New here? <a href="/signup">Apply for an account</a>; the admins approve each one.</p>
   {{else if eq .Registrations "invite"}}<p class="muted small">Sign-ups need an invite link from someone on this server.</p>
   {{else}}<p class="muted small">Registrations are closed. Accounts are created by the admins of this server.</p>{{end}}
 </section>

@@ -160,7 +160,7 @@ func (app *App) inMove(ctx context.Context, actor *Account, act obj) error {
 
 func (app *App) registrationMode() string {
 	switch m := app.getSetting("registrations"); m {
-	case "open", "invite":
+	case "open", "invite", "approval":
 		return m
 	}
 	return "closed"
@@ -234,6 +234,7 @@ func (app *App) handleSignupForm(w http.ResponseWriter, r *http.Request, p *Page
 		app.renderStatus(w, http.StatusForbidden, "signup", p)
 		return
 	}
+	p.SignupApproval = mode == "approval" && !app.inviteValid(p.Query)
 	app.render(w, "signup", p)
 }
 
@@ -270,8 +271,16 @@ func (app *App) handleSignup(w http.ResponseWriter, r *http.Request, p *Page) {
 		return
 	}
 	signups.hit(ip)
-	if code != "" {
+	invited := code != "" && app.inviteValid(code)
+	if invited {
 		app.db.Exec(`UPDATE invites SET uses=uses+1 WHERE code=?`, code)
+	}
+	if mode == "approval" && !invited {
+		app.holdForApproval(acc, r.FormValue("reason"))
+		app.notifyAdmins(acc.ID, "signup")
+		setFlash(w, "Thanks! The admins will look at your request. You can log in once they've approved it.")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
 	}
 	app.notifyAdmins(acc.ID, "signup")
 	app.startSession(w, r, acc)

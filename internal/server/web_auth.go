@@ -33,6 +33,11 @@ func (app *App) handleLogin(w http.ResponseWriter, r *http.Request, p *Page) {
 		app.renderStatus(w, http.StatusUnauthorized, "login", p)
 		return
 	}
+	if app.signupPending(acc.ID) {
+		p.Error = "Your sign-up is waiting for approval by the admins. Try again later."
+		app.renderStatus(w, http.StatusForbidden, "login", p)
+		return
+	}
 	if acc.Suspended {
 		p.Error = "This account is suspended. Contact the admins of this server if you think that's a mistake."
 		app.renderStatus(w, http.StatusForbidden, "login", p)

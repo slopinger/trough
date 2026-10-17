@@ -155,7 +155,11 @@
   Mastodon's formats; imports merge and run in the background with progress shown in Settings
 - Account migration: aliases (`alsoKnownAs`), moving followers to a new account (`Move`), and following
   accounts that moved here
-- Sign-ups: closed, invite links or open (admin setting); live "new posts" banner and notification badge
+- Sign-ups: closed, invite links, open, or open with approval like Mastodon (admin setting). With approval,
+  applicants say why they want to join; their account waits suspended (no login, not shown, not federated) and
+  admins get an "asked to join" notification and approve or reject on `/admin` (rejecting deletes the account and
+  frees the name). Invite links skip the approval; the instance API reports `approval_required`
+- Live "new posts" banner and notification badge
 - Lists (with replies policy and "hide from Home"), followed hashtags (public posts with them show up in
   Home; managed on `/followed_tags` with this week's activity, last use and a profile-feature toggle), and relay subscriptions (Mastodon `/inbox` style and LitePub actor style) on `/admin` to fill the
   federated timeline; relayed posts are always fetched from their origin

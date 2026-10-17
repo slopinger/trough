@@ -79,6 +79,16 @@ func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Description = app.getSetting("description")
 	p.PolicySource, _, p.PolicyDefault = app.privacyPolicy()
 	app.adminTerms(p)
+	p.PendingSignups = app.pendingSignups()
+	if len(p.PendingSignups) > 0 { // they are listed on their own
+		users := p.Users[:0]
+		for _, u := range p.Users {
+			if !app.signupPending(u.Account.ID) {
+				users = append(users, u)
+			}
+		}
+		p.Users = users
+	}
 	p.ActivityCharts = activityCharts(app.weeklyActivity(time.Now()))
 	p.AIKeySource, p.AIModel = app.aiKeySource(), app.aiModel()
 	p.Reports = app.openReports()
@@ -140,7 +150,7 @@ func (app *App) handleAdminResetPassword(w http.ResponseWriter, r *http.Request,
 
 func (app *App) handleAdminRegistrations(w http.ResponseWriter, r *http.Request, p *Page) {
 	mode := r.FormValue("mode")
-	if mode != "open" && mode != "invite" {
+	if mode != "open" && mode != "invite" && mode != "approval" {
 		mode = "closed"
 	}
 	app.setSetting("registrations", mode)

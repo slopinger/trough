@@ -747,3 +747,9 @@ body.embed { margin: 0; background: transparent; }
 .activity-chart rect { fill: var(--accent); }
 .activity-chart rect:last-child { fill: var(--accent-strong); }
 .activity-axis { display: flex; justify-content: space-between; margin-top: 4px; }
+
+/* Admin: sign-ups waiting for approval */
+.signup-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.signup-item:first-of-type { border-top: 0; }
+.signup-item p { margin: 4px 0 0; }
+@media (max-width: 600px) { .signup-item { flex-direction: column; } }
