@@ -154,6 +154,9 @@
   search, the directory and suggestions for everyone else; its profile shows a notice with "Show posts anyway";
   its notifications to people who don't follow it are filtered (the policy's "limited accounts"). Listed on
   `/admin` to lift it; not federated, and refetching a remote actor keeps it. The API account has `limited`.
+- Marking an account's media as sensitive (Mastodon's "sensitive" action, from a report or the admin account page):
+  all its media, earlier posts included, is shown behind a click; new local posts with media are stored sensitive;
+  local accounts get a warning they can appeal. Lifting it shows earlier posts as they were stored.
 - Limiting whole servers (Mastodon's "limit" domain block severity, "Moderated servers" on `/admin`): all accounts
   from the server and its subdomains count as limited, without changing them, so lifting it restores what was
   there; follows stay and its activities are still accepted. The about page and `/api/v1/instance/domain_blocks`

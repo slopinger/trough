@@ -42,7 +42,7 @@ type WarnedStatus struct {
 func (s WarnedStatus) Time() time.Time { return time.Unix(s.At, 0) }
 
 // warningActions maps report actions to Mastodon's strike actions.
-var warningActions = map[string]string{"warn": "none", "delete": "delete_statuses", "limit": "silence", "suspend": "suspend"}
+var warningActions = map[string]string{"warn": "none", "delete": "delete_statuses", "limit": "silence", "suspend": "suspend", "sensitive": "sensitive"}
 
 func (w *Warning) Summary() string {
 	switch w.Action {
@@ -52,6 +52,8 @@ func (w *Warning) Summary() string {
 		return "Your account has been limited"
 	case "suspend":
 		return "Your account has been suspended"
+	case "sensitive":
+		return "Your media is marked as sensitive"
 	}
 	return "Your account received a moderation warning"
 }
@@ -65,6 +67,8 @@ func (w *Warning) Label() string {
 		return "Limited"
 	case "suspend":
 		return "Suspended"
+	case "sensitive":
+		return "Media marked sensitive"
 	}
 	return "Warning"
 }
@@ -78,6 +82,8 @@ func (w *Warning) AdminSummary() string {
 		return "the limit on their account"
 	case "suspend":
 		return "their suspension"
+	case "sensitive":
+		return "marking their media as sensitive"
 	}
 	return "a warning"
 }
@@ -90,6 +96,8 @@ func (w *Warning) Explanation() string {
 		return "Your posts are still visible to your followers, but no longer show up in public timelines, hashtags or search for anyone else, and your notifications to people who don't follow you are filtered."
 	case "suspend":
 		return "Your account can't be used while it is suspended. Nothing has been deleted."
+	case "sensitive":
+		return "Pictures, videos and audio in your posts, including earlier ones, are hidden behind a click from now on."
 	}
 	return "This is a warning; nothing about your account has changed."
 }
@@ -240,6 +248,10 @@ func (app *App) decideAppeal(admin *Account, id string, approve bool) (*Warning,
 		}
 	case w.Action == "suspend" && w.Account.Suspended:
 		if err := app.UnsuspendAccount(w.Account); err != nil {
+			return nil, err
+		}
+	case w.Action == "sensitive" && w.Account.ForceSensitive:
+		if err := app.setForceSensitive(w.Account, false); err != nil {
 			return nil, err
 		}
 	}

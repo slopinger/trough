@@ -93,7 +93,7 @@ func (app *App) addModerationNote(admin, a *Account, content string) error {
 // applies to local accounts, as the warning they get.
 func (app *App) moderateAccount(admin, a *Account, action, message string) (string, error) {
 	local := a.IsLocal() && app.isUser(a.ID)
-	if a.IsLocal() && a.ID == admin.ID && action != "unlimit" && action != "unsuspend" {
+	if a.IsLocal() && a.ID == admin.ID && action != "unlimit" && action != "unsuspend" && action != "unsensitive" {
 		return "", errors.New("you can't do that to yourself")
 	}
 	msg := ""
@@ -118,6 +118,16 @@ func (app *App) moderateAccount(admin, a *Account, action, message string) (stri
 			return "", err
 		}
 		msg = "Suspended " + a.Acct() + "."
+	case "sensitive":
+		if err := app.setForceSensitive(a, true); err != nil {
+			return "", err
+		}
+		msg = "Marked the media of " + a.Acct() + " as sensitive."
+	case "unsensitive":
+		if err := app.setForceSensitive(a, false); err != nil {
+			return "", err
+		}
+		return "Media of " + a.Acct() + " is no longer forced sensitive.", nil
 	case "unsuspend":
 		if err := app.UnsuspendAccount(a); err != nil {
 			return "", err

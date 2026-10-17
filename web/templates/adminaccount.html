@@ -4,7 +4,7 @@
   <div class="admin-account-head">
     <a href="{{$a.Path}}" class="avatar"><img src="{{template "avatarsrc" $a}}" alt="" width="56" height="56"></a>
     <div><b>{{name $a}}</b><br><a href="{{$a.Path}}">{{handle $a}}</a>
-      <div class="badges">{{if .IsAdmin}}<span class="badge">admin</span>{{end}}{{if .Pending}}<span class="badge">waiting for approval</span>{{else if $a.Suspended}}<span class="badge">suspended</span>{{end}}{{if $a.Limited}}<span class="badge">limited</span>{{end}}{{if $a.DomainLimited}}<span class="badge">server limited</span>{{end}}{{if $a.IsBot}}<span class="badge">bot</span>{{end}}</div></div>
+      <div class="badges">{{if .IsAdmin}}<span class="badge">admin</span>{{end}}{{if .Pending}}<span class="badge">waiting for approval</span>{{else if $a.Suspended}}<span class="badge">suspended</span>{{end}}{{if $a.Limited}}<span class="badge">limited</span>{{end}}{{if $a.DomainLimited}}<span class="badge">server limited</span>{{end}}{{if $a.ForceSensitive}}<span class="badge">media sensitive</span>{{end}}{{if $a.IsBot}}<span class="badge">bot</span>{{end}}</div></div>
   </div>
   <dl class="facts">
     <dt>{{if $a.IsLocal}}Joined{{else}}First seen{{end}}</dt><dd title="{{fulltime $a.CreatedAt}}">{{day $a.CreatedAt}}</dd>
@@ -25,6 +25,8 @@
       {{if .IsUser}}<button class="btn small" name="action" value="warn">Send a warning</button>{{end}}
       {{if $a.Limited}}<button class="btn small" name="action" value="unlimit">Lift limit</button>
       {{else if not (or $a.Suspended .IsAdmin)}}<button class="btn small danger-outline" name="action" value="limit" data-confirm="Limit {{handle $a}}? Their posts leave public timelines, hashtags and search for people who don't follow them, and their notifications to those people are filtered.">Limit</button>{{end}}
+      {{if $a.ForceSensitive}}<button class="btn small" name="action" value="unsensitive">Unmark media</button>
+      {{else if not $a.Suspended}}<button class="btn small danger-outline" name="action" value="sensitive" data-confirm="Mark all media of {{handle $a}} as sensitive? Their pictures and videos, including earlier ones, are hidden behind a click.">Mark media sensitive</button>{{end}}
       {{if $a.Suspended}}{{if not .Pending}}<button class="btn small" name="action" value="unsuspend">Lift suspension</button>{{end}}
       {{else}}<button class="btn small danger-outline" name="action" value="suspend" data-confirm="Suspend {{handle $a}}?{{if $a.IsLocal}} They can't log in, and their profile and posts are hidden until you lift it. Nothing is deleted.{{else}} Their posts disappear here and follows in both directions end.{{end}}">Suspend</button>{{end}}
     </div>

@@ -50,6 +50,7 @@ type Account struct {
 	NoIndex                            bool     // local: asks search engines not to index the profile and posts
 	Limited                            bool     // limited by our moderators (limit.go)
 	DomainLimited                      bool     // its server is limited (domainlimit.go); not stored
+	ForceSensitive                     bool     // moderators marked all its media sensitive; kept out of saveAccount
 }
 
 func (a *Account) IsLocal() bool { return a.Domain == "" }
@@ -83,7 +84,7 @@ func (a *Account) DeliveryInbox() string {
 const accountCols = `a.id,a.username,a.domain,a.uri,a.url,a.display_name,a.note,a.note_source,a.avatar,a.header,
 a.inbox,a.shared_inbox,a.outbox,a.followers_uri,a.following_uri,a.public_key_id,a.public_key,a.private_key,
 a.actor_type,a.locked,a.fields,a.emojis,a.created_at,a.fetched_at,a.suspended,a.featured_uri,a.also_known_as,a.moved_to,
-a.attribution_domains,a.discoverable,a.hide_collections,a.indexable,a.noindex,a.limited,` + domainLimitedSQL
+a.attribution_domains,a.discoverable,a.hide_collections,a.indexable,a.noindex,a.limited,a.force_sensitive,` + domainLimitedSQL
 
 type scanner interface{ Scan(...any) error }
 
@@ -93,7 +94,7 @@ func scanAccount(r scanner) (*Account, error) {
 	var created, fetched int64
 	err := r.Scan(&a.ID, &a.Username, &a.Domain, &a.URI, &a.URL, &a.DisplayName, &a.Note, &a.NoteSource, &a.Avatar, &a.Header,
 		&a.Inbox, &a.SharedInbox, &a.Outbox, &a.FollowersURI, &a.FollowingURI, &a.PublicKeyID, &a.PublicKey, &a.PrivateKey,
-		&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &a.Discoverable, &a.HideCollections, &a.Indexable, &a.NoIndex, &a.Limited, &a.DomainLimited)
+		&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &a.Discoverable, &a.HideCollections, &a.Indexable, &a.NoIndex, &a.Limited, &a.ForceSensitive, &a.DomainLimited)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errNotFound
 	}
@@ -207,7 +208,7 @@ func (app *App) ListUsers() ([]*User, error) {
 		var created, fetched, seen int64
 		if err := rows.Scan(&a.ID, &a.Username, &a.Domain, &a.URI, &a.URL, &a.DisplayName, &a.Note, &a.NoteSource, &a.Avatar, &a.Header,
 			&a.Inbox, &a.SharedInbox, &a.Outbox, &a.FollowersURI, &a.FollowingURI, &a.PublicKeyID, &a.PublicKey, &a.PrivateKey,
-			&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &a.Discoverable, &a.HideCollections, &a.Indexable, &a.NoIndex, &a.Limited, &a.DomainLimited, &u.Admin, &seen); err != nil {
+			&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &a.Discoverable, &a.HideCollections, &a.Indexable, &a.NoIndex, &a.Limited, &a.ForceSensitive, &a.DomainLimited, &u.Admin, &seen); err != nil {
 			return nil, err
 		}
 		a.CreatedAt = time.Unix(created, 0)
@@ -351,7 +352,7 @@ func (s *Status) IsBoost() bool { return s.BoostOfID != "" }
 func (s *Status) Path() string { return "/s/" + s.ID }
 
 const statusCols = `s.id,s.uri,s.url,s.account_id,s.local,s.in_reply_to_uri,s.in_reply_to_id,s.in_reply_to_account_id,s.boost_of_id,
-s.content,s.source,s.spoiler,s.sensitive,s.visibility,s.language,s.emojis,s.poll,s.created_at,s.edited_at,
+s.content,s.source,s.spoiler,(s.sensitive OR EXISTS(SELECT 1 FROM accounts fs WHERE fs.id=s.account_id AND fs.force_sensitive=1)),s.visibility,s.language,s.emojis,s.poll,s.created_at,s.edited_at,
 s.pinned_at,s.quote_uri,s.card_url,s.quote_state,s.quote_auth,s.quote_policy`
 
 func scanStatus(r scanner) (*Status, error) {

@@ -37,6 +37,21 @@ func (app *App) setLimited(a *Account, on bool) error {
 	return err
 }
 
+// setForceSensitive marks all of an account's media as sensitive, or stops
+// doing so (Mastodon's "sensitive" account action): status loading treats
+// its posts as sensitive and new local posts with media are stored so.
+func (app *App) setForceSensitive(a *Account, on bool) error {
+	switch {
+	case on && a.ForceSensitive:
+		return errors.New(a.Acct() + "'s media is already marked sensitive")
+	case !on && !a.ForceSensitive:
+		return errors.New(a.Acct() + "'s media isn't marked sensitive")
+	}
+	_, err := app.db.Exec(`UPDATE accounts SET force_sensitive=? WHERE id=?`, on, a.ID)
+	a.ForceSensitive = on
+	return err
+}
+
 func (app *App) limitedAccounts() []*Account {
 	accs, _ := app.accountsQuery(`SELECT ` + accountCols + ` FROM accounts a WHERE a.limited=1 AND a.suspended=0 ORDER BY a.domain, a.username`)
 	return accs

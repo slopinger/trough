@@ -661,6 +661,8 @@ CREATE TABLE trend_reviews (
 ) WITHOUT ROWID;
 `, `
 ALTER TABLE users ADD COLUMN chosen_languages TEXT NOT NULL DEFAULT '';
+`, `
+ALTER TABLE accounts ADD COLUMN force_sensitive INTEGER NOT NULL DEFAULT 0;
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

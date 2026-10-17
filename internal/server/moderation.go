@@ -9,12 +9,13 @@ import (
 
 // What an admin can do about a report. Each action resolves it.
 var reportActions = map[string]string{
-	"none":    "Resolved without action",
-	"delete":  "Deleted the reported posts",
-	"suspend": "Suspended the account",
-	"limit":   "Limited the account",
-	"block":   "Blocked the server",
-	"warn":    "Warned the account",
+	"none":      "Resolved without action",
+	"delete":    "Deleted the reported posts",
+	"suspend":   "Suspended the account",
+	"limit":     "Limited the account",
+	"block":     "Blocked the server",
+	"warn":      "Warned the account",
+	"sensitive": "Marked the account's media as sensitive",
 }
 
 // ResolveReport takes action on a report and records who did what. Suspending
@@ -46,6 +47,11 @@ func (app *App) resolveReport(admin *Account, id, action, note, message string) 
 	switch action {
 	case "warn":
 		msg = "Warned " + t.Acct() + " and resolved the report."
+	case "sensitive":
+		if err := app.setForceSensitive(t, true); err != nil {
+			return "", err
+		}
+		msg = "Marked the media of " + t.Acct() + " as sensitive and resolved the report."
 	case "delete":
 		n := 0
 		for _, st := range rep.Statuses {

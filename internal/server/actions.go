@@ -85,7 +85,7 @@ func (app *App) PostStatus(ctx context.Context, me *Account, in PostInput) (*Sta
 		Content:    f.HTML,
 		Source:     text,
 		Spoiler:    truncateRunes(strings.TrimSpace(in.Spoiler), 500),
-		Sensitive:  in.Sensitive || strings.TrimSpace(in.Spoiler) != "",
+		Sensitive:  in.Sensitive || strings.TrimSpace(in.Spoiler) != "" || (me.ForceSensitive && len(in.MediaIDs) > 0),
 		Visibility: in.Visibility,
 		Language:   normLanguage(in.Language),
 		CreatedAt:  time.Now(),
