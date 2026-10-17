@@ -173,6 +173,7 @@ label { display: block; }
 label.check { display: flex; align-items: center; gap: 8px; }
 .stack { display: flex; flex-direction: column; gap: 12px; }
 .stack label > input, .stack label > textarea { display: block; width: 100%; margin-top: 4px; }
+.stack label.check > input { display: inline-block; flex: none; width: 16px; margin-top: 0; }
 .stack > .btn { align-self: flex-start; }
 .inline-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
 fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 12px; }
