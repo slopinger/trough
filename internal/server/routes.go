@@ -158,6 +158,8 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("GET /severed_relationships", auth(app.handleSeverances))
 	mux.HandleFunc("GET /annual_report", auth(app.handleAnnualReport))
 	mux.HandleFunc("POST /admin/appearance", admin(app.handleAdminAppearance))
+	mux.HandleFunc("GET /admin/trends", admin(app.handleAdminTrends))
+	mux.HandleFunc("POST /admin/trends", admin(app.handleAdminTrends))
 	mux.HandleFunc("GET /custom.css", app.handleCustomCSS)
 	mux.HandleFunc("GET /annual_report/{year}", auth(app.handleAnnualReport))
 	mux.HandleFunc("GET /admin/accounts/{id}", admin(app.handleAdminAccount))

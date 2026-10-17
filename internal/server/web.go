@@ -81,6 +81,7 @@ type Page struct {
 	ReportBanner    int               // home: the year to invite to look back on
 	HomeBoosts      bool              // home: show boosts
 	HomeReplies     bool              // home: show replies
+	TrendStates     map[string]string // admin trends: "kind:key" -> approved/rejected
 	LimitedNotice   bool              // profile: limited and the viewer doesn't follow
 	Aliases         []*Account
 	MovedTo         *Account

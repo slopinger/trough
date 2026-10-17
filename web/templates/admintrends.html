@@ -1,0 +1,38 @@
+{{define "trendreview"}}{{$st := index .P.TrendStates (print .K ":" .Key)}}
+<span class="trend-state">{{if eq $st "approved"}}<span class="badge">approved</span>{{else if eq $st "rejected"}}<span class="badge muted-badge">hidden</span>{{else if eq (setting "trends_review") "1"}}<span class="badge">waiting</span>{{end}}</span>
+<form method="post" action="/admin/trends" class="row-actions trend-review">
+  <input type="hidden" name="csrf" value="{{.P.CSRF}}"><input type="hidden" name="kind" value="{{.K}}"><input type="hidden" name="key" value="{{.Key}}">
+  {{if ne $st "approved"}}<button class="btn small" name="action" value="approve">Approve</button>{{end}}
+  {{if ne $st "rejected"}}<button class="btn small danger-outline" name="action" value="reject">Hide</button>{{end}}
+  {{if $st}}<button class="btn small" name="action" value="reset" title="Forget the decision">Reset</button>{{end}}
+</form>{{end}}
+
+{{define "content"}}{{$p := .}}
+<div class="pagehead"><h2 class="pagetitle">Trends</h2><a class="btn small" href="/explore">Explore</a></div>
+<section class="card">
+  <p class="muted small">Hashtags, links and posts that are taking off here. Hidden ones never show on Explore or in the trends API; approved ones always may.</p>
+  <form method="post" action="/admin/trends" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="set_review" value="1">
+    <label class="check"><input type="checkbox" name="review"{{if eq (setting "trends_review") "1"}} checked{{end}}> Review trends first: only approved hashtags, links and posts trend</label>
+    <button class="btn small">Save</button>
+  </form>
+</section>
+<section class="card" id="tag">
+  <h3>Hashtags</h3>
+  {{range .TrendTags}}<div class="trend-row"><div class="trend-main"><a href="/tags/{{.Name}}"><b>#{{.Name}}</b></a><small class="muted">{{.Accounts}} {{if eq .Accounts 1}}person{{else}}people{{end}}</small></div>
+    {{template "trendreview" (dict "K" "tag" "Key" .Name "P" $p)}}</div>
+  {{else}}<p class="muted small">No hashtags are taking off right now.</p>{{end}}
+</section>
+<section class="card" id="link">
+  <h3>Links</h3>
+  {{range .TrendLinks}}<div class="trend-row"><div class="trend-main"><a href="{{.Card.URL}}" target="_blank" rel="noopener noreferrer nofollow"><b>{{if .Card.Title}}{{.Card.Title}}{{else}}{{.Card.URL}}{{end}}</b></a><small class="muted">{{hostOf .Card.URL}} · {{.Accounts}} {{if eq .Accounts 1}}person{{else}}people{{end}}</small></div>
+    {{template "trendreview" (dict "K" "link" "Key" .Card.URL "P" $p)}}</div>
+  {{else}}<p class="muted small">No links are taking off right now.</p>{{end}}
+</section>
+<section class="card" id="status">
+  <h3>Posts</h3>
+  {{range .Statuses}}<div class="trend-row"><div class="trend-main"><a href="{{.Path}}">{{plain .Content}}{{if not .Content}}(media){{end}}</a><small class="muted">{{handle .Account}}</small></div>
+    {{template "trendreview" (dict "K" "status" "Key" .ID "P" $p)}}</div>
+  {{else}}<p class="muted small">No posts are taking off right now.</p>{{end}}
+</section>
+{{end}}

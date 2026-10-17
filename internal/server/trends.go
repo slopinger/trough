@@ -59,9 +59,14 @@ const trendBase = ` FROM statuses s JOIN accounts a ON a.id=s.account_id
 // trendingTags returns hashtags used by at least trendMinAccounts accounts
 // in the last trendDays days, most accounts first.
 func (app *App) trendingTags(limit, offset int) []TrendTag {
+	return app.trendTags(limit, offset, app.trendFilter("tag", "t.tag"))
+}
+
+// trendTags lists trending hashtags; filter is trendFilter's or "" (admins reviewing).
+func (app *App) trendTags(limit, offset int, filter string) []TrendTag {
 	since := trendSince()
 	rows, err := app.db.Query(`SELECT t.tag, COUNT(DISTINCT s.account_id) n FROM status_tags t JOIN statuses s ON s.id=t.status_id
-		JOIN accounts a ON a.id=s.account_id WHERE s.visibility='public' AND s.boost_of_id='' AND a.suspended=0 AND `+notLimitedSQL+` AND s.created_at >= ?
+		JOIN accounts a ON a.id=s.account_id WHERE s.visibility='public' AND s.boost_of_id='' AND a.suspended=0 AND `+notLimitedSQL+` AND s.created_at >= ?`+filter+`
 		GROUP BY t.tag HAVING n >= ? ORDER BY n DESC, MAX(s.created_at) DESC LIMIT ? OFFSET ?`, since, trendMinAccounts, limit, offset)
 	if err != nil {
 		return nil
@@ -122,8 +127,12 @@ func (app *App) dayCounts(q string, args ...any) []TagDay {
 
 // trendingLinks returns link cards shared by at least trendMinAccounts accounts.
 func (app *App) trendingLinks(limit, offset int) []TrendLink {
+	return app.trendLinks(limit, offset, app.trendFilter("link", "s.card_url"))
+}
+
+func (app *App) trendLinks(limit, offset int, filter string) []TrendLink {
 	since := trendSince()
-	rows, err := app.db.Query(`SELECT s.card_url, COUNT(DISTINCT s.account_id) n`+trendBase+` AND s.card_url != ''
+	rows, err := app.db.Query(`SELECT s.card_url, COUNT(DISTINCT s.account_id) n`+trendBase+` AND s.card_url != ''`+filter+`
 		GROUP BY s.card_url HAVING n >= ? ORDER BY n DESC, MAX(s.created_at) DESC LIMIT ? OFFSET ?`, since, trendMinAccounts, limit, offset)
 	if err != nil {
 		return nil
@@ -151,12 +160,16 @@ func (app *App) trendingLinks(limit, offset int) []TrendLink {
 // trendingStatuses returns recent public posts with the most interaction
 // (likes, boosts and other people's replies), decaying with age.
 func (app *App) trendingStatuses(v *Account, limit, offset int) []*Status {
+	return app.trendStatuses(v, limit, offset, app.trendFilter("status", "s.id"))
+}
+
+func (app *App) trendStatuses(v *Account, limit, offset int, filter string) []*Status {
 	now := time.Now().Unix()
 	rows, err := app.db.Query(`SELECT id FROM (SELECT s.id, s.created_at,
 			(SELECT COUNT(*) FROM likes l WHERE l.status_id=s.id)
 			+ 2*(SELECT COUNT(*) FROM statuses b WHERE b.boost_of_id=s.id)
 			+ (SELECT COUNT(*) FROM statuses r WHERE r.in_reply_to_id=s.id AND r.account_id != s.account_id) score`+
-		trendBase+`) WHERE score >= 2 ORDER BY score / ((? - created_at) / 3600.0 + 2) DESC LIMIT ? OFFSET ?`,
+		trendBase+filter+`) WHERE score >= 2 ORDER BY score / ((? - created_at) / 3600.0 + 2) DESC LIMIT ? OFFSET ?`,
 		now-int64(trendPostWindow.Seconds()), now, limit, offset)
 	if err != nil {
 		return nil

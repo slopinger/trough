@@ -798,3 +798,11 @@ textarea.mono { font-family: ui-monospace, monospace; font-size: 0.85rem; }
 .home-view { display: flex; align-items: center; gap: 8px; }
 .home-menu .menu-list { top: calc(100% + 4px); bottom: auto; }
 .home-menu .menu-list .ico { flex: none; display: inline-block; }
+
+/* admin trends */
+.trend-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+.trend-row:first-of-type { border-top: 0; }
+.trend-row .trend-main { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; overflow-wrap: anywhere; }
+.trend-row .trend-main a { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.trend-review { margin: 0; }
+.muted-badge { opacity: 0.6; }

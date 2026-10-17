@@ -169,6 +169,7 @@
   <h3>Reports</h3>
   {{$p := .}}{{if .Reports}}<p><b>{{len .Reports}} open {{if eq (len .Reports) 1}}report{{else}}reports{{end}}</b>, the newest from {{handle (index .Reports 0).Reporter}} about {{handle (index .Reports 0).Target}} ({{ago (index .Reports 0).CreatedAt}}).</p>
   <a class="btn primary small" href="/admin/reports">Review reports</a>{{else}}<p class="muted small">No open reports. <a href="/admin/reports?tab=resolved">Resolved reports</a></p>{{end}}
+  <p class="muted small">{{with index .Stats "trends"}}<b>{{.}} {{if eq . 1}}trend waits{{else}}trends wait{{end}} for review.</b> {{end}}<a href="/admin/trends">Review trends</a> to hide spam from Explore.</p>
   {{with index .Stats "appeals"}}<p><b>{{.}} {{if eq . 1}}appeal{{else}}appeals{{end}}</b> of moderation decisions {{if eq . 1}}waits{{else}}wait{{end}} for you. <a href="/admin/reports?tab=appeals">Review appeals</a></p>{{end}}
 </section>
 <section class="card">

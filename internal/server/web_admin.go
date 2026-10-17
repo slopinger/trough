@@ -109,6 +109,7 @@ func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
 		"queued":    app.countInt(`SELECT COUNT(*) FROM deliveries`),
 		"retrying":  app.countInt(`SELECT COUNT(*) FROM deliveries WHERE attempts > 0`),
 		"appeals":   app.countInt(`SELECT COUNT(*) FROM account_warnings WHERE appeal_state='pending'`),
+		"trends":    app.pendingTrends(),
 	}
 	app.weekStats(p)
 	rows, err := app.db.Query(`SELECT inbox, attempts, next_try, last_error FROM deliveries WHERE attempts > 0 ORDER BY next_try LIMIT 20`)

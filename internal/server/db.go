@@ -650,6 +650,15 @@ CREATE TABLE domain_limits (
 `, `
 ALTER TABLE users ADD COLUMN home_boosts INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE users ADD COLUMN home_replies INTEGER NOT NULL DEFAULT 1;
+`, `
+CREATE TABLE trend_reviews (
+	kind TEXT NOT NULL,
+	key TEXT NOT NULL,
+	state TEXT NOT NULL,
+	reviewed_at INTEGER NOT NULL,
+	reviewed_by TEXT NOT NULL DEFAULT '',
+	PRIMARY KEY (kind, key)
+) WITHOUT ROWID;
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {
