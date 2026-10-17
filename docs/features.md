@@ -172,6 +172,12 @@
 - Severed relationships (Mastodon 4.3): when admins block a server or suspend a remote account, local accounts that
   lose follows or followers get a `severed_relationships` notification (with Mastodon's `event` entity), and
   `/severed_relationships` offers the lost follows (import format) and followers as CSV downloads.
+- Annual report (Mastodon 4.3's "Wrapstodon"): `/annual_report[/{year}]` looks back on a year (the current one
+  "so far"): an archetype (lurker, booster, pollster, replier or oracle, by Mastodon's rules), posts per month,
+  new followers and follows, the most used hashtags, the most boosted, favourited and replied-to posts, the people
+  interacted with most and how the posting compares with others here. Settings links to it, and Home shows a banner
+  from December to mid-January. Clients get Mastodon's entity from `/api/v1/annual_reports[/{year}[/state|/read]]`
+  (no app statistics: trough doesn't record which app posted).
 - Archive download (Settings, once an hour): a zip in Mastodon's archive layout with actor.json, outbox.json (all
   your posts and boosts, private ones included), likes.json, bookmarks.json, avatar, header and uploaded media
 - Import and export (Settings) of follows, lists, blocks, mutes, blocked servers and bookmarks as CSV files in

@@ -1,0 +1,30 @@
+{{define "content"}}{{$p := .}}{{with .AnnualReport}}
+<section class="card wrapped-hero">
+  <p class="muted small">{{$p.Host}}{{if .SoFar}} · the year so far{{end}}</p>
+  <h2 class="wrapped-year">Your {{.Year}}</h2>
+  <div class="wrapped-archetype"><span class="wrapped-icon">{{template "icon" .ArchetypeIcon}}</span>
+    <div><b>{{.ArchetypeTitle}}</b><p>{{.ArchetypeText}}</p></div></div>
+</section>
+<div class="wrapped-numbers">
+  <div class="card"><b>{{.Total}}</b><span>{{if eq .Total 1}}post{{else}}posts{{end}} and boosts</span></div>
+  <div class="card"><b>{{.NewFollowers}}</b><span>new {{if eq .NewFollowers 1}}follower{{else}}followers{{end}}</span></div>
+  <div class="card"><b>{{.NewFollowing}}</b><span>{{if eq .NewFollowing 1}}account{{else}}accounts{{end}} followed</span></div>
+</div>
+{{if .Total}}<section class="card">
+  <h3>What you posted</h3>
+  <p>{{.Standalone}} new {{if eq .Standalone 1}}post{{else}}posts{{end}}, {{.Replies}} {{if eq .Replies 1}}reply{{else}}replies{{end}} and {{.Boosts}} {{if eq .Boosts 1}}boost{{else}}boosts{{end}}{{if .Polls}}, with {{.Polls}} {{if eq .Polls 1}}poll{{else}}polls{{end}}{{end}}.</p>
+  {{if .PostsPercentile}}<p>You posted more than {{.PostsPercentile}}% of the people here.</p>{{end}}
+  {{with .Chart}}<figure class="activity-chart wrapped-chart">
+    <svg viewBox="0 0 236 60" preserveAspectRatio="none" role="img" aria-label="Posts per month">{{range .Bars}}<rect x="{{.X}}" y="{{.Y}}" width="16" height="{{.H}}" rx="2"><title>{{.Title}}</title></rect>{{end}}</svg>
+    <div class="activity-axis muted small"><span>January</span><span>December</span></div>
+  </figure>{{end}}
+</section>{{end}}
+{{if .TopTags}}<section class="card">
+  <h3>Your hashtags</h3>
+  <ol class="wrapped-tags">{{range .TopTags}}<li><a href="/tags/{{.Name}}">#{{.Name}}</a> <span class="muted small">{{.Count}} {{if eq .Count 1}}post{{else}}posts{{end}}</span></li>{{end}}</ol>
+</section>{{end}}
+{{range .TopPosts}}<h3 class="section-title">{{.Label}}</h3>{{template "status" (dict "S" .Status "P" $p)}}{{end}}
+{{if .Interacted}}<h3 class="section-title">The people you interacted with most</h3>
+{{range .Interacted}}{{template "accountrow" (dict "A" .Account "P" $p)}}{{end}}{{end}}
+{{if gt (len $p.Years) 1}}<nav class="tabs wrapped-years" aria-label="Other years">{{range $p.Years}}<a href="/annual_report/{{.}}" class="{{if eq . $.AnnualReport.Year}}active{{end}}">{{.}}</a>{{end}}</nav>{{end}}
+{{end}}{{end}}

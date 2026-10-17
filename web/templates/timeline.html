@@ -9,6 +9,7 @@
 </a>{{end}}
 {{with .TagStats}}<div class="tag-stats"><span><b>{{.Posts}}</b> {{if eq .Posts 1}}post{{else}}posts{{end}} from <b>{{.People}}</b> {{if eq .People 1}}person{{else}}people{{end}} this week · <b>{{.Today}}</b> today</span><svg class="spark" viewBox="0 0 60 24" role="img" aria-label="Posts per day this week"><polyline points="{{sparkline .History}}"/></svg></div>{{end}}
 {{if .Timeline}}<a class="new-posts" href="{{.Path}}" hidden data-timeline="{{.Timeline}}" data-since="{{sinceID .Statuses}}">Show new posts</a>{{end}}
+{{with .ReportBanner}}<a class="filtered-banner" href="/annual_report/{{.}}">{{template "icon" "trend"}} <span>Your {{.}} on {{$.Host}}: see how your year went</span></a>{{end}}
 {{if .Compose}}{{template "compose" (dict "C" .Compose "P" .)}}{{end}}
 {{template "statuslist" .}}
 {{end}}

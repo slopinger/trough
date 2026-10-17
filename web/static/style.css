@@ -775,3 +775,17 @@ body.embed { margin: 0; background: transparent; }
 form.inline { display: inline; }
 .modnote .linklike { width: auto; padding: 0; color: var(--muted); text-decoration: underline; }
 .server-cell { overflow-wrap: anywhere; }
+
+/* annual report */
+.wrapped-hero { background: linear-gradient(135deg, var(--panel), var(--panel-2)); }
+.wrapped-year { font-size: 2.4rem; margin: 4px 0 14px; letter-spacing: -0.02em; }
+.wrapped-archetype { display: flex; gap: 14px; align-items: flex-start; }
+.wrapped-archetype p { margin: 4px 0 0; }
+.wrapped-icon { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--accent); color: var(--bg); }
+.wrapped-icon svg { width: 24px; height: 24px; }
+.wrapped-numbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.wrapped-numbers .card { margin: 0; text-align: center; padding: 14px 8px; display: flex; flex-direction: column; gap: 2px; }
+.wrapped-numbers b { font-size: 1.8rem; }
+.wrapped-numbers span { color: var(--muted); font-size: 0.85rem; }
+.wrapped-chart { margin-top: 12px; }
+.wrapped-tags { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 4px; }

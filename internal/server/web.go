@@ -76,6 +76,9 @@ type Page struct {
 	Warning         *Warning          // one moderation warning
 	Severances      []*Severance      // severed relationships page
 	AdminAccount    *AdminAccountView // admin page of one account
+	AnnualReport    *AnnualReport     // year in review
+	Years           []int             // years with an annual report
+	ReportBanner    int               // home: the year to invite to look back on
 	LimitedNotice   bool              // profile: limited and the viewer doesn't follow
 	Aliases         []*Account
 	MovedTo         *Account

@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func nextURL(r *http.Request, sts []*Status) string {
@@ -49,6 +50,7 @@ func (app *App) handleHome(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.NextURL = nextURL(r, sts)
 	p.Compose = &Compose{}
 	p.Empty = "Your home timeline is empty. Follow some people! Use search to find accounts on other servers, e.g. @someone@mastodon.social."
+	p.ReportBanner = app.reportBannerYear(p.Me, time.Now().UTC())
 	app.render(w, "timeline", p)
 }
 
