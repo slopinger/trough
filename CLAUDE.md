@@ -52,4 +52,4 @@ Keep these notes, README and docs/ up to date whenever code behavior, commands o
 
 - Nix: `nix build`, `nix flake check`, `nix develop`; commit `flake.lock`.
   `nixosModules.default` exports the reusable host module; see docs/deployment.md for options and limits.
-- Never add Co-Authored-By trailers or session links to public GitLab content.
+- Never add Co-Authored-By trailers or session links to public GitHub content; push only to the GitHub `origin` (https://github.com/slopinger/trough).
