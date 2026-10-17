@@ -53,6 +53,7 @@ Files are grouped by prefix:
 | `domainlimit.go` | limiting whole servers (`domain_limits`, `notLimitedSQL`) |
 | `warnings.go` | moderation warnings (strikes), the account status page and appeals |
 | `adminaccount.go` | the admin page of one account: facts, history, moderation notes, direct actions |
+| `knownservers.go` | the admin list of known servers |
 | `trendreview.go` | hiding and approving trends (`trend_reviews`, `/admin/trends`) |
 | `serverappearance.go` | server thumbnail and custom CSS |
 | `annualreport.go` | annual reports (year in review page and `/api/v1/annual_reports`) |

@@ -810,3 +810,11 @@ textarea.mono { font-family: ui-monospace, monospace; font-size: 0.85rem; }
 /* settings: languages in public timelines */
 .lang-filter summary { cursor: pointer; }
 .lang-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px 12px; margin-top: 8px; }
+
+/* admin: known servers */
+.server-search { margin-bottom: 8px; }
+.server-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.server-row:first-child { border-top: 0; }
+.server-main { flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; }
+.server-main small { display: block; margin-top: 2px; }
+.warn-badge { background: var(--danger); color: #fff; }

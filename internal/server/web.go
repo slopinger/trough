@@ -82,6 +82,7 @@ type Page struct {
 	HomeBoosts      bool              // home: show boosts
 	HomeReplies     bool              // home: show replies
 	TrendStates     map[string]string // admin trends: "kind:key" -> approved/rejected
+	Servers         []*KnownServer    // admin: known servers
 	LimitedNotice   bool              // profile: limited and the viewer doesn't follow
 	Aliases         []*Account
 	MovedTo         *Account

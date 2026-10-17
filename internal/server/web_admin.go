@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -266,6 +267,10 @@ func (app *App) handleAdminDomainBlock(w http.ResponseWriter, r *http.Request, p
 	domain := strings.ToLower(strings.TrimSpace(r.FormValue("domain")))
 	domain = strings.TrimPrefix(strings.TrimPrefix(domain, "https://"), "http://")
 	domain = strings.Trim(domain, "/ ")
+	back := "/admin#servers"
+	if r.FormValue("back") == "servers" {
+		back = "/admin/servers?q=" + url.QueryEscape(domain)
+	}
 	if r.FormValue("remove") != "" {
 		if res, err := app.db.Exec(`DELETE FROM domain_limits WHERE domain=?`, domain); err == nil && affected(res) > 0 {
 			setFlash(w, "Lifted the limit on "+domain+".")
@@ -274,7 +279,7 @@ func (app *App) handleAdminDomainBlock(w http.ResponseWriter, r *http.Request, p
 			app.db.Exec(`UPDATE accounts SET suspended=0 WHERE domain=? OR domain LIKE ?`, domain, "%."+domain)
 			setFlash(w, "Unblocked "+domain+".")
 		}
-		http.Redirect(w, r, "/admin#servers", http.StatusSeeOther)
+		http.Redirect(w, r, back, http.StatusSeeOther)
 		return
 	}
 	if r.FormValue("severity") == "limit" {
@@ -283,16 +288,16 @@ func (app *App) handleAdminDomainBlock(w http.ResponseWriter, r *http.Request, p
 		} else {
 			setFlash(w, "Limited "+domain+".")
 		}
-		http.Redirect(w, r, "/admin#servers", http.StatusSeeOther)
+		http.Redirect(w, r, back, http.StatusSeeOther)
 		return
 	}
 	if err := app.BlockServer(domain, r.FormValue("reason")); err != nil {
 		setFlash(w, "Invalid domain.")
-		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+		http.Redirect(w, r, back, http.StatusSeeOther)
 		return
 	}
 	setFlash(w, "Blocked "+domain+".")
-	http.Redirect(w, r, "/admin", http.StatusSeeOther)
+	http.Redirect(w, r, back, http.StatusSeeOther)
 }
 
 // BlockServer blocks a server (admin domain block) and its subdomains: their accounts are suspended,

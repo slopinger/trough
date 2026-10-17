@@ -172,6 +172,9 @@
 - Severed relationships (Mastodon 4.3): when admins block a server or suspend a remote account, local accounts that
   lose follows or followers get a `severed_relationships` notification (with Mastodon's `event` entity), and
   `/severed_relationships` offers the lost follows (import format) and followers as CSV downloads.
+- Known servers (`/admin/servers`, like Mastodon's admin instances): every server we know accounts from, with
+  stored accounts and posts, the last post, follows in both directions, failing deliveries and moderation state;
+  search, four orders, and limit/block/lift buttons per server.
 - Trend review (`/admin/trends`, like Mastodon's admin trends): admins hide hashtags, links or posts from Explore
   and the trends API, or approve them; with "review trends first" on, only approved ones trend, and /admin counts
   what waits.

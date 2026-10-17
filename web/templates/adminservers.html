@@ -1,0 +1,35 @@
+{{define "content"}}{{$p := .}}
+<div class="pagehead"><h2 class="pagetitle">Known servers</h2><a class="btn small" href="/admin#servers">Moderated servers</a></div>
+<form method="get" action="/admin/servers" class="inline-form server-search" role="search">
+  <input type="search" name="q" value="{{.Query}}" placeholder="Find a server" aria-label="Find a server">
+  <select name="sort" aria-label="Order">
+    <option value=""{{if eq .Tab ""}} selected{{end}}>Most connected</option>
+    <option value="posts"{{if eq .Tab "posts"}} selected{{end}}>Most posts</option>
+    <option value="recent"{{if eq .Tab "recent"}} selected{{end}}>Recently active</option>
+    <option value="name"{{if eq .Tab "name"}} selected{{end}}>Name</option>
+  </select>
+  <button class="btn small">Show</button>
+</form>
+<p class="muted small">{{index .Stats "total"}} {{if eq (index .Stats "total") 1}}server{{else}}servers{{end}}{{if .Query}} matching “{{.Query}}”{{end}}. Numbers count what this server knows about, not the whole server.</p>
+<section class="card server-list">
+{{range .Servers}}<div class="server-row">
+  <div class="server-main">
+    <a href="https://{{.Domain}}/" target="_blank" rel="noopener noreferrer nofollow"><b>{{.Domain}}</b></a>
+    {{if eq .Severity "suspend"}}<span class="badge">blocked</span>{{else if eq .Severity "limit"}}<span class="badge">limited</span>{{end}}
+    {{if .FailingDeliveries}}<span class="badge warn-badge" title="Deliveries to it are being retried">{{.FailingDeliveries}} failing {{if eq .FailingDeliveries 1}}delivery{{else}}deliveries{{end}}</span>{{end}}
+    <small class="muted">{{.Accounts}} {{if eq .Accounts 1}}account{{else}}accounts{{end}} · {{.Posts}} {{if eq .Posts 1}}post{{else}}posts{{end}}{{if .Posts}}, last <span title="{{fulltime .LastPost}}">{{ago .LastPost}}</span>{{end}}
+      · followed by {{.Following}} here · follows {{.Followers}} here</small>
+  </div>
+  {{if not .Severity}}<form method="post" action="/admin/domain_blocks" class="row-actions">
+    <input type="hidden" name="csrf" value="{{$p.CSRF}}"><input type="hidden" name="domain" value="{{.Domain}}"><input type="hidden" name="back" value="servers">
+    <button class="btn small danger-outline" name="severity" value="limit" data-confirm="Limit {{.Domain}}? Its posts only reach people here who follow its accounts.">Limit</button>
+    <button class="btn small danger-outline" name="severity" value="suspend" data-confirm="Block {{.Domain}}? Follows with it end and its activities are refused.">Block</button>
+  </form>{{else}}<form method="post" action="/admin/domain_blocks" class="row-actions">
+    <input type="hidden" name="csrf" value="{{$p.CSRF}}"><input type="hidden" name="domain" value="{{.Domain}}"><input type="hidden" name="back" value="servers"><input type="hidden" name="remove" value="1">
+    <button class="btn small">{{if eq .Severity "limit"}}Lift limit{{else}}Unblock{{end}}</button>
+  </form>{{end}}
+</div>
+{{else}}<p class="muted small">No servers{{if .Query}} match that{{end}}.</p>{{end}}
+</section>
+{{if .NextURL}}<a class="more" href="{{.NextURL}}">More servers</a>{{end}}
+{{end}}

@@ -209,7 +209,7 @@
   <p class="muted small">A random password is generated and shown once.</p>
 </section>
 <section class="card" id="servers">
-  <h3>Moderated servers</h3>
+  <div class="pagehead"><h3>Moderated servers</h3><a class="btn small" href="/admin/servers">All known servers</a></div>
   <p class="muted small"><b>Limiting</b> a server hides its posts from public timelines, hashtags, trends and search for people who don't follow its accounts, and filters their notifications to others; follows stay. <b>Blocking</b> hides its accounts and posts, removes follows and refuses all of its activities. Subdomains are included.</p>
   {{if .DomainBlocks}}<table class="tbl"><tr><th>Server</th><th>Reason</th><th></th></tr>
   {{range .DomainBlocks}}<tr><td class="server-cell">{{.Domain}} <span class="badge">{{if eq .Severity "limit"}}limited{{else}}blocked{{end}}</span></td><td>{{.Reason}}</td><td>
