@@ -306,6 +306,7 @@ var notificationTypes = map[string]string{
 	"favourite": "favourite", "reblog": "reblog", "mention": "mention", "follow": "follow", "follow_request": "follow_request",
 	"poll": "poll", "quote": "quote", "reaction": "pleroma:emoji_reaction", "signup": "admin.sign_up", "move": "move",
 	"update": "update", "quoted_update": "quoted_update", "status": "status", "moderation_warning": "moderation_warning",
+	"severed_relationships": "severed_relationships",
 }
 
 func (app *App) apiNotification(v *Account, n *Notification) obj {
@@ -322,6 +323,9 @@ func (app *App) apiNotification(v *Account, n *Notification) obj {
 	}
 	if n.Warning != nil {
 		m["moderation_warning"] = app.apiWarning(n.Warning)
+	}
+	if n.Event != nil {
+		m["event"] = app.apiSeverance(n.Event)
 	}
 	return m
 }

@@ -88,6 +88,9 @@ func (app *App) groupedResponse(me *Account, ns []*Notification, grouped map[str
 			if n.Warning != nil {
 				g["moderation_warning"] = app.apiWarning(n.Warning)
 			}
+			if n.Event != nil {
+				g["event"] = app.apiSeverance(n.Event)
+			}
 			index[key] = g
 			groups = append(groups, g)
 		}

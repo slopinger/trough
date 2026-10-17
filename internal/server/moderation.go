@@ -101,6 +101,7 @@ func (app *App) SuspendAccount(a *Account) {
 		app.suspendLocal(a, true)
 		return
 	}
+	app.severFollows("account_suspension", a.Acct(), `a.id=?`, a.ID)
 	app.db.Exec(`UPDATE accounts SET suspended=1, remote_suspended=0 WHERE id=? AND domain != ''`, a.ID)
 	app.db.Exec(`DELETE FROM follows WHERE account_id=? OR target_id=?`, a.ID, a.ID)
 	app.db.Exec(`DELETE FROM notifications WHERE from_account_id=?`, a.ID)

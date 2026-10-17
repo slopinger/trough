@@ -417,6 +417,7 @@ type Notification struct {
 	Read      bool
 	Others    []*Account // web UI: more people in this group (likes/boosts of a post, follows of a day)
 	Warning   *Warning   // moderation_warning
+	Event     *Severance // severed_relationships
 }
 
 // groupNotifications folds a newest-first page of notifications into groups with the
@@ -455,7 +456,7 @@ func (app *App) notifications(v *Account, maxID string) ([]*Notification, error)
 }
 
 func (app *App) notificationsWhere(v *Account, where string, args []any, order string, limit int) ([]*Notification, error) {
-	q := `SELECT n.id, n.type, n.from_account_id, n.status_id, n.created_at, n.read, n.warning_id FROM notifications n
+	q := `SELECT n.id, n.type, n.from_account_id, n.status_id, n.created_at, n.read, n.warning_id, n.event_id FROM notifications n
 		JOIN accounts a ON a.id=n.from_account_id WHERE ` + where + ` ORDER BY n.id ` + order + ` LIMIT ?`
 	args = append(args, limit)
 	rows, err := app.db.Query(q, args...)
@@ -463,20 +464,23 @@ func (app *App) notificationsWhere(v *Account, where string, args []any, order s
 		return nil, err
 	}
 	var ns []*Notification
-	var fromIDs, stIDs, warnIDs []string
-	type raw struct{ from, status, warning string }
+	var fromIDs, stIDs, warnIDs, eventIDs []string
+	type raw struct{ from, status, warning, event string }
 	var raws []raw
 	for rows.Next() {
 		n := &Notification{}
-		var from, sid, wid string
+		var from, sid, wid, eid string
 		var created int64
-		if err := rows.Scan(&n.ID, &n.Type, &from, &sid, &created, &n.Read, &wid); err != nil {
+		if err := rows.Scan(&n.ID, &n.Type, &from, &sid, &created, &n.Read, &wid, &eid); err != nil {
 			rows.Close()
 			return nil, err
 		}
 		n.CreatedAt = time.Unix(created, 0)
 		ns = append(ns, n)
-		raws = append(raws, raw{from, sid, wid})
+		raws = append(raws, raw{from, sid, wid, eid})
+		if eid != "" {
+			eventIDs = append(eventIDs, eid)
+		}
 		fromIDs = append(fromIDs, from)
 		if wid != "" {
 			warnIDs = append(warnIDs, wid)
@@ -502,11 +506,22 @@ func (app *App) notificationsWhere(v *Account, where string, args []any, order s
 		}
 	}
 	warnings := app.warningsByID(warnIDs)
+	events := map[string]*Severance{}
+	if len(eventIDs) > 0 && v != nil {
+		for _, e := range app.severances(v, eventIDs...) {
+			events[e.ID] = e
+		}
+	}
 	out := ns[:0]
 	for i, n := range ns {
 		n.From = accs[raws[i].from]
 		if raws[i].warning != "" {
 			if n.Warning = warnings[raws[i].warning]; n.Warning == nil {
+				continue
+			}
+		}
+		if raws[i].event != "" {
+			if n.Event = events[raws[i].event]; n.Event == nil {
 				continue
 			}
 		}

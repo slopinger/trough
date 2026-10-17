@@ -615,6 +615,23 @@ CREATE TABLE account_warnings (
 );
 CREATE INDEX account_warnings_account ON account_warnings(account_id, id);
 ALTER TABLE notifications ADD COLUMN warning_id TEXT NOT NULL DEFAULT '';
+`, `
+CREATE TABLE severances (
+	id TEXT PRIMARY KEY,
+	type TEXT NOT NULL,
+	target_name TEXT NOT NULL,
+	created_at INTEGER NOT NULL
+);
+CREATE TABLE severed_follows (
+	severance_id TEXT NOT NULL REFERENCES severances(id) ON DELETE CASCADE,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	direction TEXT NOT NULL,
+	acct TEXT NOT NULL,
+	show_reblogs INTEGER NOT NULL DEFAULT 1,
+	notify INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX severed_follows_account ON severed_follows(account_id, severance_id);
+ALTER TABLE notifications ADD COLUMN event_id TEXT NOT NULL DEFAULT '';
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

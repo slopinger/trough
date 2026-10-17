@@ -161,6 +161,9 @@
   the posts concerned, and can be appealed once within 20 days. Admins decide appeals on
   `/admin/reports?tab=appeals`; approving lifts the limit or suspension the warning came with. Suspended accounts
   can't log in, so they only see theirs once the suspension is lifted.
+- Severed relationships (Mastodon 4.3): when admins block a server or suspend a remote account, local accounts that
+  lose follows or followers get a `severed_relationships` notification (with Mastodon's `event` entity), and
+  `/severed_relationships` offers the lost follows (import format) and followers as CSV downloads.
 - Archive download (Settings, once an hour): a zip in Mastodon's archive layout with actor.json, outbox.json (all
   your posts and boosts, private ones included), likes.json, bookmarks.json, avatar, header and uploaded media
 - Import and export (Settings) of follows, lists, blocks, mutes, blocked servers and bookmarks as CSV files in

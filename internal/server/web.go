@@ -74,6 +74,7 @@ type Page struct {
 	LimitedAccounts []*Account      // admin: accounts limited by the moderators
 	Warnings        []*Warning      // account status page; admin: appeals
 	Warning         *Warning        // one moderation warning
+	Severances      []*Severance    // severed relationships page
 	LimitedNotice   bool            // profile: limited and the viewer doesn't follow
 	Aliases         []*Account
 	MovedTo         *Account

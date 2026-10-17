@@ -1,0 +1,11 @@
+{{define "content"}}
+<h2 class="pagetitle">Severed relationships</h2>
+<p class="muted small">When the moderators block a server or suspend an account on another server, your follows with it end. Download the lists to follow those accounts again (Settings → Import) if the block is lifted.</p>
+{{range .Severances}}<section class="card">
+  <p><b>{{.Summary}}</b><br><span class="muted small" title="{{fulltime .CreatedAt}}">{{day .CreatedAt}}</span></p>
+  <p>{{.Lost}}.</p>
+  <div class="row-actions">{{if .Following}}<a class="btn small" href="/severed_relationships/{{.ID}}/following.csv" download>Accounts you followed ({{.Following}})</a>{{end}}
+    {{if .Followers}}<a class="btn small" href="/severed_relationships/{{.ID}}/followers.csv" download>Your followers ({{.Followers}})</a>{{end}}</div>
+</section>
+{{else}}<div class="empty">None of your follows have been removed by the moderators.</div>{{end}}
+{{end}}

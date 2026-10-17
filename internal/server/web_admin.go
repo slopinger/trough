@@ -289,6 +289,7 @@ func (app *App) BlockServer(domain, reason string) error {
 	app.db.Exec(`INSERT INTO domain_blocks (domain, reason, created_at) VALUES (?,?,?) ON CONFLICT(domain) DO UPDATE SET reason=excluded.reason`,
 		domain, truncateRunes(reason, 500), time.Now().Unix())
 	match := []any{domain, "%." + domain}
+	app.severFollows("domain_block", domain, `a.domain=? OR a.domain LIKE ?`, match...)
 	app.db.Exec(`UPDATE accounts SET suspended=1 WHERE domain=? OR domain LIKE ?`, match...)
 	app.db.Exec(`DELETE FROM follows WHERE account_id IN (SELECT id FROM accounts WHERE domain=? OR domain LIKE ?)
 		OR target_id IN (SELECT id FROM accounts WHERE domain=? OR domain LIKE ?)`, domain, "%."+domain, domain, "%."+domain)

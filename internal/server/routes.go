@@ -154,6 +154,8 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("GET /disputes/strikes/{id}", auth(app.handleStrikes))
 	mux.HandleFunc("POST /disputes/strikes/{id}/appeal", auth(app.handleAppeal))
 	mux.HandleFunc("POST /admin/appeals/{id}/{action}", admin(app.handleAppealDecision))
+	mux.HandleFunc("GET /severed_relationships", auth(app.handleSeverances))
+	mux.HandleFunc("GET /severed_relationships/{id}/{file}", auth(app.handleSeveranceCSV))
 	mux.HandleFunc("GET /admin", admin(app.handleAdmin))
 	mux.HandleFunc("POST /admin/users", admin(app.handleAdminCreateUser))
 	mux.HandleFunc("POST /admin/users/{id}/password", admin(app.handleAdminResetPassword))

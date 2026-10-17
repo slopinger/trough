@@ -387,6 +387,10 @@ func pushText(n *Notification) (string, string) {
 		return who + " edited a post you quoted", body
 	case "reaction":
 		return who + " reacted to your post", body
+	case "severed_relationships":
+		if n.Event != nil {
+			return "Some of your connections were removed", n.Event.Summary() + ". " + n.Event.Lost() + "."
+		}
 	case "moderation_warning":
 		if n.Warning != nil {
 			return n.Warning.Summary(), truncateRunes(n.Warning.Text, 300)
