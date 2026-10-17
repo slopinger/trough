@@ -41,7 +41,7 @@ Keep these notes, README and docs/ up to date whenever code behavior, commands o
 - Production: `fedi.freifick.net`, loopback `127.0.0.1:8790`, service user `trough`, `/etc/trough.env`,
   `/var/lib/trough/{trough.sqlite3,media,cache}`. The hostname is embedded in federation IDs and cannot change.
   Inspect live SQLite as `trough`, preserving WAL ownership. Never commit data, private keys or passwords.
-- Daily verified local backups come from the separate `slop/server-backups` project/timer, not this
+- Daily verified local backups come from the separate `~/src/server-backups` project/timer, not this
   deploy script. Cache is disposable; database and uploaded media are not. Restore instructions are there.
 - Use small commits: one logical change per commit (with its tests/docs), each passing the checks above.
   Don't bundle unrelated changes or a whole session's work into one commit.
@@ -53,3 +53,28 @@ Keep these notes, README and docs/ up to date whenever code behavior, commands o
 - Nix: `nix build`, `nix flake check`, `nix develop`; commit `flake.lock`.
   `nixosModules.default` exports the reusable host module; see docs/deployment.md for options and limits.
 - Never add Co-Authored-By trailers or session links to public GitHub content; push only to the GitHub `origin` (https://github.com/slopinger/trough).
+
+## Production operations (fedi.freifick.net)
+- `./deploy.sh` runs the tests, builds, installs `/usr/local/bin/trough` + `troughctl`, `trough.service`
+  (hardened, user `trough`) and `/etc/caddy/conf.d/fedi.freifick.net.caddy`, then restarts. Logs:
+  `journalctl -u trough`. Caddy access logs for this site go to `/var/log/caddy/fedi.freifick.net.log`
+  (caddy-owned 0600, rolled daily, kept 7 days), so validate Caddy configs as the caddy user.
+- Accounts: `slop` (admin; password `~/.secrets/trough/slop-password`) and `snaki` (admin since
+  2026-10-15; credentials were handed to the user). Registrations are closed (modes on /admin: closed,
+  invite links, approval, open).
+- `troughctl user create <name> [-admin]` (prints a password), `user list|password <name>|admin <name>
+  on|off|suspend <name> on|off`, `troughctl fetch <url>` (signed GET as the instance actor, for
+  federation debugging). DB shell: `sudo -u trough sqlite3 /var/lib/trough/trough.sqlite3`.
+- Moderation: domain blocks/limits on `/admin`, reports on `/admin/reports`, accounts on
+  `/admin/accounts/{id}`, trends on `/admin/trends`, known servers on `/admin/servers`.
+- Before a DB migration, copy the DB to `/var/lib/trough/pre-migrationNN.sqlite3` (0600, trough-owned).
+  Migrations are at 49; copies 28–49 exist (2026-10-17), delete them once a few nightly backups ran.
+- Production settings: a fedi.freifick.net-specific `/privacy-policy` (since 2026-10-16) covers the 7-day
+  Caddy access logs, 14-day same-server backups and the DeepSeek AI buttons; update it when those change.
+  No terms of service, server thumbnail or custom CSS are set. No relays are configured.
+- Federation verified against mastodon.social and full local runs with real Mastodon 4.7.3, Akkoma
+  3.19.0, Pleroma 2.10.2 (all incl. secure mode), Misskey 2026.10.0, Sharkey 2025.4.7, Lemmy 0.19.20 and
+  GoToSocial 0.22.1; relay.fedi.buzz was tested briefly on 2026-10-15. Clients verified: Phanpy, Elk,
+  Mastodon.py, toot, Tusky (Android emulator), Ice Cubes and the official iOS app code. A built Lemmy
+  binary is kept at `~/.cache/lemmy-build/lemmy_server-0.19.20` (its Nix store libs may be GC'd).
+- Progress is posted occasionally as @slop with dev-instance screenshots and alt text.
