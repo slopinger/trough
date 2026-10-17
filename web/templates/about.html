@@ -1,5 +1,6 @@
 {{define "content"}}
 <section class="card">
+  {{with setting "thumbnail"}}<img class="server-thumb" src="{{localPath .}}" alt="">{{end}}
   <h2>{{.Instance}}</h2>
   {{if .Description}}<p class="prewrap">{{.Description}}</p>{{end}}
   <p>This is a <a href="https://git.freifick.net/slop/trough">trough</a> server, a small ActivityPub implementation. It is part of the fediverse: people here can follow and be followed by accounts on Mastodon, GoToSocial, Misskey, Pleroma and other compatible servers.</p>

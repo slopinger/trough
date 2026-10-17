@@ -1,5 +1,6 @@
 {{define "content"}}
 <section class="hero">
+  {{with setting "thumbnail"}}<img class="server-thumb" src="{{localPath .}}" alt="">{{end}}
   <h1>{{.Instance}}</h1>
   {{if .Description}}<p class="desc">{{.Description}}</p>{{else}}<p class="desc">A tiny corner of the fediverse.</p>{{end}}
   <p class="muted">{{index .Stats "users"}} {{if eq (index .Stats "users") 1}}person{{else}}people{{end}} · {{index .Stats "posts"}} post{{if ne (index .Stats "posts") 1}}s{{end}} · part of the <a href="https://jointhefediverse.net/" target="_blank" rel="noopener noreferrer">fediverse</a>: follow anyone here from Mastodon, GoToSocial, Misskey, …</p>

@@ -172,6 +172,8 @@
 - Severed relationships (Mastodon 4.3): when admins block a server or suspend a remote account, local accounts that
   lose follows or followers get a `severed_relationships` notification (with Mastodon's `event` entity), and
   `/severed_relationships` offers the lost follows (import format) and followers as CSV downloads.
+- Server appearance (`/admin#appearance`, like Mastodon's admin settings): a thumbnail shown on the start and about
+  pages and as the instance API's `thumbnail`, and custom CSS served from `/custom.css` after trough's stylesheet.
 - Annual report (Mastodon 4.3's "Wrapstodon"): `/annual_report[/{year}]` looks back on a year (the current one
   "so far"): an archetype (lurker, booster, pollster, replier or oracle, by Mastodon's rules), posts per month,
   new followers and follows, the most used hashtags, the most boosted, favourited and replied-to posts, the people

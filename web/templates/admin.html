@@ -119,6 +119,22 @@
     <button class="btn primary">Create invite link</button>
   </form>
 </section>
+<section class="card" id="appearance">
+  <h3>Appearance</h3>
+  <form method="post" action="/admin/appearance" enctype="multipart/form-data" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    {{with setting "thumbnail"}}<img class="server-thumb" src="{{localPath .}}" alt="The current thumbnail">{{end}}
+    <label>Server thumbnail <input type="file" name="thumbnail" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+    <p class="muted small">A wide picture (about 2:1) for the start and about pages; apps show it when people pick a server.</p>
+    <div class="row-actions"><button class="btn primary small">Upload</button>{{if setting "thumbnail"}}<button class="btn small" name="remove_thumbnail" value="1">Remove thumbnail</button>{{end}}</div>
+  </form>
+  <form method="post" action="/admin/appearance" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <label>Custom CSS <textarea name="custom_css" rows="6" maxlength="20000" spellcheck="false" class="mono" placeholder=":root { --accent: #c2410c; }">{{setting "custom_css"}}</textarea></label>
+    <p class="muted small">Loaded on every page after trough's stylesheet. The colours are CSS variables such as <code>--accent</code>, <code>--bg</code> and <code>--panel</code>; dark mode sets its own under <code>:root[data-theme="dark"]</code> and <code>@media (prefers-color-scheme: dark)</code>.</p>
+    <button class="btn small" name="save_css" value="1">Save CSS</button>
+  </form>
+</section>
 <section class="card" id="emoji">
   <h3>Custom emoji</h3>
   <div class="emoji-admin">{{range .CustomEmojis}}<form method="post" action="/admin/emoji" class="emoji-item" title=":{{.Shortcode}}:">
