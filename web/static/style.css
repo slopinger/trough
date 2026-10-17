@@ -757,3 +757,9 @@ body.embed { margin: 0; background: transparent; }
 /* Profile of a limited account */
 .limited-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .limited-notice p { margin: 0; flex: 1 1 260px; }
+
+/* moderation warnings */
+.strike-posts { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 8px; }
+.strike-posts li { border-left: 3px solid var(--line); padding: 2px 0 2px 10px; overflow-wrap: anywhere; }
+.strike-posts p { margin: 2px 0 0; }
+.strike-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }

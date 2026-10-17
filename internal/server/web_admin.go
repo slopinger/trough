@@ -107,6 +107,7 @@ func (app *App) handleAdmin(w http.ResponseWriter, r *http.Request, p *Page) {
 		"instances": app.countInt(`SELECT COUNT(DISTINCT domain) FROM accounts WHERE domain != ''`),
 		"queued":    app.countInt(`SELECT COUNT(*) FROM deliveries`),
 		"retrying":  app.countInt(`SELECT COUNT(*) FROM deliveries WHERE attempts > 0`),
+		"appeals":   app.countInt(`SELECT COUNT(*) FROM account_warnings WHERE appeal_state='pending'`),
 	}
 	app.weekStats(p)
 	rows, err := app.db.Query(`SELECT inbox, attempts, next_try, last_error FROM deliveries WHERE attempts > 0 ORDER BY next_try LIMIT 20`)
@@ -176,17 +177,21 @@ func (app *App) handleAdminInvite(w http.ResponseWriter, r *http.Request, p *Pag
 
 func (app *App) handleAdminReports(w http.ResponseWriter, r *http.Request, p *Page) {
 	p.Title, p.Section = "Reports", "admin"
-	if p.Tab = r.URL.Query().Get("tab"); p.Tab == "resolved" {
+	switch p.Tab = r.URL.Query().Get("tab"); p.Tab {
+	case "resolved":
 		p.Reports = app.resolvedReports()
-	} else {
+	case "appeals":
+		p.Warnings = app.loadWarnings(`w.appeal_state != ''`)
+	default:
 		p.Tab, p.Reports = "", app.openReports()
 	}
-	p.Stats = map[string]int{"open": app.countInt(`SELECT COUNT(*) FROM reports WHERE resolved_at=0`)}
+	p.Stats = map[string]int{"open": app.countInt(`SELECT COUNT(*) FROM reports WHERE resolved_at=0`),
+		"appeals": app.countInt(`SELECT COUNT(*) FROM account_warnings WHERE appeal_state='pending'`)}
 	app.render(w, "reports", p)
 }
 
 func (app *App) handleReportAction(w http.ResponseWriter, r *http.Request, p *Page) {
-	msg, err := app.ResolveReport(p.Me, r.PathValue("id"), r.FormValue("action"), strings.TrimSpace(r.FormValue("note")))
+	msg, err := app.resolveReport(p.Me, r.PathValue("id"), r.FormValue("action"), strings.TrimSpace(r.FormValue("note")), r.FormValue("message"))
 	if err != nil {
 		msg = "Couldn't do that: " + err.Error()
 	}

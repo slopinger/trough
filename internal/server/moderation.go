@@ -14,11 +14,18 @@ var reportActions = map[string]string{
 	"suspend": "Suspended the account",
 	"limit":   "Limited the account",
 	"block":   "Blocked the server",
+	"warn":    "Warned the account",
 }
 
 // ResolveReport takes action on a report and records who did what. Suspending
 // and blocking only apply to remote accounts; local ones can lose posts.
 func (app *App) ResolveReport(admin *Account, id, action, note string) (string, error) {
+	return app.resolveReport(admin, id, action, note, "")
+}
+
+// resolveReport also gives a local account a moderation warning (see
+// warnings.go) for any action but "none", with the admins' message.
+func (app *App) resolveReport(admin *Account, id, action, note, message string) (string, error) {
 	r := app.loadReports(`r.id=?`, []any{id}, 1)
 	if len(r) == 0 {
 		return "", errors.New("report not found")
@@ -32,7 +39,13 @@ func (app *App) ResolveReport(admin *Account, id, action, note string) (string, 
 	}
 	t := rep.Target
 	msg := "Report resolved."
+	warn := warningActions[action] != "" && t.IsLocal()
+	if action == "warn" && (!warn || !app.isUser(t.ID)) {
+		return "", errors.New("only accounts on this server can be warned")
+	}
 	switch action {
+	case "warn":
+		msg = "Warned " + t.Acct() + " and resolved the report."
 	case "delete":
 		n := 0
 		for _, st := range rep.Statuses {
@@ -72,6 +85,11 @@ func (app *App) ResolveReport(admin *Account, id, action, note string) (string, 
 	}
 	_, err := app.db.Exec(`UPDATE reports SET resolved_at=?, action_taken=?, resolved_by=?, note=? WHERE id=? AND resolved_at=0`,
 		time.Now().Unix(), action, admin.ID, truncateRunes(note, 2000), id)
+	if err == nil && warn && app.isUser(t.ID) {
+		if _, werr := app.warnAccount(t, warningActions[action], message, id, rep.Statuses); werr == nil && action != "warn" {
+			msg += " " + t.Acct() + " was notified."
+		}
+	}
 	return msg, err
 }
 

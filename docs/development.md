@@ -50,6 +50,7 @@ Files are grouped by prefix:
 | `activity.go` | weekly activity (`/api/v1/instance/activity`, admin charts) |
 | `signupapproval.go` | sign-ups that wait for an admin's approval |
 | `limit.go` | limiting accounts (hidden from non-followers, filtered notifications) |
+| `warnings.go` | moderation warnings (strikes), the account status page and appeals |
 | `embed.go` | embedding posts on other websites (iframe page, oEmbed, `/embed.js`) |
 | `twofactor.go` | two-factor authentication (TOTP, recovery codes) |
 | `accountdelete.go` | deleting your own account |

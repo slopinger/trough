@@ -2,8 +2,22 @@
 <h2 class="pagetitle">Reports</h2>
 <nav class="tabs">
   <a href="/admin/reports" class="{{if eq .Tab ""}}active{{end}}">Open{{with index .Stats "open"}} ({{.}}){{end}}</a>
+  <a href="/admin/reports?tab=appeals" class="{{if eq .Tab "appeals"}}active{{end}}">Appeals{{with index .Stats "appeals"}} ({{.}}){{end}}</a>
   <a href="/admin/reports?tab=resolved" class="{{if eq .Tab "resolved"}}active{{end}}">Resolved</a>
 </nav>
+{{if eq .Tab "appeals"}}{{range .Warnings}}
+<section class="card report-card" id="a-{{.ID}}">
+  <p class="report-head"><a href="{{.Account.Path}}"><b>{{handle .Account}}</b></a> appealed {{.AdminSummary}}
+    <span class="muted small">· warned {{ago .CreatedAt}}, appealed {{ago .AppealAt}}</span></p>
+  {{if .Text}}<p class="muted small">The moderators' message:</p><blockquote class="prewrap small">{{.Text}}</blockquote>{{end}}
+  {{if .Statuses}}<p class="muted small">The posts:</p><ul class="strike-posts small">{{range .Statuses}}<li>{{.Text}}</li>{{end}}</ul>{{end}}
+  <p class="muted small">Their appeal:</p><blockquote class="prewrap">{{.AppealText}}</blockquote>
+  {{if eq .AppealState "pending"}}<div class="row-actions">
+    <form method="post" action="/admin/appeals/{{.ID}}/approve" class="confirm" data-confirm="Approve the appeal?{{if eq .Action "silence"}} This lifts the limit.{{else if eq .Action "suspend"}} This lifts the suspension.{{end}}"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button class="btn primary small">Approve</button></form>
+    <form method="post" action="/admin/appeals/{{.ID}}/reject"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><button class="btn small">Reject</button></form>
+  </div>{{else}}<p class="report-outcome"><b>{{if eq .AppealState "approved"}}Approved{{else}}Rejected{{end}}</b>{{with .AppealBy}} by <a href="{{.Path}}">{{handle .}}</a>{{end}}</p>{{end}}
+</section>
+{{else}}<div class="empty">No appeals.</div>{{end}}{{else}}
 {{range .Reports}}{{$r := .}}
 <section class="card report-card" id="r-{{.ID}}">
   <p class="report-head"><a href="{{.Reporter.Path}}">{{handle .Reporter}}</a>{{if .Remote}} <span class="muted">(from another server)</span>{{end}} reported
@@ -16,8 +30,10 @@
   <form method="post" action="/admin/reports/{{.ID}}" class="report-actions">
     <input type="hidden" name="csrf" value="{{$p.CSRF}}">
     <label>Note for other admins (optional) <textarea name="note" rows="2" maxlength="2000" placeholder="What you decided and why"></textarea></label>
+    {{if and .Target.IsLocal (ne .Target.ID $p.Me.ID)}}<label>Message to {{handle .Target}} (optional) <textarea name="message" rows="2" maxlength="2000" placeholder="Shown with the warning they get for any action but “Resolve, no action”"></textarea></label>{{end}}
     <div class="row-actions">
       <button class="btn small" name="action" value="none">Resolve, no action</button>
+      {{if and .Target.IsLocal (ne .Target.ID $p.Me.ID)}}<button class="btn small" name="action" value="warn">Send a warning</button>{{end}}
       {{if .Statuses}}<button class="btn small danger-outline" name="action" value="delete" data-confirm="Delete the {{len .Statuses}} reported {{if eq (len .Statuses) 1}}post{{else}}posts{{end}}?{{if .Target.IsLocal}} The deletion is sent to other servers too.{{end}}">Delete {{if eq (len .Statuses) 1}}post{{else}}{{len .Statuses}} posts{{end}}</button>{{end}}
       {{if not .Target.Suspended}}{{if .Target.IsLocal}}{{if ne .Target.ID $p.Me.ID}}<button class="btn small danger-outline" name="action" value="suspend" data-confirm="Suspend {{handle .Target}}? They can't log in, and their profile and posts are hidden until you lift it. Nothing is deleted.">Suspend account</button>{{end}}{{else}}<button class="btn small danger-outline" name="action" value="suspend" data-confirm="Suspend {{handle .Target}}? Their posts disappear here and follows in both directions end.">Suspend account</button>{{end}}{{end}}
       {{if not (or .Target.Suspended .Target.Limited)}}{{if ne .Target.ID $p.Me.ID}}<button class="btn small danger-outline" name="action" value="limit" data-confirm="Limit {{handle .Target}}? Their posts leave public timelines, hashtags and search for people who don't follow them, and their notifications to those people are filtered.">Limit account</button>{{end}}{{end}}
@@ -31,5 +47,5 @@
   {{if and .Target.Limited (not .Target.Suspended)}}<form method="post" action="/admin/accounts/{{.Target.ID}}/unlimit" class="confirm" data-confirm="Lift the limit on {{handle .Target}}?"><input type="hidden" name="csrf" value="{{$p.CSRF}}"><input type="hidden" name="back" value="reports"><button class="btn small">Lift limit</button></form>{{end}}
   {{end}}
 </section>
-{{else}}<div class="empty">{{if eq .Tab "resolved"}}No resolved reports yet.{{else}}No open reports. Nice and quiet.{{end}}</div>{{end}}
+{{else}}<div class="empty">{{if eq .Tab "resolved"}}No resolved reports yet.{{else}}No open reports. Nice and quiet.{{end}}</div>{{end}}{{end}}
 {{end}}

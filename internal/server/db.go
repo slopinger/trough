@@ -598,6 +598,23 @@ ALTER TABLE accounts ADD COLUMN indexable INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE accounts ADD COLUMN noindex INTEGER NOT NULL DEFAULT 0;
 `, `
 ALTER TABLE accounts ADD COLUMN limited INTEGER NOT NULL DEFAULT 0;
+`, `
+CREATE TABLE account_warnings (
+	id TEXT PRIMARY KEY,
+	account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+	action TEXT NOT NULL,
+	text TEXT NOT NULL DEFAULT '',
+	report_id TEXT NOT NULL DEFAULT '',
+	statuses TEXT NOT NULL DEFAULT '[]',
+	created_at INTEGER NOT NULL,
+	appeal_text TEXT NOT NULL DEFAULT '',
+	appeal_at INTEGER NOT NULL DEFAULT 0,
+	appeal_state TEXT NOT NULL DEFAULT '',
+	appeal_by TEXT NOT NULL DEFAULT '',
+	overruled_at INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX account_warnings_account ON account_warnings(account_id, id);
+ALTER TABLE notifications ADD COLUMN warning_id TEXT NOT NULL DEFAULT '';
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

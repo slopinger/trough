@@ -153,6 +153,7 @@
   <h3>Reports</h3>
   {{$p := .}}{{if .Reports}}<p><b>{{len .Reports}} open {{if eq (len .Reports) 1}}report{{else}}reports{{end}}</b>, the newest from {{handle (index .Reports 0).Reporter}} about {{handle (index .Reports 0).Target}} ({{ago (index .Reports 0).CreatedAt}}).</p>
   <a class="btn primary small" href="/admin/reports">Review reports</a>{{else}}<p class="muted small">No open reports. <a href="/admin/reports?tab=resolved">Resolved reports</a></p>{{end}}
+  {{with index .Stats "appeals"}}<p><b>{{.}} {{if eq . 1}}appeal{{else}}appeals{{end}}</b> of moderation decisions {{if eq . 1}}waits{{else}}wait{{end}} for you. <a href="/admin/reports?tab=appeals">Review appeals</a></p>{{end}}
 </section>
 <section class="card">
   <h3>AI writing</h3>

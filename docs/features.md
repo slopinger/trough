@@ -154,6 +154,13 @@
   search, the directory and suggestions for everyone else; its profile shows a notice with "Show posts anyway";
   its notifications to people who don't follow it are filtered (the policy's "limited accounts"). Listed on
   `/admin` to lift it; not federated, and refetching a remote actor keeps it. The API account has `limited`.
+- Moderation warnings (Mastodon 4.3 strikes): any report action on a local account but "no action" (send a
+  warning, delete posts, limit, suspend) records a warning with an optional message from the admins and sends a
+  `moderation_warning` notification (Mastodon's entity on `/api/v1` and `/api/v2/notifications`) from the
+  moderators. `/disputes/strikes` (Settings → Account status) lists them; each shows the message and excerpts of
+  the posts concerned, and can be appealed once within 20 days. Admins decide appeals on
+  `/admin/reports?tab=appeals`; approving lifts the limit or suspension the warning came with. Suspended accounts
+  can't log in, so they only see theirs once the suspension is lifted.
 - Archive download (Settings, once an hour): a zip in Mastodon's archive layout with actor.json, outbox.json (all
   your posts and boosts, private ones included), likes.json, bookmarks.json, avatar, header and uploaded media
 - Import and export (Settings) of follows, lists, blocks, mutes, blocked servers and bookmarks as CSV files in

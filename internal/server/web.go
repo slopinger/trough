@@ -72,6 +72,8 @@ type Page struct {
 	NoIndex         bool            // the page belongs to someone who opted out of search engines
 	PendingSignups  []PendingSignup // admin: sign-ups waiting for approval
 	LimitedAccounts []*Account      // admin: accounts limited by the moderators
+	Warnings        []*Warning      // account status page; admin: appeals
+	Warning         *Warning        // one moderation warning
 	LimitedNotice   bool            // profile: limited and the viewer doesn't follow
 	Aliases         []*Account
 	MovedTo         *Account

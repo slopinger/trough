@@ -1,0 +1,37 @@
+{{define "content"}}{{$p := .}}
+{{with .Warning}}
+<h2 class="pagetitle">{{.Summary}}</h2>
+<section class="card strike">
+  <p class="muted small">From the moderators of {{$p.Instance}} · <span title="{{fulltime .CreatedAt}}">{{day .CreatedAt}}</span></p>
+  {{if .Text}}<blockquote class="prewrap">{{.Text}}</blockquote>{{end}}
+  <p>{{.Explanation}}</p>
+  {{if not .Overruled.IsZero}}<p class="badge-line"><span class="badge">overruled</span> Your appeal was approved, so this no longer counts.</p>{{end}}
+  {{if .Statuses}}<h3>{{if eq .Action "delete_statuses"}}Removed posts{{else}}The posts this is about{{end}}</h3>
+  <ul class="strike-posts">{{range .Statuses}}<li><span class="muted small" title="{{fulltime .Time}}">{{day .Time}}</span>
+    {{if eq $p.Warning.Action "delete_statuses"}}<p>{{.Text}}</p>{{else}}<p><a href="/s/{{.ID}}">{{.Text}}</a></p>{{end}}</li>{{end}}</ul>{{end}}
+</section>
+<section class="card" id="appeal">
+  <h3>Appeal</h3>
+  {{if eq .AppealState "approved"}}<p>The moderators approved your appeal{{if eq .Action "silence"}} and lifted the limit{{else if eq .Action "suspend"}} and lifted the suspension{{end}}.</p>
+  {{else if eq .AppealState "rejected"}}<p>The moderators looked at your appeal and kept their decision.</p>
+  {{else if eq .AppealState "pending"}}<p>You appealed on <span title="{{fulltime .AppealAt}}">{{day .AppealAt}}</span>. The moderators will look at it.</p>
+  {{else if .CanAppeal}}<form method="post" action="/disputes/strikes/{{.ID}}/appeal" class="stack">
+    <input type="hidden" name="csrf" value="{{$p.CSRF}}">
+    <label>If you think this was a mistake, tell the moderators why <textarea name="text" rows="4" maxlength="2000" required></textarea></label>
+    <p class="muted small">You can appeal once, until {{day .AppealUntil}}.</p>
+    <button class="btn primary">Send appeal</button>
+  </form>
+  {{else}}<p class="muted">The 20 days to appeal this have passed.</p>{{end}}
+  {{if .AppealText}}<p class="muted small">What you wrote:</p><blockquote class="prewrap small">{{.AppealText}}</blockquote>{{end}}
+</section>
+<a class="more" href="/disputes/strikes">Account status</a>
+{{else}}
+<h2 class="pagetitle">Account status</h2>
+{{if .Warnings}}<section class="card">
+  <p class="muted small">Decisions the moderators of {{.Instance}} made about your account. Open one to see the details or appeal it.</p>
+  <ul class="strike-list">{{range .Warnings}}<li><a href="/disputes/strikes/{{.ID}}">{{.Summary}}</a>
+    <span class="muted small">· {{day .CreatedAt}}{{if not .Overruled.IsZero}} · overruled{{else if eq .AppealState "pending"}} · appeal pending{{else if eq .AppealState "rejected"}} · appeal rejected{{end}}</span></li>{{end}}</ul>
+</section>
+{{else}}<div class="empty">Your account is in good standing. The moderators haven't taken any action on it.</div>{{end}}
+{{end}}
+{{end}}
