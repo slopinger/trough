@@ -806,3 +806,7 @@ textarea.mono { font-family: ui-monospace, monospace; font-size: 0.85rem; }
 .trend-row .trend-main a { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .trend-review { margin: 0; }
 .muted-badge { opacity: 0.6; }
+
+/* settings: languages in public timelines */
+.lang-filter summary { cursor: pointer; }
+.lang-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px 12px; margin-top: 8px; }

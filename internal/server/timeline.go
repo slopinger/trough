@@ -284,25 +284,29 @@ func (app *App) listTimeline(v *Account, l *List, maxID string) ([]*Status, erro
 
 func (app *App) localTimeline(v *Account, maxID string) ([]*Status, error) {
 	mute, margs := muteSQL(v)
-	return app.queryStatuses(v, `s.local=1 AND s.visibility='public' AND s.boost_of_id='' AND `+mute, margs, maxID, pageSize, false)
+	lang, largs := app.languageSQL(v)
+	return app.queryStatuses(v, `s.local=1 AND s.visibility='public' AND s.boost_of_id='' AND `+mute+` AND `+lang, append(margs, largs...), maxID, pageSize, false)
 }
 
 func (app *App) federatedTimeline(v *Account, maxID string) ([]*Status, error) {
 	mute, margs := muteSQL(v)
-	return app.queryStatuses(v, `s.visibility='public' AND s.boost_of_id='' AND `+mute, margs, maxID, pageSize, false)
+	lang, largs := app.languageSQL(v)
+	return app.queryStatuses(v, `s.visibility='public' AND s.boost_of_id='' AND `+mute+` AND `+lang, append(margs, largs...), maxID, pageSize, false)
 }
 
 func (app *App) tagTimeline(v *Account, tag, maxID string) ([]*Status, error) {
 	mute, margs := muteSQL(v)
-	return app.queryStatuses(v, `s.visibility='public' AND s.id IN (SELECT status_id FROM status_tags WHERE tag=?) AND `+mute,
-		append([]any{strings.ToLower(tag)}, margs...), maxID, pageSize, false)
+	lang, largs := app.languageSQL(v)
+	return app.queryStatuses(v, `s.visibility='public' AND s.id IN (SELECT status_id FROM status_tags WHERE tag=?) AND `+mute+` AND `+lang,
+		append(append([]any{strings.ToLower(tag)}, margs...), largs...), maxID, pageSize, false)
 }
 
 // linkTimeline lists public posts whose link preview is the given URL.
 func (app *App) linkTimeline(v *Account, link, maxID string) ([]*Status, error) {
 	mute, margs := muteSQL(v)
-	return app.queryStatuses(v, `s.visibility='public' AND s.boost_of_id='' AND s.card_url=? AND `+mute,
-		append([]any{link}, margs...), maxID, pageSize, false)
+	lang, largs := app.languageSQL(v)
+	return app.queryStatuses(v, `s.visibility='public' AND s.boost_of_id='' AND s.card_url=? AND `+mute+` AND `+lang,
+		append(append([]any{link}, margs...), largs...), maxID, pageSize, false)
 }
 
 func (app *App) accountTimeline(v *Account, acc *Account, withReplies, mediaOnly bool, maxID string) ([]*Status, error) {

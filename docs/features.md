@@ -175,6 +175,9 @@
 - Trend review (`/admin/trends`, like Mastodon's admin trends): admins hide hashtags, links or posts from Explore
   and the trends API, or approve them; with "review trends first" on, only approved ones trend, and /admin counts
   what waits.
+- Languages in public timelines (Settings → Posting and reading, like Mastodon's "filter languages"): with
+  languages ticked, Local, Federated, hashtag and link timelines (web and API) only show posts in them, matched by
+  primary subtag (`pt-BR` counts as `pt`); posts without a language always show.
 - Home settings (gear button on Home, like Mastodon's column settings): show or hide boosts and replies (replies
   to you always show); Home says what's hidden. Web only, apps keep their own; also applied to the "new posts" count.
 - Server appearance (`/admin#appearance`, like Mastodon's admin settings): a thumbnail shown on the start and about

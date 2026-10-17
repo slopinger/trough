@@ -659,6 +659,8 @@ CREATE TABLE trend_reviews (
 	reviewed_by TEXT NOT NULL DEFAULT '',
 	PRIMARY KEY (kind, key)
 ) WITHOUT ROWID;
+`, `
+ALTER TABLE users ADD COLUMN chosen_languages TEXT NOT NULL DEFAULT '';
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

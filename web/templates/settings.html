@@ -99,6 +99,10 @@
       <option value="show_all"{{if eq .Prefs.Media "show_all"}} selected{{end}}>Always show media</option>
       <option value="hide_all"{{if eq .Prefs.Media "hide_all"}} selected{{end}}>Always hide media</option></select></label>
     <label class="check"><input type="checkbox" name="spoilers"{{if .Prefs.Spoilers}} checked{{end}}> Always expand posts with content warnings</label>
+    <details class="lang-filter"{{if .Prefs.Languages}} open{{end}}><summary>Languages in public timelines{{with .Prefs.Languages}} ({{len .}} chosen){{end}}</summary>
+      <p class="muted small">Tick languages to only see posts in them on Local, Federated, hashtag and link timelines. With none ticked you see all of them. Posts without a language always show.</p>
+      <div class="lang-grid">{{range languages}}<label class="check"><input type="checkbox" name="languages" value="{{.Code}}"{{if $.Prefs.Chooses .Code}} checked{{end}}> {{.Name}}</label>{{end}}</div>
+    </details>
     <p class="muted small">Replies stay at least as private as the post they answer. Apps using the Mastodon API read these settings too.</p>
     <button class="btn">Save</button>
   </form>
