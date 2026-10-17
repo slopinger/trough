@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ap"
 )
 
 // Fetching the replies of remote threads, like Mastodon 4.4: when a signed-in

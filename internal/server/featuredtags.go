@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ap"
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 // Featured hashtags: up to maxFeaturedTags hashtags a user shows on their

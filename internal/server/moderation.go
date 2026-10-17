@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ap"
 )
 
 // What an admin can do about a report. Each action resolves it.

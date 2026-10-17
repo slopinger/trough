@@ -13,8 +13,8 @@ import (
 	"sync"
 	"testing"
 
-	"git.freifick.net/slop/trough/internal/ap"
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 // fakeLLM mimics DeepSeek's streaming chat completions endpoint.

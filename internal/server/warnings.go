@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 // Moderation warnings ("strikes", Mastodon 4.3): when the admins act on a

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"git.freifick.net/slop/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ap"
 )
 
 // An admin suspends a local account: it can't log in, its profile and posts

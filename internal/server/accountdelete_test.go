@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"git.freifick.net/slop/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ap"
 )
 
 func TestDeleteOwnAccount(t *testing.T) {

@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 const oobRedirect = "urn:ietf:wg:oauth:2.0:oob"

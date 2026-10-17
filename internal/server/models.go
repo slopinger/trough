@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 var errNotFound = errors.New("not found")

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 func threadFixtures(t *testing.T, parents []int) (*App, []*Status) {

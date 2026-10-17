@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"strings"
 
-	"git.freifick.net/slop/trough/internal/ap"
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 // ActivityPub client-to-server: a local user's client POSTs activities to

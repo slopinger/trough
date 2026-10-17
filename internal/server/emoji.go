@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 var shortcodeRe = regexp.MustCompile(`^[A-Za-z0-9_]{2,32}$`)

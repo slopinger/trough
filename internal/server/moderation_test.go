@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ap"
 )
 
 func TestReportModeration(t *testing.T) {

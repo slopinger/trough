@@ -7,7 +7,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 // The admin page of one account (/admin/accounts/{id}), like Mastodon's:

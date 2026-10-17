@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"git.freifick.net/slop/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ap"
 )
 
 // Federation-facing HTTP endpoints: WebFinger, NodeInfo, actors, objects

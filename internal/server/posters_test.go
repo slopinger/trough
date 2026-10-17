@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ap"
 )
 
 func TestVideoPosters(t *testing.T) {

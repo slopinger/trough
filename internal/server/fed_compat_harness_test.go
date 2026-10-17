@@ -32,8 +32,8 @@ import (
 
 	gofed "github.com/go-fed/httpsig"
 
-	"git.freifick.net/slop/trough/internal/ap"
-	"git.freifick.net/slop/trough/internal/httpsig"
+	"github.com/slopinger/trough/internal/ap"
+	"github.com/slopinger/trough/internal/httpsig"
 )
 
 // ---- trough under test ----

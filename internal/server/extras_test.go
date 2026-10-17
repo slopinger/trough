@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ap"
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 const relayActor = `{"@context": ["https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"],

@@ -20,9 +20,9 @@ import (
 
 	xhtml "golang.org/x/net/html"
 
-	"git.freifick.net/slop/trough/internal/ap"
-	"git.freifick.net/slop/trough/internal/ulid"
-	"git.freifick.net/slop/trough/web"
+	"github.com/slopinger/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ulid"
+	"github.com/slopinger/trough/web"
 )
 
 var (

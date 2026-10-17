@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ap"
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 type inboxJob struct {

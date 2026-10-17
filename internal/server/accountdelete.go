@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"git.freifick.net/slop/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ap"
 )
 
 // Deleting your own account (Settings → Delete account). Posts, media,

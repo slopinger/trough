@@ -7,7 +7,7 @@ import (
 	"time"
 	"unicode"
 
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 // Server rules and announcements, both written by admins on /admin. Rules

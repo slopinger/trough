@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"git.freifick.net/slop/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ap"
 )
 
 // groupActor returns a Lemmy-style community actor.

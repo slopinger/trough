@@ -17,7 +17,7 @@ import (
 	"syscall"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/server"
+	"github.com/slopinger/trough/internal/server"
 )
 
 func usage() {

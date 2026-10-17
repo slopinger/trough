@@ -13,8 +13,8 @@ import (
 	"syscall"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ap"
-	"git.freifick.net/slop/trough/internal/httpsig"
+	"github.com/slopinger/trough/internal/ap"
+	"github.com/slopinger/trough/internal/httpsig"
 )
 
 var (

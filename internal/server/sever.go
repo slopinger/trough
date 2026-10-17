@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 // Severed relationships (Mastodon 4.3): when the admins block a server or

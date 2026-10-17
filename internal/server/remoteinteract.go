@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ap"
 )
 
 // "Follow from your server" for visitors: they give their own handle, we

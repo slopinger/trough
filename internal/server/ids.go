@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"strconv"
 
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 // numericPageBounds lets clients page with the numbers from ulid.Number.

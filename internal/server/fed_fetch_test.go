@@ -10,8 +10,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"git.freifick.net/slop/trough/internal/ap"
-	"git.freifick.net/slop/trough/internal/httpsig"
+	"github.com/slopinger/trough/internal/ap"
+	"github.com/slopinger/trough/internal/httpsig"
 )
 
 func TestFetchJSONResignsRedirect(t *testing.T) {

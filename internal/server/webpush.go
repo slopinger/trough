@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ulid"
-	"git.freifick.net/slop/trough/web"
+	"github.com/slopinger/trough/internal/ulid"
+	"github.com/slopinger/trough/web"
 )
 
 // Browser notifications for the web UI: the page subscribes through the

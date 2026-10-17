@@ -25,7 +25,7 @@ import (
 
 	_ "golang.org/x/image/webp"
 
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 const (

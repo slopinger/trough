@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"git.freifick.net/slop/trough/internal/ap"
+	"github.com/slopinger/trough/internal/ap"
 )
 
 // The admin list of known servers (/admin/servers, like Mastodon's

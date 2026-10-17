@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"git.freifick.net/slop/trough/internal/ap"
-	"git.freifick.net/slop/trough/internal/httpsig"
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ap"
+	"github.com/slopinger/trough/internal/httpsig"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 func testApp(t *testing.T) *App {

@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"git.freifick.net/slop/trough/internal/ulid"
+	"github.com/slopinger/trough/internal/ulid"
 )
 
 // Things local users do. Each action updates the database and federates.

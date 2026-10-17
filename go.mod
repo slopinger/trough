@@ -1,4 +1,4 @@
-module git.freifick.net/slop/trough
+module github.com/slopinger/trough
 
 go 1.27.2
 
