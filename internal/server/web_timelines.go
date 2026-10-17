@@ -39,13 +39,46 @@ func (app *App) handleRoot(w http.ResponseWriter, r *http.Request, p *Page) {
 	app.render(w, "landing", p)
 }
 
+// Home's web settings, like Mastodon's column settings: hide boosts and
+// replies (except replies to you). Apps keep their own; the API doesn't apply these.
+func (app *App) homeView(v *Account) (boosts, replies bool) {
+	boosts, replies = true, true
+	app.db.QueryRow(`SELECT home_boosts, home_replies FROM users WHERE account_id=?`, v.ID).Scan(&boosts, &replies)
+	return
+}
+
+func (app *App) webHomeTimeline(v *Account, maxID string) ([]*Status, error) {
+	where, args := homeSQL(v)
+	boosts, replies := app.homeView(v)
+	if !boosts {
+		where += ` AND s.boost_of_id=''`
+	}
+	if !replies {
+		where += ` AND (s.in_reply_to_uri='' OR s.in_reply_to_account_id=?)`
+		args = append(args, v.ID)
+	}
+	return app.queryStatuses(v, where, args, maxID, pageSize, false)
+}
+
+// POST /home/settings toggles one of Home's settings.
+func (app *App) handleHomeSettings(w http.ResponseWriter, r *http.Request, p *Page) {
+	switch r.FormValue("toggle") {
+	case "boosts":
+		app.db.Exec(`UPDATE users SET home_boosts=1-home_boosts WHERE account_id=?`, p.Me.ID)
+	case "replies":
+		app.db.Exec(`UPDATE users SET home_replies=1-home_replies WHERE account_id=?`, p.Me.ID)
+	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
 func (app *App) handleHome(w http.ResponseWriter, r *http.Request, p *Page) {
-	sts, err := app.homeTimeline(p.Me, r.URL.Query().Get("max_id"))
+	sts, err := app.webHomeTimeline(p.Me, r.URL.Query().Get("max_id"))
 	if err != nil {
 		http.Error(w, "db error", 500)
 		return
 	}
 	p.Title, p.Section, p.Heading, p.Timeline = "Home", "home", "Home", "home"
+	p.HomeBoosts, p.HomeReplies = app.homeView(p.Me)
 	p.Statuses = app.applyFilters(p.Me, sts, "home")
 	p.NextURL = nextURL(r, sts)
 	p.Compose = &Compose{}
@@ -176,7 +209,7 @@ func (app *App) handleNewCount(w http.ResponseWriter, r *http.Request, p *Page) 
 		case "federated":
 			sts, err = app.federatedTimeline(p.Me, "")
 		default:
-			sts, err = app.homeTimeline(p.Me, "")
+			sts, err = app.webHomeTimeline(p.Me, "")
 		}
 		if err == nil {
 			for _, s := range app.applyFilters(p.Me, sts, "home") {

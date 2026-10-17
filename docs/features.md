@@ -172,6 +172,8 @@
 - Severed relationships (Mastodon 4.3): when admins block a server or suspend a remote account, local accounts that
   lose follows or followers get a `severed_relationships` notification (with Mastodon's `event` entity), and
   `/severed_relationships` offers the lost follows (import format) and followers as CSV downloads.
+- Home settings (gear button on Home, like Mastodon's column settings): show or hide boosts and replies (replies
+  to you always show); Home says what's hidden. Web only, apps keep their own; also applied to the "new posts" count.
 - Server appearance (`/admin#appearance`, like Mastodon's admin settings): a thumbnail shown on the start and about
   pages and as the instance API's `thumbnail`, and custom CSS served from `/custom.css` after trough's stylesheet.
 - Annual report (Mastodon 4.3's "Wrapstodon"): `/annual_report[/{year}]` looks back on a year (the current one

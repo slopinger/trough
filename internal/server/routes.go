@@ -121,6 +121,7 @@ func (app *App) Handler() http.Handler {
 	mux.HandleFunc("GET /signup", pub(app.handleSignupForm))
 	mux.HandleFunc("POST /signup", pub(app.handleSignup))
 	mux.HandleFunc("GET /timeline/new", auth(app.handleNewCount))
+	mux.HandleFunc("POST /home/settings", auth(app.handleHomeSettings))
 	mux.HandleFunc("POST /admin/registrations", admin(app.handleAdminRegistrations))
 	mux.HandleFunc("POST /admin/signups/{id}/{action}", admin(app.handleSignupDecision))
 	mux.HandleFunc("POST /admin/invites", admin(app.handleAdminInvite))

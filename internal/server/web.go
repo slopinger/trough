@@ -79,6 +79,8 @@ type Page struct {
 	AnnualReport    *AnnualReport     // year in review
 	Years           []int             // years with an annual report
 	ReportBanner    int               // home: the year to invite to look back on
+	HomeBoosts      bool              // home: show boosts
+	HomeReplies     bool              // home: show replies
 	LimitedNotice   bool              // profile: limited and the viewer doesn't follow
 	Aliases         []*Account
 	MovedTo         *Account

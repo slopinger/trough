@@ -647,6 +647,9 @@ CREATE TABLE domain_limits (
 	reason TEXT NOT NULL DEFAULT '',
 	created_at INTEGER NOT NULL
 );
+`, `
+ALTER TABLE users ADD COLUMN home_boosts INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE users ADD COLUMN home_replies INTEGER NOT NULL DEFAULT 1;
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {
