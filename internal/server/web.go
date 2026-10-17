@@ -69,6 +69,7 @@ type Page struct {
 	Invites         []Invite
 	Registrations   string
 	SignupApproval  bool            // sign-up form: asks why they want to join
+	NoIndex         bool            // the page belongs to someone who opted out of search engines
 	PendingSignups  []PendingSignup // admin: sign-ups waiting for approval
 	Aliases         []*Account
 	MovedTo         *Account
@@ -255,8 +256,18 @@ func (app *App) web(requireLogin bool, h handler) http.HandlerFunc {
 	}
 }
 
+// robotsFor asks search engines to skip pages of people who opted out:
+// their profile and lists, and their posts.
+func robotsFor(w http.ResponseWriter, p *Page) {
+	p.NoIndex = (p.Account != nil && p.Account.NoIndex) || (p.Status != nil && p.Status.Account != nil && p.Status.Account.NoIndex)
+	if p.NoIndex {
+		w.Header().Set("X-Robots-Tag", "noindex, noarchive")
+	}
+}
+
 func (app *App) render(w http.ResponseWriter, name string, p *Page) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	robotsFor(w, p)
 	composeDefaults(p.Compose, p.Prefs)
 	if err := app.tmpl.execute(w, name, p); err != nil {
 		log.Printf("render %s: %v", name, err)
@@ -265,6 +276,7 @@ func (app *App) render(w http.ResponseWriter, name string, p *Page) {
 
 func (app *App) renderStatus(w http.ResponseWriter, code int, name string, p *Page) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	robotsFor(w, p)
 	composeDefaults(p.Compose, p.Prefs)
 	w.WriteHeader(code)
 	if err := app.tmpl.execute(w, name, p); err != nil {

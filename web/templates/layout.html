@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="{{static "style.css"}}">
 <link rel="icon" href="{{static "favicon.svg"}}" type="image/svg+xml">
 <meta name="color-scheme" content="light dark">
+{{if .NoIndex}}<meta name="robots" content="noindex, noarchive">{{end}}
 {{block "head" .}}{{end}}
 <script src="{{static "app.js"}}" defer></script>
 </head>

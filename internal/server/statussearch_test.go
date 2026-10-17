@@ -37,6 +37,7 @@ func TestSearchOperators(t *testing.T) {
 	ctx := context.Background()
 	bob, _ := la.CreateLocalUser("bob", "password123", false)
 	ann, _ := la.CreateLocalUser("ann", "password123", false)
+	la.db.Exec(`UPDATE accounts SET indexable=1 WHERE id=?`, ann.ID) // ann's public posts are searchable
 	post := func(a *Account, in PostInput) *Status {
 		t.Helper()
 		if in.Visibility == "" {
@@ -114,6 +115,11 @@ func TestSearchOperators(t *testing.T) {
 	la.Bookmark(bob, cw)
 	expect("in:library", withMedia, bobCats, annCats, reply, cw) // reply mentions bob
 	expect("cats in:library -from:me", annCats, reply, cw)
+
+	// without opting into search, ann's public posts are only found by people who interacted with them
+	la.db.Exec(`UPDATE accounts SET indexable=0 WHERE id=?`, ann.ID)
+	expect("cats", bobCats, annCats, reply, cw)
+	la.db.Exec(`UPDATE accounts SET indexable=1 WHERE id=?`, ann.ID)
 
 	la.Follow(bob, ann)
 	la.db.Exec(`UPDATE follows SET accepted=1 WHERE account_id=? AND target_id=?`, bob.ID, ann.ID)

@@ -30,6 +30,9 @@ func (app *App) apiUpdateCredentials(w http.ResponseWriter, r *http.Request, c *
 	if p.Has("discoverable") {
 		me.Discoverable = p.Bool("discoverable")
 	}
+	if p.Has("indexable") {
+		me.Indexable = p.Bool("indexable")
+	}
 	if p.Has("hide_collections") {
 		me.HideCollections = p.Bool("hide_collections")
 	}

@@ -39,7 +39,7 @@ func (app *App) actorJSON(acc *Account) obj {
 		"endpoints":                 app.actorEndpoints(acc),
 		"manuallyApprovesFollowers": acc.Locked,
 		"discoverable":              acc.Discoverable,
-		"indexable":                 false,
+		"indexable":                 acc.Indexable,
 		"published":                 ap.Time(acc.CreatedAt),
 		"publicKey": obj{
 			"id":           acc.PublicKeyID,

@@ -593,6 +593,9 @@ INSERT OR IGNORE INTO weekly_logins (week, account_id)
 `, `
 ALTER TABLE users ADD COLUMN approved INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE users ADD COLUMN signup_reason TEXT NOT NULL DEFAULT '';
+`, `
+ALTER TABLE accounts ADD COLUMN indexable INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE accounts ADD COLUMN noindex INTEGER NOT NULL DEFAULT 0;
 `}
 
 func openDB(dataDir string) (*sql.DB, error) {

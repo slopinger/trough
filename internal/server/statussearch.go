@@ -196,22 +196,24 @@ func (app *App) statusQuerySQL(v *Account, sq statusQuery) (where string, args [
 	if len(sq.Terms) == 0 && filters == 0 && !sq.Library {
 		return "", nil, false
 	}
-	// Scope: public posts by default; your own posts, and with in:library everything
-	// you wrote, liked, bookmarked or were mentioned in (visibility is still checked).
+	// Scope, like Mastodon 4.2: public posts of accounts that opted into search
+	// (indexable) and everything you wrote, liked, boosted, bookmarked or were
+	// mentioned in; in:library only the latter (visibility is still checked).
+	library := `(s.account_id=? OR EXISTS(SELECT 1 FROM likes l WHERE l.status_id=s.id AND l.account_id=?)
+			OR EXISTS(SELECT 1 FROM bookmarks b2 WHERE b2.status_id=s.id AND b2.account_id=?)
+			OR EXISTS(SELECT 1 FROM mentions m2 WHERE m2.status_id=s.id AND m2.account_id=?)
+			OR EXISTS(SELECT 1 FROM statuses rb WHERE rb.boost_of_id=s.id AND rb.account_id=?))`
 	if v == nil {
 		if sq.Library {
 			return "", nil, false
 		}
-		conds = append(conds, `s.visibility IN ('public','unlisted')`)
+		conds = append(conds, `s.visibility IN ('public','unlisted') AND a.indexable=1`)
 	} else if sq.Library {
-		conds = append(conds, `(s.account_id=? OR EXISTS(SELECT 1 FROM likes l WHERE l.status_id=s.id AND l.account_id=?)
-			OR EXISTS(SELECT 1 FROM bookmarks b2 WHERE b2.status_id=s.id AND b2.account_id=?)
-			OR EXISTS(SELECT 1 FROM mentions m2 WHERE m2.status_id=s.id AND m2.account_id=?)
-			OR EXISTS(SELECT 1 FROM statuses rb WHERE rb.boost_of_id=s.id AND rb.account_id=?))`)
+		conds = append(conds, library)
 		args = append(args, v.ID, v.ID, v.ID, v.ID, v.ID)
 	} else {
-		conds = append(conds, `(s.visibility IN ('public','unlisted') OR s.account_id=?)`)
-		args = append(args, v.ID)
+		conds = append(conds, `((s.visibility IN ('public','unlisted') AND a.indexable=1) OR `+library+`)`)
+		args = append(args, v.ID, v.ID, v.ID, v.ID, v.ID)
 	}
 	return strings.Join(conds, " AND "), args, true
 }

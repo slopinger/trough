@@ -46,6 +46,8 @@ type Account struct {
 	AttributionDomains                 []string // websites that may credit the account as author
 	Discoverable                       bool     // listed in the profile directory and suggestions
 	HideCollections                    bool     // followers and follows are only shown as counts
+	Indexable                          bool     // public posts may be found by full-text search (toot:indexable)
+	NoIndex                            bool     // local: asks search engines not to index the profile and posts
 }
 
 func (a *Account) IsLocal() bool { return a.Domain == "" }
@@ -79,7 +81,7 @@ func (a *Account) DeliveryInbox() string {
 const accountCols = `a.id,a.username,a.domain,a.uri,a.url,a.display_name,a.note,a.note_source,a.avatar,a.header,
 a.inbox,a.shared_inbox,a.outbox,a.followers_uri,a.following_uri,a.public_key_id,a.public_key,a.private_key,
 a.actor_type,a.locked,a.fields,a.emojis,a.created_at,a.fetched_at,a.suspended,a.featured_uri,a.also_known_as,a.moved_to,
-a.attribution_domains,a.discoverable,a.hide_collections`
+a.attribution_domains,a.discoverable,a.hide_collections,a.indexable,a.noindex`
 
 type scanner interface{ Scan(...any) error }
 
@@ -89,7 +91,7 @@ func scanAccount(r scanner) (*Account, error) {
 	var created, fetched int64
 	err := r.Scan(&a.ID, &a.Username, &a.Domain, &a.URI, &a.URL, &a.DisplayName, &a.Note, &a.NoteSource, &a.Avatar, &a.Header,
 		&a.Inbox, &a.SharedInbox, &a.Outbox, &a.FollowersURI, &a.FollowingURI, &a.PublicKeyID, &a.PublicKey, &a.PrivateKey,
-		&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &a.Discoverable, &a.HideCollections)
+		&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &a.Discoverable, &a.HideCollections, &a.Indexable, &a.NoIndex)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errNotFound
 	}
@@ -166,8 +168,8 @@ func (app *App) saveAccount(a *Account) error {
 		a.CreatedAt = time.Now()
 	}
 	_, err := app.db.Exec(`INSERT INTO accounts (id,username,domain,uri,url,display_name,note,note_source,avatar,header,
-		inbox,shared_inbox,outbox,followers_uri,following_uri,public_key_id,public_key,private_key,actor_type,locked,fields,emojis,created_at,fetched_at,suspended,featured_uri,also_known_as,moved_to,attribution_domains,discoverable,hide_collections)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+		inbox,shared_inbox,outbox,followers_uri,following_uri,public_key_id,public_key,private_key,actor_type,locked,fields,emojis,created_at,fetched_at,suspended,featured_uri,also_known_as,moved_to,attribution_domains,discoverable,hide_collections,indexable,noindex)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 		ON CONFLICT(id) DO UPDATE SET username=excluded.username, url=excluded.url, display_name=excluded.display_name,
 		note=excluded.note, note_source=excluded.note_source, avatar=excluded.avatar, header=excluded.header, inbox=excluded.inbox,
 		shared_inbox=excluded.shared_inbox, outbox=excluded.outbox, followers_uri=excluded.followers_uri,
@@ -175,11 +177,11 @@ func (app *App) saveAccount(a *Account) error {
 		actor_type=excluded.actor_type, locked=excluded.locked, fields=excluded.fields, emojis=excluded.emojis,
 		fetched_at=excluded.fetched_at, suspended=MAX(accounts.suspended, excluded.suspended), featured_uri=excluded.featured_uri,
 		also_known_as=excluded.also_known_as, moved_to=excluded.moved_to, attribution_domains=excluded.attribution_domains, discoverable=excluded.discoverable,
-		hide_collections=excluded.hide_collections`,
+		hide_collections=excluded.hide_collections, indexable=excluded.indexable, noindex=excluded.noindex`,
 		a.ID, a.Username, a.Domain, a.URI, a.URL, a.DisplayName, a.Note, a.NoteSource, a.Avatar, a.Header,
 		a.Inbox, a.SharedInbox, a.Outbox, a.FollowersURI, a.FollowingURI, a.PublicKeyID, a.PublicKey, a.PrivateKey,
 		a.ActorType, a.Locked, string(fields), string(emojis), a.CreatedAt.Unix(), a.FetchedAt.Unix(), a.Suspended,
-		a.FeaturedURI, string(aka), a.MovedTo, string(attr), a.Discoverable, a.HideCollections)
+		a.FeaturedURI, string(aka), a.MovedTo, string(attr), a.Discoverable, a.HideCollections, a.Indexable, a.NoIndex)
 	return err
 }
 
@@ -203,7 +205,7 @@ func (app *App) ListUsers() ([]*User, error) {
 		var created, fetched, seen int64
 		if err := rows.Scan(&a.ID, &a.Username, &a.Domain, &a.URI, &a.URL, &a.DisplayName, &a.Note, &a.NoteSource, &a.Avatar, &a.Header,
 			&a.Inbox, &a.SharedInbox, &a.Outbox, &a.FollowersURI, &a.FollowingURI, &a.PublicKeyID, &a.PublicKey, &a.PrivateKey,
-			&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &a.Discoverable, &a.HideCollections, &u.Admin, &seen); err != nil {
+			&a.ActorType, &a.Locked, &fields, &emojis, &created, &fetched, &a.Suspended, &a.FeaturedURI, &aka, &a.MovedTo, &attr, &a.Discoverable, &a.HideCollections, &a.Indexable, &a.NoIndex, &u.Admin, &seen); err != nil {
 			return nil, err
 		}
 		a.CreatedAt = time.Unix(created, 0)

@@ -77,6 +77,8 @@ func (app *App) handleSettingsProfile(w http.ResponseWriter, r *http.Request, p 
 	me.Locked = r.FormValue("locked") != ""
 	me.Discoverable = r.FormValue("discoverable") != ""
 	me.HideCollections = r.FormValue("hide_collections") != ""
+	me.Indexable = r.FormValue("indexable") != ""
+	me.NoIndex = r.FormValue("noindex") != ""
 	if r.FormValue("bot") != "" {
 		me.ActorType = "Service"
 	} else {

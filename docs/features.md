@@ -207,7 +207,11 @@
   `-word`, `from:me`/`from:user@host`, `has:media|image|video|audio|poll|link`, `is:reply|sensitive`, `language:`,
   `before:`/`after:`/`during:` dates and `in:library` (posts you wrote, favourited, boosted, bookmarked or were
   mentioned in); any operator can be negated with `-`. Text matches content, content warnings and media
-  descriptions. Without `in:library` only public posts and your own are searched.
+  descriptions. Like Mastodon 4.2, public posts are only searchable when their author opted in (`indexable`;
+  remote actors' flag is kept, local users choose in Settings or `update_credentials`), plus everything you wrote
+  or interacted with; `in:library` limits it to the latter
+- Search engines: "Ask search engines not to index my profile and posts" (Settings, Mastodon's `noindex`) adds a
+  robots `noindex, noarchive` meta tag and `X-Robots-Tag` header to that person's profile and post pages
 - Drafts: unsent text, content warning and visibility are saved in the browser as you type (per account, and
   separately for a new post, each reply and each quote) and offered again with a "Discard" link; a draft is
   forgotten once the post went through. Nothing is stored on the server.
